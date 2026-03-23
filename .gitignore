@@ -1,0 +1,55 @@
+# ========================================
+# 辅助工具（不提交）
+# ========================================
+
+# RAG 系统数据
+.tools/rag/data/chromadb/
+.tools/rag/data/json/
+.tools/rag/data/json_backup/
+.tools/rag/.env
+.tools/rag/__pycache__/
+.tools/rag/**/__pycache__/
+.tools/rag/*.pyc
+.tools/rag/.venv/
+.tools/rag/libs/
+
+# WPS 调试系统
+.tools/wps-debug/logs/
+.tools/wps-debug/.claude/
+.tools/wps-debug/__pycache__/
+
+# ========================================
+# 调研资料（可选提交）
+# ========================================
+
+# 参考项目（体积大）
+# research/references/
+
+# ========================================
+# 通用忽略
+# ========================================
+
+# 系统文件
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 临时文件
+*.tmp
+*.temp
+*.log
+
+# 备份文件
+*.bak
+*~
+
+# 压缩包
+*.zip
+*.tar.gz
+*.rar
