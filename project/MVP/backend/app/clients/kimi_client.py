@@ -1,6 +1,6 @@
 """Kimi Coding API 客户端.
 
-支持 VLM 图片描述和 LLM 问答/改写。
+实现 VLMClient 和 LLMClient 抽象接口。
 必须伪装 User-Agent: claude-code 才能正常使用。
 """
 
@@ -12,6 +12,7 @@ from pathlib import Path
 import httpx
 from pydantic import BaseModel
 
+from app.clients.vlm_client import LLMClient, VLMClient
 from app.core.config import get_settings
 
 settings = get_settings()
@@ -68,6 +69,118 @@ class ChatResponse(BaseModel):
     content: str
 
 
+class KimiVLMClient(VLMClient):
+    """Kimi VLM 客户端实现."""
+
+    async def describe_image(
+        self,
+        image_path: Path,
+        prompt: str = _VLM_PROMPT,
+        max_tokens: int = 1024,
+    ) -> str:
+        """异步调用 Kimi VLM 描述图片.
+
+        Args:
+            image_path: 图片路径
+            prompt: 提示词
+            max_tokens: 最大输出 token
+
+        Returns:
+            图片描述文本
+        """
+        return await describe_image_async(image_path, prompt, max_tokens)
+
+    def describe_image_sync(
+        self,
+        image_path: Path,
+        prompt: str = _VLM_PROMPT,
+        max_tokens: int = 1024,
+    ) -> str:
+        """同步调用 Kimi VLM 描述图片.
+
+        Args:
+            image_path: 图片路径
+            prompt: 提示词
+            max_tokens: 最大输出 token
+
+        Returns:
+            图片描述文本
+        """
+        return describe_image(image_path, prompt, max_tokens)
+
+
+class KimiLLMClient(LLMClient):
+    """Kimi LLM 客户端实现."""
+
+    async def chat(
+        self,
+        messages: list[dict],
+        max_tokens: int = 2048,
+        temperature: float = 0.7,
+    ) -> str:
+        """异步聊天对话.
+
+        Args:
+            messages: 消息列表
+            max_tokens: 最大输出 token
+            temperature: 温度参数
+
+        Returns:
+            响应文本
+        """
+        return await chat_async(
+            [Message(**m) for m in messages],
+            max_tokens=max_tokens,
+            temperature=temperature,
+        )
+
+    async def chat_stream(
+        self,
+        messages: list[dict],
+        max_tokens: int = 2048,
+        temperature: float = 0.7,
+    ):
+        """流式聊天对话（模拟）.
+
+        Args:
+            messages: 消息列表
+            max_tokens: 最大输出 token
+            temperature: 温度参数
+
+        Yields:
+            文本片段
+        """
+        response = await self.chat(messages, max_tokens, temperature)
+
+        # 模拟分块输出
+        chunk_size = 50
+        for i in range(0, len(response), chunk_size):
+            yield response[i : i + chunk_size]
+
+    def chat_sync(
+        self,
+        messages: list[dict],
+        max_tokens: int = 2048,
+        temperature: float = 0.7,
+    ) -> str:
+        """同步聊天对话.
+
+        Args:
+            messages: 消息列表
+            max_tokens: 最大输出 token
+            temperature: 温度参数
+
+        Returns:
+            响应文本
+        """
+        return chat(
+            [Message(**m) for m in messages],
+            max_tokens=max_tokens,
+            temperature=temperature,
+        )
+
+
+# 便捷函数
 async def describe_image_async(
     image_path: Path,
     prompt: str = _VLM_PROMPT,

@@ -1,6 +1,7 @@
 """VLM 图片描述服务.
 
 为图片类 Chunk 生成结构化文本描述，支持并发请求和缓存。
+使用抽象 VLMClient 接口，可替换实现。
 """
 
 from __future__ import annotations
@@ -9,7 +10,8 @@ import asyncio
 import json
 from pathlib import Path
 
-from app.clients.kimi_client import describe_image_async
+from app.clients.vlm_client import VLMClient
+from app.clients.kimi_client import KimiVLMClient
 from app.core.config import get_settings
 from app.models.base import Chunk
 
@@ -41,17 +43,23 @@ def _save_cache(paper_dir: Path, cache: dict[str, str]) -> None:
 
 
 async def describe_chunks_async(
-    paper_dir: Path, chunks: list[Chunk]
+    paper_dir: Path,
+    chunks: list[Chunk],
+    vlm_client: VLMClient | None = None,
 ) -> list[Chunk]:
     """异步为图片类 Chunk 生成 VLM 描述.
 
     Args:
         paper_dir: 论文目录（用于缓存）
         chunks: Chunk 列表
+        vlm_client: VLM 客户端（默认使用 KimiVLMClient）
 
     Returns:
         更新后的 Chunk 列表（content 包含图片描述）
     """
+    if vlm_client is None:
+        vlm_client = KimiVLMClient()
+
     cache = _load_cache(paper_dir)
 
     # 收集需要描述的图片
@@ -73,7 +81,7 @@ async def describe_chunks_async(
         async def _describe_one(index: int, chunk: Chunk) -> tuple[int, str, str]:
             abs_path = paper_dir / chunk.image_path
             try:
-                description = await describe_image_async(abs_path)
+                description = await vlm_client.describe_image(abs_path)
                 return index, str(chunk.image_path), description
             except Exception as e:
                 print(f"[WARN] VLM failed for {chunk.image_path}: {e}")
@@ -130,14 +138,19 @@ async def describe_chunks_async(
     return result
 
 
-def describe_chunks(paper_dir: Path, chunks: list[Chunk]) -> list[Chunk]:
+def describe_chunks(
+    paper_dir: Path,
+    chunks: list[Chunk],
+    vlm_client: VLMClient | None = None,
+) -> list[Chunk]:
     """同步为图片类 Chunk 生成 VLM 描述.
 
     Args:
         paper_dir: 论文目录
         chunks: Chunk 列表
+        vlm_client: VLM 客户端（默认使用 KimiVLMClient）
 
     Returns:
         更新后的 Chunk 列表
     """
-    return asyncio.run(describe_chunks_async(paper_dir, chunks))
+    return asyncio.run(describe_chunks_async(paper_dir, chunks, vlm_client))
