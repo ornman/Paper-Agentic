@@ -160,6 +160,6 @@ async def process_image(vlm_client: VLMClient):
     return await vlm_client.describe_image(path)
 ```
 
-## License
+---
 
-MIT
+> 本项目为私有项目，保留所有权利。
