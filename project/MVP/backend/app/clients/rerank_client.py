@@ -1,27 +1,33 @@
-# Reranker 客户端
+# Rerank 客户端（硅基流动实现）
 # 调用硅基流动 Qwen3-Reranker-8B
+from __future__ import annotations
+
 import httpx
-from typing import List
+
+from app.clients.vlm_client import RerankClient as RerankClientBase
 from app.core.config import get_settings
 
 
-class RerankClient:
-    """Reranker 客户端，调用硅基流动 API"""
+class RerankClient(RerankClientBase):
+    """硅基流动 Rerank 客户端实现.
+
+    实现 RerankClientBase 抽象接口。
+    可替换为其他实现（Cohere、Jina 等）。
+    """
 
     def __init__(self):
         settings = get_settings()
-        self._api_key = settings.rerank_api_key
-        self._base_url = settings.rerank_base_url
+        self._api_key = settings.siliconflow_api_key
+        self._base_url = f"{settings.siliconflow_base_url.rstrip('/')}/rerank"
         self._model = settings.rerank_model
 
     async def rerank(
         self,
         query: str,
-        documents: List[str],
+        documents: list[str],
         top_k: int = 10,
     ) -> list[tuple[int, float]]:
-        """
-        重排序文档
+        """重排序文档.
 
         Args:
             query: 查询文本

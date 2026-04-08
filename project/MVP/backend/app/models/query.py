@@ -11,10 +11,42 @@ class QueryContext(BaseModel):
 
 
 class AskRequest(BaseModel):
-    """问答请求"""
+    """问答请求
+
+    ═════════════════════════════════════════════════════════════════════
+    🔮 未来扩展：用户自选文献功能
+    ═════════════════════════════════════════════════════════════════════
+
+    前端通过 resource_types 和 selected_papers 控制检索范围：
+
+    示例请求：
+    {
+        "session_id": "xxx",
+        "query": "Transformer 的核心机制是什么？",
+        "resource_types": ["paper"],           # 只检索论文
+        "selected_papers": ["paper_abc123"]   # 只检索指定论文
+    }
+
+    UI 示例：
+    ┌─────────────────────────────────────────┐
+    │  📚 选择要参考的文献                     │
+    │  ☑ 论文1: Attention Is All You Need     │
+    │  ☐ 论文2: BERT: Pre-training of Deep... │
+    │  ─────────────────────────────────────  │
+    │  [已选 1 篇]  [清空选择]                 │
+    └─────────────────────────────────────────┘
+    """
     session_id: str
     query: str
     context: Optional[QueryContext] = None
+
+    # 🔮 未来扩展：用户自选数据类型
+    resource_types: Optional[list[str]] = None
+    # 示例: ["paper", "video", "note"]
+
+    # 🔮 未来扩展：用户自选文献
+    selected_papers: Optional[list[str]] = None
+    # 示例: ["paper_abc123", "note_xyz456"]
 
 
 class SourceItem(BaseModel):
@@ -49,9 +81,22 @@ class StreamError(BaseModel):
 
 
 class RetrieveRequest(BaseModel):
-    """纯检索请求"""
+    """纯检索请求
+
+    ═════════════════════════════════════════════════════════════════════
+    🔮 未来扩展：用户自选文献功能
+    ═════════════════════════════════════════════════════════════════════
+
+    前端通过 resource_types 和 selected_papers 控制检索范围。
+    """
     query: str
     top_k: int = 10
+
+    # 🔮 未来扩展：用户自选数据类型
+    resource_types: Optional[list[str]] = None
+
+    # 🔮 未来扩展：用户自选文献
+    selected_papers: Optional[list[str]] = None
 
 
 class RetrieveResult(BaseModel):

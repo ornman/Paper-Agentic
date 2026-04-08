@@ -74,6 +74,8 @@ async def ask_stream_with_rag(
     query: str,
     use_rag: bool = True,
     llm_client: LLMClient | None = None,
+    resource_types: list[str] | None = None,
+    selected_papers: list[str] | None = None,
 ) -> AsyncGenerator[dict, None]:
     """流式问答（带 RAG + Query 改写）.
 
@@ -82,12 +84,40 @@ async def ask_stream_with_rag(
         query: 用户问题
         use_rag: 是否使用 RAG
         llm_client: LLM 客户端（默认使用 KimiLLMClient）
+        resource_types: 资源类型过滤（未来扩展：用户自选数据类型）
+        selected_papers: 用户选择的论文 ID（未来扩展：用户自选文献）
 
     Yields:
         {"type": "chunk", "data": {"content": str, "index": int}}
         {"type": "sources", "data": {"sources": [...]}}
         {"type": "rewrite", "data": {"original": str, "rewritten": [str, ...]}}
         {"type": "done", "data": {"total_tokens": int}}
+
+    ═════════════════════════════════════════════════════════════════════
+    🔮 未来扩展：用户自选文献功能
+    ═════════════════════════════════════════════════════════════════════
+
+    前端交互流程：
+    1. 用户提问前，展示文献列表（论文、笔记、视频等）
+    2. 用户勾选要参考的文献
+    3. 前端传递 selected_papers = ["paper_abc", "note_xyz"]
+    4. 后端只在选中的范围内检索
+
+    产品价值：
+    - 提高准确性：用户知道答案在哪些文献里
+    - 增强掌控感：用户主动选择，而非被动接受
+    - 减少干扰：排除不相关的文献
+    - 提升黏性：用户参与决策过程
+
+    示例前端 UI：
+    ┌─────────────────────────────────────────┐
+    │  📚 选择要参考的文献                     │
+    │  ☑ 论文1: Deep Learning for NLP         │
+    │  ☐ 论文2: Attention Is All You Need     │
+    │  ☑ 笔记: 我的灵感整理                   │
+    │  ─────────────────────────────────────  │
+    │  [已选 2 篇]  [清空选择]                 │
+    └─────────────────────────────────────────┘
     """
     if llm_client is None:
         llm_client = KimiLLMClient()
@@ -121,6 +151,8 @@ async def ask_stream_with_rag(
             retrieval_result = await retrieval_service.retrieve(
                 rewritten_queries[0],
                 top_k=10,
+                resource_types=resource_types,
+                selected_papers=selected_papers,
             )
             sources = retrieval_result["results"]
         except Exception as e:

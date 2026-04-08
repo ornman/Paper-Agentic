@@ -1,6 +1,6 @@
-"""VLM（视觉语言模型）客户端抽象接口.
+"""VLM/LLM/Embedding/Rerank 客户端抽象接口.
 
-支持多种实现：Kimi、OpenAI、Azure 等。
+支持多种实现：Kimi、OpenAI、Azure、硅基流动等。
 """
 
 from __future__ import annotations
@@ -110,5 +110,74 @@ class LLMClient(ABC):
 
         Returns:
             响应文本
+        """
+        ...
+
+
+class EmbeddingClient(ABC):
+    """Embedding 客户端抽象接口."""
+
+    @abstractmethod
+    async def embed(
+        self,
+        texts: list[str],
+    ) -> list[list[float]]:
+        """批量嵌入文本.
+
+        Args:
+            texts: 待嵌入的文本列表
+
+        Returns:
+            嵌入向量列表，顺序与输入一致
+        """
+        ...
+
+    @abstractmethod
+    async def embed_single(
+        self,
+        text: str,
+    ) -> list[float]:
+        """单文本嵌入.
+
+        Args:
+            text: 待嵌入文本
+
+        Returns:
+            嵌入向量
+        """
+        ...
+
+    @property
+    @abstractmethod
+    def dimensions(self) -> int:
+        """向量维度."""
+        ...
+
+    @property
+    @abstractmethod
+    def model_name(self) -> str:
+        """模型名称."""
+        ...
+
+
+class RerankClient(ABC):
+    """Rerank 客户端抽象接口."""
+
+    @abstractmethod
+    async def rerank(
+        self,
+        query: str,
+        documents: list[str],
+        top_k: int = 10,
+    ) -> list[tuple[int, float]]:
+        """重排序文档.
+
+        Args:
+            query: 查询文本
+            documents: 文档列表
+            top_k: 返回数量
+
+        Returns:
+            [(document_index, relevance_score), ...]
         """
         ...

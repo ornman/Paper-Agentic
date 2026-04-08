@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -91,11 +92,25 @@ async def get_paper(paper_id: str):
 
 @router.delete("/papers/{paper_id}", response_model=ApiResponse)
 async def delete_paper(paper_id: str):
-    """删除论文."""
+    """删除论文（包括 Qdrant collection 和文件系统数据）.
+
+    删除内容：
+    1. Qdrant 向量库中的 collection
+    2. 文件系统中的论文数据目录（MinerU 解析结果、图片、缓存等）
+    """
     store = _get_store()
+
+    # 1. 删除 Qdrant collection
     store.delete_paper(paper_id)
 
-    return ApiResponse(message="删除成功")
+    # 2. 删除文件系统中的论文数据
+    # MinerU 解析结果通常存储在 data/papers/ 目录下
+    papers_dir = Path(settings.sqlite_db_path).parent / "papers" / paper_id
+
+    if papers_dir.exists():
+        shutil.rmtree(papers_dir)
+
+    return ApiResponse(message=f"论文 {paper_id} 已删除")
 
 
 @router.get("/status", response_model=ApiResponse)
