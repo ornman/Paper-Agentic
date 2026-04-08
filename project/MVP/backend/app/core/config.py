@@ -105,23 +105,82 @@ class Settings(BaseSettings):
     )
 
     # ============ MinerU 配置 ============
-    # 这里只保留占位与基础调度参数，后续任务再接真正链路。
     mineru_api_key: str = Field(default="", description="MinerU API Key")
     mineru_base_url: str = Field(
-        default="https://mineru.net/api/v4",
+        default="https://mineru.net/api/v1",
         description="MinerU API Base URL",
     )
     mineru_poll_interval: int = Field(default=5, ge=1, description="MinerU 轮询间隔（秒）")
     mineru_timeout: int = Field(default=300, ge=1, description="MinerU 最大等待时间（秒）")
 
-    # ============ ChromaDB 配置 ============
-    chroma_persist_dir: str = Field(
-        default="./data/chroma",
-        description="ChromaDB 本地持久化路径",
+    # ============ Kimi Coding API 配置 ============
+    # 用于 VLM 图片描述和 LLM 问答/改写
+    # 必须伪装 User-Agent: claude-code
+    kimi_api_key: str = Field(
+        default="",
+        description="Kimi Coding API Key",
+        validation_alias=AliasChoices(
+            "kimi_api_key",
+            "KIMI_API_KEY",
+        ),
     )
-    chroma_collection_name: str = Field(
-        default="papers",
-        description="ChromaDB 集合名称",
+    kimi_base_url: str = Field(
+        default="https://api.kimi.com/coding/v1",
+        description="Kimi Coding API Base URL",
+        validation_alias=AliasChoices(
+            "kimi_base_url",
+            "KIMI_BASE_URL",
+        ),
+    )
+    kimi_vlm_model: str = Field(
+        default="kimi-for-coding",
+        description="Kimi VLM 模型（图片描述）",
+    )
+    kimi_chat_model: str = Field(
+        default="kimi-for-coding",
+        description="Kimi Chat 模型（问答/改写）",
+    )
+    kimi_vlm_concurrency: int = Field(
+        default=10,
+        ge=1,
+        description="VLM 并发请求数",
+    )
+
+    # ============ Qdrant 配置 ============
+    qdrant_path: str = Field(
+        default="./data/qdrant",
+        description="Qdrant 本地存储路径",
+    )
+    qdrant_url: str = Field(
+        default="",
+        description="Qdrant 远程服务 URL（可选）",
+    )
+    qdrant_api_key: str = Field(
+        default="",
+        description="Qdrant API Key（远程时需要）",
+    )
+
+    # ============ 文本切分策略配置 ============
+    # 混合切分策略参数
+    chunk_max_context: int = Field(
+        default=32000,
+        ge=1,
+        description="Embedding 模型最大上下文（token）",
+    )
+    chunk_target_size: int = Field(
+        default=24000,
+        ge=1,
+        description="目标切分大小（token）",
+    )
+    chunk_overlap_buffer: int = Field(
+        default=8000,
+        ge=0,
+        description="首尾重叠缓冲（token）",
+    )
+    chunk_pack_threshold: int = Field(
+        default=32000,
+        ge=1,
+        description="两个语义块打包阈值（token）",
     )
 
     # ============ BM25 配置 ============
