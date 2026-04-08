@@ -1,0 +1,104 @@
+/* 全局重置：Task 1 只建立视觉基线，不改任何组件语义。
+ *
+ * 设计原则：
+ * 1. 先把“整个产品像不像成熟办公工具”这个一阶问题解决；
+ * 2. 不通过花哨效果制造高级感，而是通过层级、留白、边界、字体节奏建立可信度；
+ * 3. 这里只动全局地基，Task 2+ 再进入具体组件表现。
+ */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#app {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  min-height: 100vh;
+}
+
+html {
+  background: #ffffff;
+}
+
+body {
+  font-family: var(--font-family-base);
+  background: #ffffff;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-body);
+  line-height: 1.5;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html,
+body,
+#app,
+#app * {
+  cursor: default;
+}
+
+#app .resize-hotspot,
+#app .resize-hotspot * {
+  cursor: col-resize;
+}
+
+#app {
+  background: #ffffff;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  background: transparent;
+}
+
+/* 焦点态：保留办公产品该有的可达性，但避免浏览器默认蓝框过于生硬。 */
+*:focus-visible {
+  outline: 2px solid rgba(37, 99, 235, 0.72);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+::selection {
+  background: rgba(37, 99, 235, 0.16);
+  color: var(--color-text-primary);
+}
+
+/* 滚动条：更细、更轻，减少在窄侧边栏中的噪音。 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  transition: background 120ms ease;
+}
+
+*:hover::-webkit-scrollbar-thumb {
+  background: rgba(166, 162, 154, 0.34);
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(140, 135, 126, 0.48);
+  background-clip: padding-box;
+}

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<oaddin xmlns="http://www.wps.cn/office/addins/1.0">
+    <id>com.thesis.ui-prototype</id>
+    <name>论文写作助手 - UI演示版</name>
+    <version>1.0.0</version>
+    <provider>Thesis Assistant Team</provider>
+    <description>基于私有文献知识库的论文写作辅助工具 - UI演示版</description>
+    <defaultLocale>zh-CN</defaultLocale>
+
+    <hosts>
+        <host name="wps" />
+    </hosts>
+
+    <resources>
+        <ribbon>wps-plugin/ribbon.xml</ribbon>
+        <page>wps-plugin/main.html</page>
+    </resources>
+</oaddin>

@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    container_name: thesis-assistant-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - LLM_API_KEY=${LLM_API_KEY}
+      - LLM_BASE_URL=${LLM_BASE_URL:-https://api.deepseek.com}
+      - LLM_MODEL=${LLM_MODEL:-deepseek-chat}
+      - EMBEDDING_API_KEY=${EMBEDDING_API_KEY}
+      - RERANK_API_KEY=${RERANK_API_KEY}
+    volumes:
+      - ./data:/app/data  # 持久化数据库和向量索引
+    restart: unless-stopped
+
+  # 前端暂不容器化（WPS 插件需要本地部署）
+  # frontend:
+  #   build: ./frontend
+  #   ports:
+  #     - "5173:80"
