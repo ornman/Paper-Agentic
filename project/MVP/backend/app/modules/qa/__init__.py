@@ -1,2 +1,4 @@
 # qa 模块包入口
-# 后续任务会在这里补充问答提示词、流式输出与回答编排。
+from app.modules.qa.service import QAService
+
+__all__ = ["QAService"]

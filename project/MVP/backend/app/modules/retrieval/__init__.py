@@ -1,2 +1,4 @@
 # retrieval 模块包入口
-# 后续任务会在这里补充检索改写、混合召回与重排逻辑。
+from app.modules.retrieval.service import RetrievalService
+
+__all__ = ["RetrievalService"]

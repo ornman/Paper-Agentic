@@ -6,6 +6,7 @@ import httpx
 
 from app.clients.vlm_client import RerankClient as RerankClientBase
 from app.core.config import get_settings
+from app.core.retry import retry_async
 
 
 class RerankClient(RerankClientBase):
@@ -20,14 +21,16 @@ class RerankClient(RerankClientBase):
         self._api_key = settings.siliconflow_api_key
         self._base_url = f"{settings.siliconflow_base_url.rstrip('/')}/rerank"
         self._model = settings.rerank_model
+        self._timeout = settings.siliconflow_timeout
 
+    @retry_async(max_retries=3)
     async def rerank(
         self,
         query: str,
         documents: list[str],
         top_k: int = 10,
     ) -> list[tuple[int, float]]:
-        """重排序文档.
+        """重排序文档（带重试）.
 
         Args:
             query: 查询文本
@@ -40,7 +43,7 @@ class RerankClient(RerankClientBase):
         if not documents:
             return []
 
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        async with httpx.AsyncClient(timeout=self._timeout) as client:
             response = await client.post(
                 self._base_url,
                 headers={

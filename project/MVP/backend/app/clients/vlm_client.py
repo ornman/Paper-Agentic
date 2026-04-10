@@ -17,14 +17,14 @@ class VLMClient(ABC):
     @abstractmethod
     async def describe_image(
         self,
-        image_path: Path,
+        image_path: Path | str,
         prompt: str = "请描述这张图片",
         max_tokens: int = 1024,
     ) -> str:
         """描述图片内容.
 
         Args:
-            image_path: 图片路径
+            image_path: 图片路径（Path对象或字符串）
             prompt: 提示词
             max_tokens: 最大输出 token
 
@@ -36,14 +36,14 @@ class VLMClient(ABC):
     @abstractmethod
     def describe_image_sync(
         self,
-        image_path: Path,
+        image_path: Path | str,
         prompt: str = "请描述这张图片",
         max_tokens: int = 1024,
     ) -> str:
         """同步描述图片内容.
 
         Args:
-            image_path: 图片路径
+            image_path: 图片路径（Path对象或字符串）
             prompt: 提示词
             max_tokens: 最大输出 token
 

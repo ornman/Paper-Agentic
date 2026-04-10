@@ -1,8 +1,22 @@
 # 统一 API 响应模型和基础数据结构
 from typing import Generic, TypeVar, Optional
 from pydantic import BaseModel
+from dataclasses import dataclass, field
 
 T = TypeVar("T")
+
+
+@dataclass
+class Chunk:
+    """文本块数据结构."""
+    id: str
+    paper: str
+    chunk_type: str  # "text" or "image"
+    content: str
+    section: str = ""
+    page: int = 0
+    image_path: Optional[str] = None
+    metadata: dict = field(default_factory=dict)
 
 
 class ApiResponse(BaseModel, Generic[T]):

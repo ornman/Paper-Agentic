@@ -1,8 +1,15 @@
 # FastAPI 应用入口
+import logging
+
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.router import api_router
+from app.core.logging_config import setup_logging
+
+# 设置日志系统
+logger = setup_logging()
+logger.info("论文助手正在启动...")
 
 app = FastAPI(
     title="论文写作助手 API",

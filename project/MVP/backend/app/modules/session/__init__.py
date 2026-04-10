@@ -1,2 +1,4 @@
 # session 模块包入口
-# 后续任务会在这里补充会话相关模型、服务与持久化逻辑。
+from app.modules.session.service import SessionService
+
+__all__ = ["SessionService"]

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Any
+from uuid import uuid5, NAMESPACE_DNS
 
 from qdrant_client import QdrantClient
 from qdrant_client.models import (
@@ -16,6 +17,7 @@ from qdrant_client.models import (
     Filter,
     FieldCondition,
     MatchValue,
+    HnswConfigDiff,
 )
 
 from app.core.config import get_settings
@@ -89,12 +91,22 @@ class QdrantStore:
                 )
             return
 
-        # 创建新 collection
+        # 创建新 collection（使用内存优化配置）
+        # 降低内存占用的策略：
+        # 1. m: 每个向量连接的最大节点数（默认 16，降低到 12）
+        # 2. ef_construct: 构建索引时的搜索范围（默认 100，降低到 64）
+        # 3. full_scan_threshold: 全扫描阈值（默认 10000，降低到 5000）
+        # 这些参数可在配置文件中调整
         self.client.create_collection(
             collection_name=collection_name,
             vectors_config=VectorParams(
                 size=vector_size,
                 distance=Distance.COSINE,
+                hnsw_config=HnswConfigDiff(
+                    m=settings.qdrant_hnsw_m,
+                    ef_construct=settings.qdrant_hnsw_ef_construct,
+                    full_scan_threshold=settings.qdrant_full_scan_threshold,
+                ),
             ),
         )
 
@@ -123,7 +135,7 @@ class QdrantStore:
         # 构建点
         points = [
             PointStruct(
-                id=chunk.id,
+                id=uuid5(NAMESPACE_DNS, chunk.id),
                 vector=embedding,
                 payload={
                     "content": chunk.content,
@@ -132,6 +144,8 @@ class QdrantStore:
                     "image_path": chunk.image_path or "",
                     "chunk_type": chunk.chunk_type,
                     "paper": chunk.paper,
+                    # 保存原始 ID 以便后续查找
+                    "original_id": chunk.id,
                 },
             )
             for chunk, embedding in zip(chunks, embeddings)

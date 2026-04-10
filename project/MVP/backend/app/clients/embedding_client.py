@@ -7,6 +7,7 @@ import httpx
 from app.clients.vlm_client import EmbeddingClient as EmbeddingClientBase
 from app.core.errors import IndexingError
 from app.core.config import get_settings
+from app.core.retry import retry_async
 
 
 class EmbeddingClient(EmbeddingClientBase):
@@ -23,12 +24,14 @@ class EmbeddingClient(EmbeddingClientBase):
         self._model = settings.embedding_model
         self._batch_size = settings.embedding_batch_size
         self._dimension = settings.embedding_dimensions
+        self._timeout = settings.siliconflow_timeout
 
+    @retry_async(max_retries=3)
     async def embed(
         self,
         texts: list[str],
     ) -> list[list[float]]:
-        """批量嵌入文本，内部自动分批处理.
+        """批量嵌入文本，内部自动分批处理（带重试）.
 
         Args:
             texts: 待嵌入的文本列表
@@ -81,7 +84,7 @@ class EmbeddingClient(EmbeddingClientBase):
         Returns:
             嵌入向量列表
         """
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        async with httpx.AsyncClient(timeout=self._timeout) as client:
             response = await client.post(
                 f"{self._base_url}/embeddings",
                 headers={

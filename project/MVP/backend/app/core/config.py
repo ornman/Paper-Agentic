@@ -13,6 +13,27 @@ PINNED_RERANK_MODEL = "Qwen/Qwen3-Reranker-8B"
 
 
 class Settings(BaseSettings):
+    # ============ 环境配置 ============
+    environment: str = Field(
+        default="development",
+        description="运行环境：development, staging, production",
+        validation_alias=AliasChoices(
+            "environment",
+            "env",
+            "ENVIRONMENT",
+            "ENV",
+        ),
+    )
+    debug: bool = Field(
+        default=False,
+        description="调试模式（开发环境自动启用）",
+        validation_alias=AliasChoices(
+            "debug",
+            "DEBUG",
+            "app_debug",
+        ),
+    )
+
     # ============ DeepSeek 配置 ============
     # 主问答链路固定使用 DeepSeek 官方 API。
     deepseek_api_key: str = Field(
@@ -71,6 +92,12 @@ class Settings(BaseSettings):
             "SILICONFLOW_BASE_URL",
             "EMBEDDING_BASE_URL",
         ),
+    )
+    siliconflow_timeout: int = Field(
+        default=120,
+        ge=10,
+        le=600,
+        description="SiliconFlow API 超时时间（秒）",
     )
 
     # ============ Embedding / Rerank 固定契约 ============
@@ -159,6 +186,25 @@ class Settings(BaseSettings):
         default="",
         description="Qdrant API Key（远程时需要）",
     )
+    # 内存优化配置
+    qdrant_hnsw_m: int = Field(
+        default=12,
+        ge=4,
+        le=64,
+        description="HNSW m 参数（每个向量连接的最大节点数）",
+    )
+    qdrant_hnsw_ef_construct: int = Field(
+        default=64,
+        ge=10,
+        le=200,
+        description="HNSW ef_construct 参数（构建索引时的搜索范围）",
+    )
+    qdrant_full_scan_threshold: int = Field(
+        default=5000,
+        ge=1000,
+        le=50000,
+        description="全扫描阈值（小于此值直接全扫描）",
+    )
 
     # ============ 文本切分策略配置 ============
     # 混合切分策略参数
@@ -205,6 +251,27 @@ class Settings(BaseSettings):
     app_host: str = Field(default="127.0.0.1", description="服务监听地址")
     app_port: int = Field(default=8000, ge=1, le=65535, description="服务监听端口")
     app_debug: bool = Field(default=False, description="是否开启调试模式")
+
+    # ============ 环境特定配置 ============
+    @property
+    def is_development(self) -> bool:
+        """是否为开发环境."""
+        return self.environment in ("development", "dev")
+
+    @property
+    def is_production(self) -> bool:
+        """是否为生产环境."""
+        return self.environment in ("production", "prod")
+
+    @property
+    def is_staging(self) -> bool:
+        """是否为预发布环境."""
+        return self.environment in ("staging", "stage")
+
+    @property
+    def effective_debug(self) -> bool:
+        """有效的调试模式（环境为开发时自动启用）."""
+        return self.debug or self.is_development
 
     # BaseSettings 配置
     # populate_by_name 让字段名可直接用于测试与代码内构造。
@@ -275,5 +342,26 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
-    """获取配置单例（缓存），避免每次请求重复解析环境变量。"""
+    """获取配置单例（缓存），避免每次请求重复解析环境变量."""
     return Settings()
+
+
+def clear_settings_cache() -> None:
+    """清除配置缓存，强制重新加载配置.
+
+    使用场景：
+    - 环境变量动态变更后需要重新加载
+    - 测试中需要切换配置
+    - 配置文件变更后需要立即生效
+    """
+    get_settings.cache_clear()
+
+
+def reload_settings() -> Settings:
+    """重新加载配置并返回新实例.
+
+    Returns:
+        新的配置实例
+    """
+    clear_settings_cache()
+    return get_settings()

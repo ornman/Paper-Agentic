@@ -87,6 +87,44 @@ class LibraryService:
         )
         return self._get_ingestion_service().ingest_document(created_record)
 
+    def resume_import(
+        self,
+        document_id: str,
+    ) -> DocumentRecord:
+        """恢复失败的导入任务（断点续传）.
+
+        Args:
+            document_id: 文档 ID
+
+        Returns:
+            更新后的文档记录
+
+        Raises:
+            KeyError: 文档不存在
+            ValueError: 文档状态不允许恢复
+        """
+        record = self.get_document(document_id)
+
+        # 只允许从 failed 状态恢复
+        if record.status != "failed":
+            raise ValueError(
+                f"只能从 failed 状态恢复，当前状态: {record.status}"
+            )
+
+        # 重置到 pending 状态
+        pending_record = record.transition("pending")
+        updated_record = self.repository.save_document(
+            pending_record.model_copy(
+                update={
+                    "error_stage": None,
+                    "error_message": None,
+                }
+            )
+        )
+
+        # 重新触发导入
+        return self._get_ingestion_service().ingest_document(updated_record)
+
     def _get_ingestion_service(self) -> "IngestionService":
         """按需构造 ingestion service，避免模块导入阶段形成循环依赖。"""
         if self._ingestion_service is None:
@@ -108,6 +146,8 @@ class LibraryService:
         2. 只接受 .pdf。
         3. 路径必须存在且是普通文件。
         """
+        import os
+
         normalized_file_path = file_path.strip()
         if not normalized_file_path:
             raise ValueError("import_pdf 只接受本地 PDF 文件路径")
@@ -119,14 +159,15 @@ class LibraryService:
         if normalized_file_path.startswith(("//", "\\\\")):
             raise ValueError("import_pdf 只接受本地 PDF 文件路径")
 
-        local_path = Path(normalized_file_path)
-        if local_path.suffix.lower() != ".pdf":
+        # 使用 os.path 而非 Path 进行文件存在性检查
+        # 原因：Windows 文件系统对中文引号等特殊字符的处理更稳定
+        if not normalized_file_path.lower().endswith(".pdf"):
             raise ValueError("import_pdf 只接受 .pdf 文件")
-        if not local_path.exists():
+        if not os.path.isfile(normalized_file_path):
             raise ValueError(f"PDF 文件不存在: {normalized_file_path}")
-        if not local_path.is_file():
-            raise ValueError(f"PDF 路径不是文件: {normalized_file_path}")
 
+        # 转换为规范化路径（统一斜杠方向）
+        local_path = Path(normalized_file_path)
         return str(local_path)
 
     def list_documents(self) -> list[DocumentRecord]:

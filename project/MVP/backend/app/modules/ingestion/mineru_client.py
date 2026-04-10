@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import time
+from pathlib import Path
 from typing import Any, Callable, Optional
 from urllib.parse import urlsplit
 
@@ -43,15 +44,18 @@ class MineruClient:
         self.monotonic_fn = monotonic_fn
 
     def run_pdf_task(self, file_path: str) -> dict[str, Any]:
-        """执行完整 PDF 导入流程。"""
+        r"""执行完整 PDF 导入流程.
+
+        返回解析后的数据，同时保存原始 MinerU JSON 到文件系统。
+        """
         submission = self.submit_task(file_path)
         state = self.poll_task(submission.task_id)
 
         # 先看结果地址，再看内联结果。
-        # 原因是部分真实响应会返回 {result: {url: ...}}，这只是“结果位置”，不是最终正文 JSON。
+        # 原因是部分真实响应会返回 {result: {url: ...}}，这只是"结果位置"，不是最终正文 JSON。
         # 如果这里直接返回 state.result，就会把 url 字典误判成成功结果，制造假成功链路。
         if state.result_url:
-            return self.fetch_result_json(state.result_url)
+            return self.fetch_result_json(state.result_url, submission.task_id)
         if state.result is not None:
             return state.result
         raise IngestionError(
@@ -61,26 +65,74 @@ class MineruClient:
         )
 
     def submit_task(self, file_path: str) -> MineruTaskSubmission:
-        """提交 PDF 解析任务。"""
-        payload = self._request_json(
-            method="post",
-            url=f"{self.base_url}/tasks",
-            json={"file_path": file_path},
-            error_code="mineru_submit_failed",
-            error_message="MinerU 提交任务失败",
-        )
-        data = self._unwrap_payload(payload)
-        task_id = data.get("task_id") or data.get("id")
-        if not task_id:
+        """提交 PDF 解析任务（批量上传链接方案）。"""
+        from pathlib import Path
+        pdf_path = Path(file_path)
+        if not pdf_path.exists():
             raise IngestionError(
-                code="mineru_invalid_response",
-                message="MinerU 提交结果缺少 task_id",
-                detail=payload,
+                code="file_not_found",
+                message=f"PDF 文件不存在: {file_path}",
+                detail={"file_path": file_path},
             )
-        return MineruTaskSubmission(task_id=str(task_id))
+
+        # 步骤 1: 申请上传链接
+        headers = self._build_headers(include_authorization=True)
+        try:
+            payload = self._request_json(
+                method="post",
+                url=f"{self.base_url}/file-urls/batch",
+                json={
+                    "files": [
+                        {
+                            "name": pdf_path.name,
+                            "data_id": pdf_path.stem  # 使用文件名作为 data_id
+                        }
+                    ],
+                    "model_version": "vlm"
+                },
+                error_code="mineru_upload_url_failed",
+                error_message="申请上传链接失败",
+            )
+            data = self._unwrap_payload(payload)
+
+            if payload.get("code") != 0:
+                raise IngestionError(
+                    code="mineru_upload_url_failed",
+                    message=f"申请上传链接失败: {payload.get('msg')}",
+                    detail=payload,
+                )
+
+            batch_id = data.get("batch_id")
+            file_urls = data.get("file_urls", [])
+
+            if not file_urls:
+                raise IngestionError(
+                    code="mineru_no_upload_url",
+                    message="未获取到上传链接",
+                    detail=payload,
+                )
+
+            upload_url = file_urls[0]
+
+            # 步骤 2: 上传文件
+            with open(pdf_path, "rb") as f:
+                upload_response = self.http_client.put(upload_url, data=f)
+                upload_response.raise_for_status()
+
+            # 系统会自动提交解析任务，使用 batch_id 作为 task_id
+            return MineruTaskSubmission(task_id=batch_id)
+
+        except IngestionError:
+            raise
+        except Exception as exc:
+            raise IngestionError(
+                code="mineru_submit_failed",
+                message="MinerU 提交任务失败",
+                detail=str(exc),
+            ) from exc
 
     def poll_task(self, task_id: str) -> MineruTaskState:
-        """轮询任务直到成功、失败或超时。"""
+        """轮询批量任务直到成功、失败或超时。"""
         started_at = self.monotonic_fn()
         success_statuses = {"success", "succeeded", "completed", "done"}
         failed_statuses = {"failed", "error", "cancelled", "canceled"}
@@ -91,53 +143,218 @@ class MineruClient:
                 raise IngestionError(
                     code="mineru_timeout",
                     message="MinerU 处理超时",
-                    detail={"task_id": task_id, "timeout": self.timeout},
+                    detail={"batch_id": task_id, "timeout": self.timeout},
                 )
 
+            # 使用批量查询端点
             payload = self._request_json(
                 method="get",
-                url=f"{self.base_url}/tasks/{task_id}",
+                url=f"{self.base_url}/extract-results/batch/{task_id}",
                 error_code="mineru_status_failed",
                 error_message="MinerU 查询任务状态失败",
             )
-            state = self._parse_task_state(payload)
-            normalized_status = state.status.lower().strip()
 
-            if normalized_status in success_statuses:
-                return state
-            if normalized_status in failed_statuses:
+            # 批量查询返回的是 extract_result 数组
+            data = self._unwrap_payload(payload)
+            extract_result = data.get("extract_result", [])
+
+            if not extract_result:
+                raise IngestionError(
+                    code="mineru_invalid_response",
+                    message="批量查询结果为空",
+                    detail=payload,
+                )
+
+            # 取第一个文件的结果
+            result = extract_result[0]
+            state = result.get("state", "").lower()
+
+            if state in success_statuses:
+                return MineruTaskState(
+                    status=result.get("state", "done"),
+                    result_url=result.get("full_zip_url"),
+                    result=None,
+                    message=result.get("err_msg", ""),
+                )
+            if state in failed_statuses:
                 raise IngestionError(
                     code="mineru_failed",
-                    message=state.message or f"MinerU 任务失败: {state.status}",
-                    detail={"task_id": task_id, "payload": payload},
+                    message=result.get("err_msg") or f"MinerU 任务失败: {state}",
+                    detail={"batch_id": task_id, "result": result},
                 )
+
+            # 显示进度
+            progress = result.get("extract_progress", {})
+            if progress:
+                extracted = progress.get("extracted_pages", 0)
+                total = progress.get("total_pages", 0)
+                print(f"[MinerU] 解析进度: {extracted}/{total} 页")
 
             self.sleep_fn(self.poll_interval)
 
-    def fetch_result_json(self, result_url: str) -> dict[str, Any]:
+    def fetch_result_json(self, result_url: str, task_id: str) -> dict[str, Any]:
         """拉取最终 JSON 结果。
 
         安全目标：
         1. 只允许同源结果地址，或显式允许的官方 CDN。
         2. 只有同源结果地址才允许携带 MinerU Bearer Token。
         3. 拒绝明显异常的结果 URL，避免把查询接口返回的外部地址直接二次请求。
+
+        处理流程：
+        1. 如果 result_url 指向 ZIP 文件，下载并解压
+        2. 保存原始 JSON 文件到 data/papers/{task_id}/
+        3. 从 ZIP 文件中提取 content_list.json
+        4. 返回解析后的 JSON 对象
+
+        Args:
+            result_url: MinerU 结果 URL（指向 ZIP 文件）
+            task_id: 批量任务 ID，用作保存目录名
         """
+        import json
+        import tempfile
+        import zipfile
+        from urllib.parse import unquote
+
         normalized_result_url, should_send_authorization = self._validate_result_url(result_url)
-        payload = self._request_json(
-            method="get",
-            url=normalized_result_url,
-            error_code="mineru_result_failed",
-            error_message="MinerU 拉取结果失败",
-            include_authorization=should_send_authorization,
-        )
-        data = self._unwrap_payload(payload)
-        if not isinstance(data, dict):
-            raise IngestionError(
-                code="mineru_invalid_response",
-                message="MinerU 结果不是 JSON 对象",
-                detail=payload,
+
+        # 检查是否为 ZIP 文件
+        if normalized_result_url.endswith('.zip'):
+            # 创建保存目录
+            papers_dir = Path("./data/papers")
+            papers_dir.mkdir(parents=True, exist_ok=True)
+            task_dir = papers_dir / task_id
+            task_dir.mkdir(exist_ok=True)
+
+            # 下载 ZIP 文件
+            headers = self._build_headers(include_authorization=should_send_authorization)
+            try:
+                response = self.http_client.get(normalized_result_url, headers=headers, timeout=self.timeout)
+                response.raise_for_status()
+
+                # 保存到临时文件
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.zip') as tmp_file:
+                    tmp_file.write(response.content)
+                    tmp_path = tmp_file.name
+
+                # 创建图片保存目录
+                images_dir = task_dir / "images"
+                images_dir.mkdir(exist_ok=True)
+
+                # 解压并保存所有文件
+                with zipfile.ZipFile(tmp_path, 'r') as zip_ref:
+                    # 文件列表
+                    file_list = zip_ref.namelist()
+
+                    # 提取并保存 JSON 和图片文件
+                    for zip_path in file_list:
+                        if zip_path.startswith('__MACOSX') or zip_path.endswith('/'):
+                            continue
+
+                        # 计算保存路径
+                        if zip_path.startswith('images/'):
+                            # 图片文件：保存到 images/ 目录
+                            file_name = Path(zip_path).name
+                            save_path = images_dir / file_name
+
+                            # 解压并保存图片
+                            with zip_ref.open(zip_path) as source_file:
+                                with open(save_path, 'wb') as target_file:
+                                    target_file.write(source_file.read())
+
+                            print(f"[MinerU] 保存图片: {file_name}")
+
+                        elif zip_path.endswith('.json'):
+                            # JSON 文件：直接保存到 task_dir
+                            file_name = Path(zip_path).name
+                            save_path = task_dir / file_name
+
+                            # 解压并保存
+                            with zip_ref.open(zip_path) as source_file:
+                                with open(save_path, 'wb') as target_file:
+                                    target_file.write(source_file.read())
+
+                            print(f"[MinerU] 保存原始文件: {save_path.name}")
+
+                    # 从 layout.json 读取完整结构（包括图片）
+                    layout_files = [f for f in file_list if f == 'layout.json' and not f.startswith('__MACOSX')]
+
+                    if layout_files:
+                        # 使用 layout.json（包含完整信息）
+                        with zip_ref.open('layout.json') as f:
+                            layout_data = json.load(f)
+
+                        # 从 layout.json 提取页面信息
+                        pdf_info = layout_data.get('pdf_info', [])
+
+                        if not isinstance(pdf_info, list):
+                            raise IngestionError(
+                                code="mineru_invalid_response",
+                                message="layout.json 中 pdf_info 不是列表",
+                                detail={"pdf_info_type": type(pdf_info).__name__},
+                            )
+
+                        # 转换为标准 pages 格式
+                        pages = []
+                        for page_item in pdf_info:
+                            if not isinstance(page_item, dict):
+                                continue
+
+                            page_idx = page_item.get('page_idx')
+                            para_blocks = page_item.get('para_blocks', [])
+
+                            if not isinstance(para_blocks, list):
+                                continue
+
+                            pages.append({
+                                'page': page_idx,
+                                'blocks': para_blocks
+                            })
+
+                        data = {'pages': pages}
+                    else:
+                        raise IngestionError(
+                            code="mineru_invalid_response",
+                            message="ZIP 文件中未找到 layout.json",
+                            detail={"file_list": file_list},
+                        )
+
+                # 清理临时文件
+                Path(tmp_path).unlink()
+
+                if not isinstance(data, dict):
+                    raise IngestionError(
+                        code="mineru_invalid_response",
+                        message=f"MinerU 结果不是 JSON 对象（从 {json_file} 读取）",
+                        detail={"data_type": type(data).__name__},
+                    )
+
+                return data
+
+            except IngestionError:
+                raise
+            except Exception as exc:
+                raise IngestionError(
+                    code="mineru_result_failed",
+                    message=f"MinerU 拉取结果失败: {exc}",
+                    detail=str(exc),
+                ) from exc
+        else:
+            # 原有的 JSON 处理逻辑
+            payload = self._request_json(
+                method="get",
+                url=normalized_result_url,
+                error_code="mineru_result_failed",
+                error_message="MinerU 拉取结果失败",
+                include_authorization=should_send_authorization,
             )
-        return data
+            data = self._unwrap_payload(payload)
+            if not isinstance(data, dict):
+                raise IngestionError(
+                    code="mineru_invalid_response",
+                    message="MinerU 结果不是 JSON 对象",
+                    detail=payload,
+                )
+            return data
 
     def _request_json(
         self,

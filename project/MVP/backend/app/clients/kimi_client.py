@@ -140,14 +140,14 @@ class KimiVLMClient(VLMClient):
 
     async def describe_image(
         self,
-        image_path: Path,
+        image_path: Path | str,
         prompt: str = _VLM_PROMPT,
         max_tokens: int = 1024,
     ) -> str:
         """异步调用 Kimi VLM 描述图片.
 
         Args:
-            image_path: 图片路径
+            image_path: 图片路径（Path对象或字符串）
             prompt: 提示词
             max_tokens: 最大输出 token
 
@@ -158,14 +158,14 @@ class KimiVLMClient(VLMClient):
 
     def describe_image_sync(
         self,
-        image_path: Path,
+        image_path: Path | str,
         prompt: str = _VLM_PROMPT,
         max_tokens: int = 1024,
     ) -> str:
         """同步调用 Kimi VLM 描述图片.
 
         Args:
-            image_path: 图片路径
+            image_path: 图片路径（Path对象或字符串）
             prompt: 提示词
             max_tokens: 最大输出 token
 
@@ -248,20 +248,24 @@ class KimiLLMClient(LLMClient):
 
 # 便捷函数
 async def describe_image_async(
-    image_path: Path,
+    image_path: Path | str,
     prompt: str = _VLM_PROMPT,
     max_tokens: int = 1024,
 ) -> str:
     """异步调用 Kimi VLM 描述图片.
 
     Args:
-        image_path: 图片路径
+        image_path: 图片路径（Path对象或字符串）
         prompt: 提示词
         max_tokens: 最大输出 token
 
     Returns:
         图片描述文本
     """
+    # 确保是Path对象
+    if isinstance(image_path, str):
+        image_path = Path(image_path)
+
     suffix = image_path.suffix.lstrip(".")
     media_type = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png"}.get(
         suffix, "image/jpeg"
@@ -301,14 +305,14 @@ async def describe_image_async(
 
 
 def describe_image(
-    image_path: Path,
+    image_path: Path | str,
     prompt: str = _VLM_PROMPT,
     max_tokens: int = 1024,
 ) -> str:
     """同步调用 Kimi VLM 描述图片.
 
     Args:
-        image_path: 图片路径
+        image_path: 图片路径（Path对象或字符串）
         prompt: 提示词
         max_tokens: 最大输出 token
 

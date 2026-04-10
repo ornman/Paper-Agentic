@@ -1,4 +1,4 @@
-"""文献库路由.
+"""文献库路由（新架构）.
 
 支持 PDF 导入、列表查询、删除等操作。
 """
@@ -12,17 +12,19 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, UploadFile
 
 from app.core.config import get_settings
+from app.core.error_messages import format_user_error, get_http_status_code
+from app.core.errors import IngestionError
 from app.models.base import ApiResponse
-from app.services.ingest_service import IngestWorkflow
+from app.modules.library.service import LibraryService
 from app.stores.qdrant_store import QdrantStore
 
 settings = get_settings()
 router = APIRouter(prefix="/library", tags=["library"])
 
 
-def _get_workflow() -> IngestWorkflow:
-    """获取导入工作流实例."""
-    return IngestWorkflow()
+def _get_library_service() -> LibraryService:
+    """获取图书馆服务实例."""
+    return LibraryService()
 
 
 def _get_store() -> QdrantStore:
@@ -45,13 +47,96 @@ async def import_pdf(file: UploadFile):
         content = await file.read()
         f.write(content)
 
-    # 执行导入
+    # 执行导入（使用新架构）
     try:
-        workflow = _get_workflow()
-        result = await workflow.ingest_pdf(pdf_path)
-        return ApiResponse(data=result, message="导入成功")
+        service = _get_library_service()
+        result = service.import_pdf(file_path=str(pdf_path))
+        return ApiResponse(
+            data={
+                "document_id": result.document_id,
+                "title": result.title,
+                "status": result.status,
+            },
+            message="导入成功",
+        )
+    except IngestionError as e:
+        # 处理业务错误，提供用户友好的错误信息
+        error_info = format_user_error(e.code, {"detail": e.detail})
+        status_code = get_http_status_code(error_info["severity"])
+        raise HTTPException(
+            status_code=status_code,
+            detail={
+                "code": error_info["code"],
+                "message": error_info["user_message"],
+                "suggestion": error_info["suggestion"],
+                "severity": error_info["severity"],
+            },
+        ) from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        # 处理未预期的错误
+        error_info = format_user_error("internal_error", {"detail": str(e)})
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "code": error_info["code"],
+                "message": error_info["user_message"],
+                "suggestion": error_info["suggestion"],
+                "severity": error_info["severity"],
+            },
+        ) from e
+
+
+@router.post("/resume/{document_id}", response_model=ApiResponse)
+async def resume_import(document_id: str):
+    """恢复失败的导入任务（断点续传）.
+
+    支持从失败阶段自动恢复并继续执行。
+    """
+    try:
+        service = _get_library_service()
+        result = service.resume_import(document_id)
+        return ApiResponse(
+            data={
+                "document_id": result.document_id,
+                "title": result.title,
+                "status": result.status,
+            },
+            message="恢复导入成功",
+        )
+    except KeyError as e:
+        error_info = format_user_error("file_not_found", {"document_id": document_id})
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "code": error_info["code"],
+                "message": error_info["user_message"],
+                "suggestion": error_info["suggestion"],
+                "severity": error_info["severity"],
+            },
+        ) from e
+    except ValueError as e:
+        error_info = format_user_error("invalid_file_format", {"detail": str(e)})
+        status_code = get_http_status_code(error_info["severity"])
+        raise HTTPException(
+            status_code=status_code,
+            detail={
+                "code": error_info["code"],
+                "message": error_info["user_message"],
+                "suggestion": error_info["suggestion"],
+                "severity": error_info["severity"],
+            },
+        ) from e
+    except Exception as e:
+        error_info = format_user_error("internal_error", {"detail": str(e)})
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "code": error_info["code"],
+                "message": error_info["user_message"],
+                "suggestion": error_info["suggestion"],
+                "severity": error_info["severity"],
+            },
+        ) from e
 
 
 @router.get("/papers", response_model=ApiResponse)
@@ -104,7 +189,6 @@ async def delete_paper(paper_id: str):
     store.delete_paper(paper_id)
 
     # 2. 删除文件系统中的论文数据
-    # MinerU 解析结果通常存储在 data/papers/ 目录下
     papers_dir = Path(settings.sqlite_db_path).parent / "papers" / paper_id
 
     if papers_dir.exists():
@@ -116,7 +200,11 @@ async def delete_paper(paper_id: str):
 @router.get("/status", response_model=ApiResponse)
 async def get_status():
     """获取系统状态."""
-    workflow = _get_workflow()
-    status = workflow.get_status()
+    store = _get_store()
+    papers = store.list_papers()
 
-    return ApiResponse(data=status)
+    return ApiResponse(data={
+        "papers_count": len(papers),
+        "total_chunks": store.count,
+        "papers": papers,
+    })

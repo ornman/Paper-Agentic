@@ -4,8 +4,14 @@ from typing import Optional
 from app.models.session import SessionCreate, SessionResponse, SessionTitleUpdate, HistoryResponse, MessageResponse
 from app.models.base import ApiResponse, PaginatedData
 from app.repositories import sqlite_repo
+from app.modules.session.service import SessionService
 
 router = APIRouter(prefix="/session", tags=["session"])
+
+# 获取 SessionService 实例
+def _get_session_service() -> SessionService:
+    """获取会话服务实例."""
+    return SessionService()
 
 
 @router.post("/", response_model=ApiResponse[SessionResponse])
@@ -88,8 +94,8 @@ async def get_history(session_id: str):
     session = sqlite_repo.get_session(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="会话不存在")
-    from app.services import qa_service
-    messages_raw = qa_service.get_history(session_id)
+    session_service = _get_session_service()
+    messages_raw = session_service.get_history(session_id)
     messages = [
         MessageResponse(
             id=m["id"],
@@ -110,6 +116,6 @@ async def clear_history(session_id: str):
     session = sqlite_repo.get_session(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="会话不存在")
-    from app.services import qa_service
-    count = qa_service.clear_history(session_id)
+    session_service = _get_session_service()
+    count = session_service.clear_history(session_id)
     return ApiResponse(data={"deleted": count}, message="历史已清空")

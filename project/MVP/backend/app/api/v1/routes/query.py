@@ -1,13 +1,23 @@
-# 查询路由：/api/v1/query
+# 查询路由（新架构）：/api/v1/query
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from app.models.query import AskRequest, RetrieveRequest
 from app.models.base import ApiResponse
-from app.services import qa_service_rag
-from app.services.retrieval_service import retrieve
+from app.modules.qa.service import QAService
+from app.modules.retrieval.service import RetrievalService
 import json
 
 router = APIRouter(prefix="/query", tags=["query"])
+
+
+def _get_qa_service() -> QAService:
+    """获取 QA 服务实例."""
+    return QAService()
+
+
+def _get_retrieval_service() -> RetrievalService:
+    """获取检索服务实例."""
+    return RetrievalService()
 
 
 @router.post("/ask")
@@ -26,7 +36,6 @@ async def ask(request: AskRequest) -> StreamingResponse:
     """
 
     # 调试阶段验证：确保三类 context 字段确实被区分并到达后端。
-    # 注意：这里只打印截断预览，避免把整篇正文刷屏。
     if request.context:
         written_preview = (request.context.written_content or "").replace("\n", " ").strip()[:80]
         selected_preview = (request.context.selected_text or "").replace("\n", " ").strip()[:80]
@@ -52,10 +61,10 @@ async def ask(request: AskRequest) -> StreamingResponse:
 
     async def event_generator():
         try:
-            async for event in qa_service_rag.ask_stream_with_rag(
+            service = _get_qa_service()
+            async for event in service.ask_stream_with_rag(
                 session_id=request.session_id,
                 query=request.query,
-                context=request.context,
                 use_rag=True,
                 resource_types=request.resource_types,
                 selected_papers=request.selected_papers,
@@ -88,14 +97,15 @@ async def retrieve_endpoint(request: RetrieveRequest):
 
     支持通过 resource_types 和 selected_papers 控制检索范围。
     """
-    results = await retrieve(
-        request.query,
-        request.top_k,
+    service = _get_retrieval_service()
+    results = await service.retrieve(
+        query=request.query,
+        top_k=request.top_k,
         resource_types=request.resource_types,
         selected_papers=request.selected_papers,
     )
     return ApiResponse(data={
         "query": request.query,
-        "rewritten_query": request.query,
-        "results": results,
+        "results": results["results"],
+        "total": results["total"],
     })

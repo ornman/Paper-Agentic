@@ -1,6 +1,6 @@
 # 导入模块 DTO
 # 这里定义 Task 4 需要的最小数据契约：
-# 1. 清洗后的块结构
+# 1. 清洗后的块结构（支持文本和图片）
 # 2. 清洗后的文档结构
 # 3. MinerU 提交/轮询过程中会用到的最小任务状态结构
 
@@ -12,23 +12,27 @@ from pydantic import BaseModel, Field
 
 
 class CleanedBlock(BaseModel):
-    """清洗后保留下来的正文块。
+    """清洗后保留下来的块（支持文本和图片）.
 
-    这里显式保留 block_id/page/text，原因是：
-    1. 后续索引阶段一定需要稳定块 ID。
-    2. page 是来源引用的最小定位信息。
-    3. text 是当前 Task 4 真正有业务价值的正文内容。
+    这里保留完整的块结构，包括：
+    1. 文本块：block_type="text", content="正文内容"
+    2. 图片块：block_type="image", image_path="xxx.jpg", content="VLM描述"
+    3. 其他块：block_type="title" 等
     """
 
     block_id: str
     page: int
-    text: str
+    block_type: str  # "text", "image", "title" 等
+    content: str  # 文本内容或图片描述
+    bbox: list[int] | None = None  # 边界框 [x1, y1, x2, y2]
+    image_path: str | None = None  # 图片路径（相对于 images/ 目录）
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
     model_config = {"frozen": True}
 
 
 class CleanedDocument(BaseModel):
-    """清洗后的文档结果。"""
+    """清洗后的文档结果（保留完整结构）."""
 
     document_id: str
     title: str
