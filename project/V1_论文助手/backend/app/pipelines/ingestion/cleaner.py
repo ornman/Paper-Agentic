@@ -77,23 +77,6 @@ def clean_markdown(md_content: str, paper_id: str) -> list[Chunk]:
     return chunks
 
 
-def clean_json_metadata(pages: list[dict]) -> dict[str, int]:
-    """从 JSON layout 提取元数据（页码映射等），辅助 Markdown 处理"""
-    page_map: dict[str, int] = {}
-    for page_data in pages:
-        page_idx = page_data.get("page", 0)
-        blocks = page_data.get("blocks", [])
-        for block in blocks:
-            lines = block.get("lines", [])
-            for line in lines:
-                spans = line.get("spans", [])
-                for span in spans:
-                    content = span.get("content", "").strip()
-                    if content and len(content) > 10:
-                        page_map[content[:30]] = page_idx
-    return page_map
-
-
 def _strip_toc_entries(lines: list[str]) -> list[str]:
     """预处理：把目录区的伪标题变成普通行（去掉 # 前缀）
 

@@ -58,10 +58,10 @@ class EmbeddingClient:
             for attempt in range(_MAX_RETRIES):
                 try:
                     return await self._call_api(texts)
-                except httpx.HTTPStatusError as e:
-                    if e.response.status_code == 429 and attempt < _MAX_RETRIES - 1:
+                except (httpx.HTTPStatusError, httpx.RemoteProtocolError) as e:
+                    if attempt < _MAX_RETRIES - 1:
                         wait = 2 ** attempt
-                        logger.warning("Embedding 429, retrying in %ds", wait)
+                        logger.warning("Embedding error %s, retrying in %ds", type(e).__name__, wait)
                         await asyncio.sleep(wait)
                         continue
                     raise
