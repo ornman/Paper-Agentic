@@ -20,6 +20,9 @@ class Settings(BaseSettings):
 
     # PDF 解析
     mineru_api_key: str = Field(default="", alias="MINERU_API_KEY")
+    mineru_base_url: str = Field(default="https://mineru.net/api/v4", alias="MINERU_BASE_URL")
+    mineru_poll_interval: float = 3.0
+    mineru_timeout: float = 300.0
 
     # 存储
     zvec_data_dir: str = "./data/zvec_db"

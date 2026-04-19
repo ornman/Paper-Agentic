@@ -35,13 +35,10 @@ class MinerUTaskResult:
 class MinerUClient:
     def __init__(self):
         settings = get_settings()
-        self._base_url = settings.mineru_api_key and settings.mineru_base_url or ""
-        self._base_url = os.environ.get(
-            "MINERU_BASE_URL", "https://mineru.net/api/v4"
-        )
+        self._base_url = settings.mineru_base_url
         self._api_key = settings.mineru_api_key
-        self._poll_interval = float(os.environ.get("MINERU_POLL_INTERVAL", "3"))
-        self._timeout = float(os.environ.get("MINERU_TIMEOUT", "300"))
+        self._poll_interval = settings.mineru_poll_interval
+        self._timeout = settings.mineru_timeout
         self._client: httpx.AsyncClient | None = None
 
     async def _get_client(self) -> httpx.AsyncClient:
@@ -91,7 +88,7 @@ class MinerUClient:
         if not file_urls:
             raise RuntimeError("MinerU 未返回上传链接")
 
-        upload_url = file_urls[0].get("url") or file_urls[0]
+        upload_url = file_urls[0]
         if isinstance(upload_url, dict):
             upload_url = upload_url.get("url", "")
 

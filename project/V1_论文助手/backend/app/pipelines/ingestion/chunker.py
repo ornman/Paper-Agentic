@@ -61,28 +61,18 @@ def chunk_by_semantic_units(
     while i < len(units):
         current = units[i]
 
-        if i + 1 >= len(units):
-            # 最后一个
-            _add_to_result(result, current, max_ctx, target, overlap)
-            break
+        # 尝试贪婪合并相邻的小 chunk
+        while i + 1 < len(units):
+            next_unit = units[i + 1]
+            combined_tokens = current["tokens"] + next_unit["tokens"]
+            # 加上新行分隔符的 token 开销
+            separator_tokens = 2
+            if current["tokens"] + separator_tokens + next_unit["tokens"] > max_ctx:
+                break
+            current = _merge_units(current, next_unit)
+            i += 1  # 吞掉 next_unit
 
-        next_unit = units[i + 1]
-        combined_tokens = current["tokens"] + next_unit["tokens"]
-
-        if combined_tokens <= max_ctx:
-            # Case 1: 两个合并后不超过上限，合并
-            merged = _merge_units(current, next_unit)
-            units[i] = merged
-            units.pop(i + 1)
-            continue
-
-        if current["tokens"] <= max_ctx and next_unit["tokens"] <= max_ctx:
-            # Case 2a: 各自不超过上限，分开保留
-            _add_to_result(result, current, max_ctx, target, overlap)
-            i += 1
-            continue
-
-        # Case 2b: 至少一个超过上限，需要拆分
+        # current 现在是合并后的最大块
         _add_to_result(result, current, max_ctx, target, overlap)
         i += 1
 
