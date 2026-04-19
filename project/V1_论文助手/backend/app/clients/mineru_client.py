@@ -66,6 +66,11 @@ class MinerUClient:
         client = await self._get_client()
         filename = os.path.basename(file_path)
         stem = os.path.splitext(filename)[0]
+        # MinerU data_id 限制 128 字节（UTF-8 编码）
+        stem_bytes = stem.encode("utf-8")
+        if len(stem_bytes) > 120:
+            while len(stem.encode("utf-8")) > 120:
+                stem = stem[:-1]
 
         # Step 1: 申请上传链接
         resp = await client.post(
@@ -227,3 +232,24 @@ class MinerUClient:
         task_id = await self.submit_task(file_path)
         result_url = await self.poll_task(task_id)
         return await self.fetch_result(task_id, result_url)
+
+    async def submit_batch(self, file_paths: list[str], concurrency: int = 10) -> list[tuple[str, str]]:
+        """并发提交多个文件，返回 [(file_path, task_id), ...]"""
+        import asyncio
+
+        sem = asyncio.Semaphore(concurrency)
+        results: list[tuple[str, str | None]] = []
+
+        async def _submit_one(path: str) -> tuple[str, str | None]:
+            async with sem:
+                try:
+                    tid = await self.submit_task(path)
+                    logger.info("MinerU submitted: %s → %s", os.path.basename(path), tid)
+                    return (path, tid)
+                except Exception as e:
+                    logger.warning("MinerU submit failed: %s → %s", os.path.basename(path), e)
+                    return (path, None)
+
+        tasks = [_submit_one(p) for p in file_paths]
+        results = await asyncio.gather(*tasks)
+        return results

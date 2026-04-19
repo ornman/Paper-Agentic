@@ -135,6 +135,33 @@ class _Zone:
     zone_type: str  # "cover", "toc", "end_noise", "body"
 
 
+def _find_first_chapter(lines: list[str], start: int = 0) -> int:
+    """找到第一个章节标题的位置（支持多种格式）"""
+    n = len(lines)
+    for idx in range(start, n):
+        stripped = lines[idx].strip()
+        # 第1章 / 第一章 / 第二章
+        if re.match(r"^#{1,3}\s*第\s*[1一]\s*章", stripped):
+            return idx
+        if re.match(r"^#{1,3}\s*第[一二三四五六七八九十百]+章", stripped):
+            return idx
+        # 一、 / 二、 / （一） 中文序号章节
+        if re.match(r"^#{1,3}\s*[一二三四五六七八九十]+[、．\.]", stripped):
+            return idx
+        if re.match(r"^#{1,3}\s*（[一二三四五六七八九十]+）", stripped):
+            return idx
+        # Chapter 1 / Introduction
+        if re.match(r"^#{1,3}\s*(?:Chapter|CHAPTER)\s+1\b", stripped):
+            return idx
+        # # 1 标题 / # 1.1 标题（数字编号章节）
+        if re.match(r"^#{1,3}\s*1(?:[\.\s]|$)\s*\S", stripped):
+            return idx
+        # # 1. Introduction
+        if re.match(r"^#{1,3}\s*1\.\s+Introduction", stripped, re.IGNORECASE):
+            return idx
+    return n
+
+
 def _detect_zones(lines: list[str]) -> list[_Zone]:
     """把文档分成区域：cover_toc / body / end_noise
 
@@ -150,50 +177,28 @@ def _detect_zones(lines: list[str]) -> list[_Zone]:
     body_start = n
     for idx, line in enumerate(lines):
         stripped = line.strip()
-        # 中文摘要
-        if stripped in ("# 摘要", "## 摘要"):
+        # 中文摘要（含空格变体 "摘 要"、行内 "摘 要：..."）
+        if re.match(r"^#{0,3}\s*摘\s*要\s*[：:]?\s*$", stripped):
+            body_start = idx
+            break
+        if re.match(r"^摘\s*要\s*[：:]", stripped):
             body_start = idx
             break
         # 英文 Abstract（纯英文论文）
-        if stripped in ("# Abstract", "# ABSTRACT", "## Abstract"):
+        if stripped in ("# Abstract", "# ABSTRACT", "## Abstract", "## ABSTRACT"):
             if body_start == n:
                 body_start = idx
 
     # 如果找不到摘要，退回到找第一个章节标题
     if body_start == n:
-        for idx, line in enumerate(lines):
-            stripped = line.strip()
-            if re.match(r"^#+\s*第\s*1\s*章", stripped):
-                body_start = idx
-                break
-            if re.match(r"^#+\s*(?:Chapter|CHAPTER|Introduction)\s+1\b", stripped):
-                body_start = idx
-                break
-            if re.match(r"^#+\s*1[\.\s]+Introduction", stripped, re.IGNORECASE):
-                body_start = idx
-                break
-            # 纯英文论文可能用 "1. Introduction" 格式
-            if re.match(r"^#+\s*1\.\s+Introduction", stripped, re.IGNORECASE):
-                body_start = idx
-                break
+        body_start = _find_first_chapter(lines)
 
     # 摘要之后、正文第一章之前还有 ABSTRACT 段和英文目录，跳过
     real_body_start = body_start
     if body_start < n:
-        for idx in range(body_start + 1, min(body_start + 300, n)):
-            stripped = lines[idx].strip()
-            # 找到第一章
-            if re.match(r"^#+\s*第\s*1\s*章", stripped):
-                real_body_start = idx
-                break
-            if re.match(r"^#+\s*(?:Chapter|CHAPTER)\s+1\b", stripped):
-                real_body_start = idx
-                break
-            if re.match(r"^#+\s*1[\.\s]+Introduction", stripped, re.IGNORECASE):
-                real_body_start = idx
-                break
-        else:
-            real_body_start = body_start
+        ch_idx = _find_first_chapter(lines, start=body_start + 1)
+        if ch_idx < n:
+            real_body_start = ch_idx
 
     if real_body_start > 0:
         zones.append(_Zone(0, real_body_start, "cover_toc"))
