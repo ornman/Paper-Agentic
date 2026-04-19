@@ -84,11 +84,11 @@ class ZvecStore:
             "topk": topk,
         }
         if paper_id:
-            kwargs["filter"] = f"paper_id == '{paper_id}'"
+            kwargs["filter"] = f"paper_id = '{paper_id}'"
         return self._collection.query(**kwargs)
 
     def delete_paper(self, paper_id: str) -> None:
-        self._collection.delete_by_filter(f"paper_id == '{paper_id}'")
+        self._collection.delete_by_filter(f"paper_id = '{paper_id}'")
 
     @property
     def stats(self) -> dict:
