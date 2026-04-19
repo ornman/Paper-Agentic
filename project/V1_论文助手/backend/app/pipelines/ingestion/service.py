@@ -14,7 +14,7 @@ from app.api.v1.deps import get_bm25, get_redis, get_sqlite, get_zvec
 from app.clients.embedding_client import EmbeddingClient
 from app.clients.mineru_client import MinerUClient
 from app.clients.vlm_client import VLMClient
-from app.pipelines.ingestion.chunker import chunk_by_semantic_units
+from app.pipelines.ingestion.chunker import chunk_text
 from app.pipelines.ingestion.cleaner import Chunk, clean_json_layout, clean_markdown
 from app.pipelines.ingestion.image_handler import ImageHandler
 
@@ -89,7 +89,7 @@ class IngestionService:
         if progress_callback:
             await progress_callback("chunking", "正在切分文档...")
 
-        chunked = chunk_by_semantic_units(chunks)
+        chunked = chunk_text(chunks)
 
         # Stage 5: Embedding
         self._update_import_log(sqlite, task_id, file_path, "embedding", "向量化中")

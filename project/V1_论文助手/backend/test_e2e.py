@@ -6,7 +6,7 @@ import sys
 sys.path.insert(0, ".")
 
 from app.pipelines.ingestion.cleaner import clean_markdown
-from app.pipelines.ingestion.chunker import chunk_by_semantic_units, estimate_tokens
+from app.pipelines.ingestion.chunker import chunk_text, estimate_tokens
 
 
 async def test_cleaner():
@@ -52,14 +52,15 @@ def test_chunker(chunks):
 
     from app.pipelines.ingestion.cleaner import Chunk
 
-    chunked = chunk_by_semantic_units(chunks)
+    chunked = chunk_text(chunks)
     print(f"Chunked results: {len(chunked)}")
 
     total_tokens = sum(estimate_tokens(c["content"]) for c in chunked)
     print(f"Total est tokens after chunking: {total_tokens}")
 
     for i, c in enumerate(chunked[:3]):
-        print(f"  [{i}] tokens={estimate_tokens(c['content'])} sec=\"{c['section_title'][:40]}\"")
+        sec = c.get("section_title", "")[:40]
+        print(f"  [{i}] tokens={estimate_tokens(c['content'])} sec=\"{sec}\"")
 
     assert len(chunked) > 0, "No chunks produced"
     print("PASS\n")
@@ -122,7 +123,7 @@ async def test_full_ingest():
         md = f.read()
 
     chunks = clean_markdown(md, "test_ingest")
-    chunked = chunk_by_semantic_units(chunks)
+    chunked = chunk_text(chunks)
 
     # Embedding（只取前 10 个以节省 API 调用）
     test_chunks = chunked[:10]
