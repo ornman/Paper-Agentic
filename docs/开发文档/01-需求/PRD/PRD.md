@@ -157,7 +157,8 @@
 | 前端架构 | MVC 模式 | 从简，功能优先 |
 | 后端框架 | FastAPI (Python 3.13) | 异步、类型安全 |
 | LLM 框架 | MVP: 直线 RAG / v1.1+: LangGraph | 先跑通再引入 Agent 模式 |
-| LLM 提供商 | Kimi Coding API (K2.6) | 中文能力强、免费额度 |
+| LLM 对话 | DeepSeek（用户自填 URL + Key） | 通用对话问答，可随时切换任意 LLM 厂商 |
+| VLM 图片理解 | Kimi Coding API (K2.6) | PDF 图片语义理解、描述打标签 |
 | 向量库 | Zvec (阿里巴巴) | 嵌入式、零配置、单 Collection + Payload 过滤 |
 | 关键词检索 | BM25 + jieba | 轻量高效，中文分词优秀，Hybrid 检索 |
 | 对话缓存 | Redis (redis-py) | 滑动窗口式记忆，保留对话历史 |
@@ -167,7 +168,12 @@
 
 ### 5.3 关键技术约束
 
-**Kimi Coding API 调用要求**:
+**LLM 对话服务（DeepSeek 等，用户自配）**:
+- 用户自行填写 LLM 的 URL 和 API Key
+- 通过 LangChain 抽象层，支持随时切换任意 OpenAI 兼容 API
+- MVP: DeepSeek → 后续可换 ChatGLM、Qwen、OpenAI 等
+
+**Kimi Coding API 调用要求（仅用于 VLM 图片理解）**:
 - Base URL: `https://api.kimi.com/coding/v1/messages`
 - 必须携带 3 个 Header:
   - 自定义认证头 + API Key
@@ -175,6 +181,7 @@
   - `User-Agent: claude-code`
 - 缺少任何一个都会被服务端拒绝
 - 模型: K2.6-code-preview
+- 用途: PDF 图片语义理解 → 自然语言描述 → 打标签
 
 **Zvec 向量库特性**:
 - 嵌入式架构（类 SQLite），无需独立进程
