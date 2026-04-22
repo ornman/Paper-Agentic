@@ -16,12 +16,12 @@ class LLMClient:
     def __init__(self):
         settings = get_settings()
         self._api_key = settings.kimi_api_key
-        self._base_url = settings.kimi_base_url
+        # base_url 已经包含完整路径：https://api.kimi.com/coding/v1/messages
+        self._endpoint_url = settings.kimi_base_url
         self._model = settings.kimi_model
         self._client = httpx.AsyncClient(
-            base_url=self._base_url,
             headers={
-                "Authorization": f"Bearer {self._api_key}",
+                "x-api-key": self._api_key,
                 "anthropic-version": "2023-06-01",
                 "User-Agent": "claude-code",
                 "Content-Type": "application/json",
@@ -32,44 +32,47 @@ class LLMClient:
     async def chat(self, messages: list[dict]) -> str:
         payload = {
             "model": self._model,
+            "max_tokens": 4096,
             "messages": messages,
             "stream": False,
         }
 
-        response = await self._client.post("/messages", json=payload)
+        response = await self._client.post(self._endpoint_url, json=payload)
         response.raise_for_status()
         data = response.json()
 
-        # Kimi API 响应格式：{"content": [{"type": "text", "text": "..."}]}
         if "content" in data and len(data["content"]) > 0:
             return data["content"][0].get("text", "")
         return ""
 
     async def chat_stream(self, messages: list[dict]) -> AsyncIterator[str]:
+        import json
+
         payload = {
             "model": self._model,
+            "max_tokens": 4096,
             "messages": messages,
             "stream": True,
         }
 
-        async with self._client.stream("POST", "/messages", json=payload) as response:
+        async with self._client.stream("POST", self._endpoint_url, json=payload) as response:
             response.raise_for_status()
 
             async for line in response.aiter_lines():
-                if not line.startswith("data: "):
+                if not line.startswith("data:"):
                     continue
 
-                data_str = line[6:].strip()
-                if data_str == "[DONE]":
-                    break
+                data_str = line[5:].strip()
+                if not data_str or data_str == "[DONE]":
+                    continue
 
                 try:
-                    import json
-
                     data = json.loads(data_str)
-                    # Kimi SSE 格式：{"content": [{"type": "text", "text": "..."}]}
-                    if "content" in data and len(data["content"]) > 0:
-                        text = data["content"][0].get("text", "")
+                    # Anthropic 风格 SSE：
+                    # content_block_delta → delta.text
+                    if data.get("type") == "content_block_delta":
+                        delta = data.get("delta", {})
+                        text = delta.get("text", "")
                         if text:
                             yield text
                 except (json.JSONDecodeError, KeyError, IndexError):
