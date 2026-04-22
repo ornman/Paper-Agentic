@@ -197,8 +197,7 @@ def _cleanup_stale_locks() -> None:
 
 
 async def main():
-    # 启动前清理残留 LOCK
-    _cleanup_stale_locks()
+    # 注意：不再无条件清理 LOCK，ZvecStore.init() 会在 LOCK 冲突时自动处理
 
     parser = argparse.ArgumentParser(description="批量导入测试论文")
     parser.add_argument("--dir", default="../test_meta_papers", help="论文目录")

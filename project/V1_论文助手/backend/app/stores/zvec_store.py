@@ -36,18 +36,31 @@ class ZvecStore:
         )
 
     def init(self) -> None:
-        self._cleanup_locks()
         schema = self._build_schema(self._dimension)
         try:
             self._collection = zvec.open(self._path)
+        except RuntimeError as e:
+            err_msg = str(e).lower()
+            if "lock" in err_msg:
+                # LOCK 冲突：可能是残留，尝试清理后重试
+                logger.warning("Zvec LOCK 冲突，尝试清理: %s", e)
+                self._remove_lock_files()
+                try:
+                    self._collection = zvec.open(self._path)
+                    return
+                except Exception:
+                    pass
+            # 仍然失败，重建
+            if os.path.exists(self._path):
+                shutil.rmtree(self._path)
+            self._collection = zvec.create_and_open(self._path, schema)
         except Exception:
-            # create_and_open 要求目标目录不存在
             if os.path.exists(self._path):
                 shutil.rmtree(self._path)
             self._collection = zvec.create_and_open(self._path, schema)
 
-    def _cleanup_locks(self) -> None:
-        """清理残留的 LOCK 文件"""
+    def _remove_lock_files(self) -> None:
+        """仅在 LOCK 冲突时调用，清理残留 LOCK 文件"""
         for root, _dirs, files in os.walk(self._path):
             for f in files:
                 if f == "LOCK":
