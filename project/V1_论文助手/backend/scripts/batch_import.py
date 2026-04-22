@@ -43,22 +43,40 @@ async def import_one(
     sqlite: SQLiteRepo,
     semaphore: asyncio.Semaphore,
     max_retries: int = 3,
+    force_rebuild: bool = False,
 ) -> dict:
     """导入单篇论文的完整流程（内置去重 + 自动重试）"""
     basename = os.path.basename(file_path)
 
     async with semaphore:
-        # 去重：始终检查，避免浪费 MinerU API 额度
         file_hash = _hash_file(file_path)
-        with sqlite.get_session() as session:
-            row = session.execute(
-                text("SELECT paper_id FROM papers WHERE file_hash = :hash"),
-                {"hash": file_hash},
-            ).fetchone()
-            if row:
-                return {"status": "skipped", "file": basename, "reason": "already imported"}
 
-        paper_id = os.urandom(8).hex()
+        # 去重检查（force_rebuild 模式下复用旧 paper_id）
+        if not force_rebuild:
+            with sqlite.get_session() as session:
+                row = session.execute(
+                    text("SELECT paper_id FROM papers WHERE file_hash = :hash"),
+                    {"hash": file_hash},
+                ).fetchone()
+                if row:
+                    return {"status": "skipped", "file": basename, "reason": "already imported"}
+
+            paper_id = os.urandom(8).hex()
+        else:
+            # force_rebuild 模式：复用旧 paper_id 或生成新的
+            with sqlite.get_session() as session:
+                row = session.execute(
+                    text("SELECT paper_id FROM papers WHERE file_hash = :hash"),
+                    {"hash": file_hash},
+                ).fetchone()
+                if row:
+                    paper_id = row[0]
+                    # 清理旧数据
+                    zvec.delete_paper(paper_id)
+                    bm25.delete_paper(paper_id)
+                    logger.info("↻ 清理旧数据: %s", paper_id[:8])
+                else:
+                    paper_id = os.urandom(8).hex()
 
         for attempt in range(1, max_retries + 1):
             try:
@@ -165,6 +183,7 @@ async def main():
     parser.add_argument("--dir", default="../test_meta_papers", help="论文目录")
     parser.add_argument("--concurrency", type=int, default=10, help="并发数（MinerU 限制 50/min）")
     parser.add_argument("--skip-existing", action="store_true", help="跳过已导入的文件")
+    parser.add_argument("--force-rebuild", action="store_true", help="强制重建向量库（忽略 file_hash 去重）")
     parser.add_argument("--retries", type=int, default=3, help="单篇失败重试次数")
     parser.add_argument("--limit", type=int, default=0, help="最多导入 N 篇（0=全部）")
     args = parser.parse_args()
@@ -202,7 +221,7 @@ async def main():
     # 并发导入
     t0 = time.time()
     tasks = [
-        import_one(p, mineru, vlm, embed, zvec, bm25, sqlite, sem, args.retries)
+        import_one(p, mineru, vlm, embed, zvec, bm25, sqlite, sem, args.retries, args.force_rebuild)
         for p in pdfs
     ]
     results = await asyncio.gather(*tasks)
