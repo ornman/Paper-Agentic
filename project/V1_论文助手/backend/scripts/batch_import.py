@@ -167,7 +167,7 @@ async def _do_import(
 
     with sqlite.get_session() as session:
         session.execute(text("""
-            INSERT INTO papers (paper_id, title, authors, file_path, file_hash,
+            INSERT OR REPLACE INTO papers (paper_id, title, authors, file_path, file_hash,
                 file_size, chunk_count, import_time, status)
             VALUES (:pid, :title, '', :path, :hash, :size, :chunks, :time, 'completed')
         """), {
