@@ -5,6 +5,7 @@ import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.deps import init_deps
 from app.api.v1.router import api_router
@@ -54,5 +55,11 @@ async def lifespan(app: FastAPI):
 def create_app() -> FastAPI:
     logging.basicConfig(level=logging.INFO)
     app = FastAPI(title="论文助手 V1", version="0.1.0", lifespan=lifespan)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
     app.include_router(api_router)
     return app
