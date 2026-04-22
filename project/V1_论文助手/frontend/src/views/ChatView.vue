@@ -1,23 +1,23 @@
 <template>
-  <div class="chat-view">
-    <div class="messages-container" ref="messagesContainer">
+  <div class="claude-chat-view">
+    <div class="claude-messages" ref="messagesContainer">
       <MessageList :messages="store.messages" :status="store.status" />
       <EmptyState v-if="store.messages.length === 0" />
     </div>
 
-    <div class="input-container">
-      <div class="input-wrapper">
+    <div class="claude-input-area">
+      <div class="claude-input-wrapper">
         <textarea
           ref="inputRef"
           v-model="inputText"
-          class="input-field"
+          class="claude-textarea"
           placeholder="输入您的问题..."
           rows="3"
           @keydown.exact.enter.prevent="handleSend"
           :disabled="store.status === 'requesting' || store.status === 'streaming'"
         />
         <button
-          class="send-btn"
+          class="claude-send-btn"
           @click="handleSend"
           :disabled="!canSend"
           :title="canSend ? '发送 (Enter)' : '请输入内容'"
@@ -30,7 +30,10 @@
           </svg>
         </button>
       </div>
-      <div v-if="store.errorMessage" class="error-message">
+      <div class="claude-input-footer">
+        <span class="claude-input-hint">{{ inputText.length }} / 5000</span>
+      </div>
+      <div v-if="store.errorMessage" class="claude-error-message">
         {{ store.errorMessage }}
       </div>
     </div>
@@ -88,78 +91,96 @@ watch(() => store.status, (s) => {
 </script>
 
 <style scoped>
-.chat-view {
+.claude-chat-view {
   display: flex;
   flex-direction: column;
   flex: 1;
+  background: var(--claude-bg-card);
+  border-radius: var(--claude-radius-lg);
+  border: 1px solid var(--claude-border);
   overflow: hidden;
 }
 
-.messages-container {
+.claude-messages {
   flex: 1;
   overflow-y: auto;
-  padding: 16px;
+  padding: var(--claude-spacing-lg);
 }
 
-.input-container {
+.claude-input-area {
   flex-shrink: 0;
-  padding: 12px 16px;
-  background: white;
-  border-top: 1px solid #e5e5e5;
+  padding: var(--claude-spacing-md) var(--claude-spacing-lg);
+  border-top: 1px solid var(--claude-border);
+  background: var(--claude-bg-card);
 }
 
-.input-wrapper {
+.claude-input-wrapper {
   display: flex;
-  gap: 8px;
+  gap: var(--claude-spacing-sm);
   align-items: flex-end;
 }
 
-.input-field {
+.claude-textarea {
   flex: 1;
-  padding: 10px 12px;
-  border: 1px solid #d9d9d9;
-  border-radius: 6px;
+  border: 1px solid var(--claude-border);
+  border-radius: var(--claude-radius-md);
+  padding: var(--claude-spacing-md);
   font-size: 14px;
-  font-family: inherit;
+  line-height: 1.6;
   resize: none;
+  font-family: inherit;
+  background: var(--claude-bg-card);
+  color: var(--claude-text-primary);
+  transition: border-color 0.2s ease;
+}
+
+.claude-textarea:focus {
+  border-color: var(--claude-primary);
   outline: none;
-  transition: border-color 0.2s;
 }
 
-.input-field:focus {
-  border-color: #6aae6a;
+.claude-textarea:disabled {
+  background: var(--claude-bg-muted);
+  color: var(--claude-text-muted);
 }
 
-.input-field:disabled {
-  background: #f5f5f5;
-  color: #b3b3b3;
+.claude-input-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--claude-spacing-xs);
 }
 
-.send-btn {
+.claude-input-hint {
+  font-size: 12px;
+  color: var(--claude-text-muted);
+}
+
+.claude-send-btn {
   width: 40px;
   height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #6aae6a;
+  background: var(--claude-primary);
   border: none;
-  border-radius: 6px;
+  border-radius: var(--claude-radius-md);
   color: white;
   cursor: pointer;
   transition: all 0.2s;
   flex-shrink: 0;
 }
 
-.send-btn:hover:not(:disabled) {
-  background: #5a9e5a;
+.claude-send-btn:hover:not(:disabled) {
+  background: var(--claude-primary-hover);
 }
 
-.send-btn:active:not(:disabled) {
-  background: #4a8e4a;
+.claude-send-btn:active:not(:disabled) {
+  background: var(--claude-primary-hover);
+  transform: scale(0.96);
 }
 
-.send-btn:disabled {
-  background: #d9d9d9;
+.claude-send-btn:disabled {
+  background: var(--claude-border);
   cursor: not-allowed;
 }
 
@@ -172,13 +193,13 @@ watch(() => store.status, (s) => {
   to { transform: rotate(360deg); }
 }
 
-.error-message {
-  margin-top: 8px;
-  padding: 8px 12px;
-  background: #fff2f0;
-  border: 1px solid #ffccc7;
-  border-radius: 4px;
+.claude-error-message {
+  margin-top: var(--claude-spacing-sm);
+  padding: var(--claude-spacing-sm) var(--claude-spacing-md);
+  background: #FFF5F3;
+  border: 1px solid #F5C6C0;
+  border-radius: var(--claude-radius-sm);
   font-size: 13px;
-  color: #ff4d4f;
+  color: var(--claude-error);
 }
 </style>

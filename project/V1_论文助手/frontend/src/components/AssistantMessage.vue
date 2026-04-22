@@ -46,18 +46,18 @@ const formattedContent = computed(() => {
 }
 
 .assistant-content {
-  max-width: 90%;
+  max-width: 85%;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--claude-spacing-md);
 }
 
 .assistant-bubble {
-  padding: 12px 16px;
-  background: white;
-  border: 1px solid #e5e5e5;
-  border-radius: 12px;
-  border-bottom-left-radius: 4px;
+  padding: var(--claude-spacing-md) var(--claude-spacing-lg);
+  background: var(--claude-bg-muted);
+  border: 1px solid var(--claude-border);
+  border-radius: var(--claude-radius-lg);
+  border-bottom-left-radius: var(--claude-radius-sm);
 }
 
 .empty-content {
@@ -70,7 +70,7 @@ const formattedContent = computed(() => {
   display: inline-block;
   width: 2px;
   height: 16px;
-  background: #1677ff;
+  background: var(--claude-primary);
   margin-left: 2px;
   animation: blink 1s infinite;
 }
@@ -83,7 +83,7 @@ const formattedContent = computed(() => {
 .content-text {
   font-size: 14px;
   line-height: 1.8;
-  color: #1a1a1a;
+  color: var(--claude-text-primary);
   word-break: break-word;
 }
 
@@ -97,7 +97,7 @@ const formattedContent = computed(() => {
 
 .content-text :deep(code) {
   padding: 2px 6px;
-  background: #f5f5f5;
+  background: var(--claude-bg-muted);
   border-radius: 3px;
   font-family: 'Consolas', monospace;
   font-size: 13px;

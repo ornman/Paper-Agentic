@@ -1,34 +1,37 @@
 <template>
-  <div class="app-container">
-    <header class="app-header">
-      <h1 class="app-title">论文助手</h1>
-      <div class="tab-group">
+  <div class="claude-app">
+    <!-- 顶部 Tab 导航 -->
+    <nav class="claude-nav">
+      <div class="claude-nav-container">
         <button
-          class="tab-btn"
-          :class="{ active: activeTab === 'chat' }"
+          :class="['claude-tab', { 'claude-tab-active': activeTab === 'chat' }]"
           @click="activeTab = 'chat'"
         >
-          对话
+          <span class="claude-tab-icon">💬</span>
+          <span class="claude-tab-label">对话</span>
         </button>
         <button
-          class="tab-btn"
-          :class="{ active: activeTab === 'library' }"
+          :class="['claude-tab', { 'claude-tab-active': activeTab === 'library' }]"
           @click="activeTab = 'library'"
         >
-          文献库
+          <span class="claude-tab-icon">📚</span>
+          <span class="claude-tab-label">文献库</span>
+        </button>
+        <button v-if="activeTab === 'chat'" class="claude-reset-btn" @click="handleReset" title="开始新对话">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M8 2a6 6 0 1 0 6 6h-2a4 4 0 1 1-4-4V2z"/>
+            <path d="M8 0v5l3.5 3.5L8 0z"/>
+          </svg>
+          <span>新对话</span>
         </button>
       </div>
-      <button v-if="activeTab === 'chat'" class="reset-btn" @click="handleReset" title="开始新对话">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-          <path d="M8 2a6 6 0 1 0 6 6h-2a4 4 0 1 1-4-4V2z"/>
-          <path d="M8 0v5l3.5 3.5L8 0z"/>
-        </svg>
-        新对话
-      </button>
-    </header>
+    </nav>
 
-    <ChatView v-if="activeTab === 'chat'" />
-    <LibraryView v-else />
+    <!-- 主内容区 -->
+    <main class="claude-main">
+      <ChatView v-if="activeTab === 'chat'" />
+      <LibraryView v-else />
+    </main>
   </div>
 </template>
 
@@ -51,80 +54,86 @@ function handleReset() {
 </script>
 
 <style scoped>
-.app-container {
+.claude-app {
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  background: #f5f4f0;
+  background: var(--claude-bg-main);
 }
 
-.app-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 16px;
-  background: white;
-  border-bottom: 1px solid #e5e5e5;
+.claude-nav {
+  background: var(--claude-bg-card);
+  border-bottom: 1px solid var(--claude-border);
+  padding: var(--claude-spacing-sm) 0;
   flex-shrink: 0;
 }
 
-.app-title {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 600;
-  color: #1a1a1a;
-  white-space: nowrap;
-}
-
-.tab-group {
+.claude-nav-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--claude-spacing-lg);
   display: flex;
-  gap: 0;
-  background: #f0f0f0;
-  border-radius: 6px;
-  padding: 2px;
-  flex: 1;
+  gap: var(--claude-spacing-sm);
+  align-items: center;
 }
 
-.tab-btn {
-  flex: 1;
-  padding: 5px 12px;
-  background: transparent;
-  border: none;
-  border-radius: 4px;
-  font-size: 13px;
-  color: #666;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.tab-btn.active {
-  background: white;
-  color: #1a1a1a;
-  font-weight: 500;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-}
-
-.tab-btn:hover:not(.active) {
-  color: #333;
-}
-
-.reset-btn {
+.claude-tab {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 10px;
-  background: #f5f5f5;
-  border: 1px solid #d9d9d9;
-  border-radius: 4px;
+  gap: var(--claude-spacing-sm);
+  padding: var(--claude-spacing-sm) var(--claude-spacing-md);
+  border-radius: var(--claude-radius-md);
+  color: var(--claude-text-secondary);
+  font-weight: 500;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.claude-tab:hover {
+  background: var(--claude-bg-muted);
+  color: var(--claude-text-primary);
+}
+
+.claude-tab-active {
+  background: var(--claude-primary-light);
+  color: var(--claude-primary);
+}
+
+.claude-tab-icon {
+  font-size: 18px;
+}
+
+.claude-tab-label {
+  font-size: 14px;
+}
+
+.claude-reset-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--claude-spacing-xs);
+  padding: var(--claude-spacing-sm) var(--claude-spacing-md);
+  background: var(--claude-bg-muted);
+  border: 1px solid var(--claude-border);
+  border-radius: var(--claude-radius-md);
   font-size: 12px;
-  color: #595959;
-  cursor: pointer;
-  transition: all 0.2s;
+  color: var(--claude-text-secondary);
+  margin-left: auto;
   white-space: nowrap;
 }
 
-.reset-btn:hover {
-  background: #e6e6e6;
-  border-color: #b3b3b3;
+.claude-reset-btn:hover {
+  background: var(--claude-primary-light);
+  border-color: var(--claude-primary);
+  color: var(--claude-primary);
+}
+
+.claude-main {
+  flex: 1;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  padding: var(--claude-spacing-lg);
+  display: flex;
+  flex-direction: column;
 }
 </style>

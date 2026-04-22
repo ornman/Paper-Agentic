@@ -150,15 +150,15 @@ function formatDate(iso: string): string {
 .library-view {
   display: flex;
   flex-direction: column;
+  gap: var(--claude-spacing-md);
   flex: 1;
   overflow: hidden;
-  padding: 12px 16px;
 }
 
 .toolbar {
   display: flex;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: var(--claude-spacing-md);
+  align-items: center;
 }
 
 .search-wrapper {
@@ -176,39 +176,42 @@ function formatDate(iso: string): string {
 
 .search-input {
   width: 100%;
-  padding: 8px 12px 8px 32px;
-  border: 1px solid #d9d9d9;
-  border-radius: 6px;
+  padding: var(--claude-spacing-sm) var(--claude-spacing-md) var(--claude-spacing-sm) 32px;
+  border: 1px solid var(--claude-border);
+  border-radius: var(--claude-radius-md);
   font-size: 13px;
   outline: none;
+  background: var(--claude-bg-card);
+  color: var(--claude-text-primary);
   transition: border-color 0.2s;
 }
 
 .search-input:focus {
-  border-color: #6aae6a;
+  border-color: var(--claude-primary);
 }
 
 .upload-btn {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 8px 12px;
-  background: #6aae6a;
+  gap: var(--claude-spacing-xs);
+  padding: var(--claude-spacing-sm) var(--claude-spacing-md);
+  background: var(--claude-primary);
   border: none;
-  border-radius: 6px;
+  border-radius: var(--claude-radius-md);
   color: white;
   font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.2s;
+  transition: all 0.2s ease;
 }
 
 .upload-btn:hover:not(.disabled) {
-  background: #5a9e5a;
+  background: var(--claude-primary-hover);
 }
 
 .upload-btn.disabled {
-  background: #a0c8a0;
+  opacity: 0.6;
   cursor: not-allowed;
 }
 
@@ -217,21 +220,20 @@ function formatDate(iso: string): string {
 }
 
 .stats {
-  font-size: 12px;
-  color: #999;
-  margin-bottom: 8px;
+  font-size: 13px;
+  color: var(--claude-text-secondary);
 }
 
 .loading-state,
 .error-state {
   text-align: center;
   padding: 40px 0;
-  color: #999;
+  color: var(--claude-text-muted);
   font-size: 14px;
 }
 
 .error-state {
-  color: #ff4d4f;
+  color: var(--claude-error);
 }
 
 .empty-state {
@@ -241,39 +243,42 @@ function formatDate(iso: string): string {
 
 .empty-icon {
   font-size: 32px;
-  margin-bottom: 8px;
+  margin-bottom: var(--claude-spacing-sm);
 }
 
 .empty-text {
   font-size: 15px;
-  color: #666;
-  margin-bottom: 4px;
+  color: var(--claude-text-secondary);
+  margin-bottom: var(--claude-spacing-xs);
 }
 
 .empty-hint {
   font-size: 13px;
-  color: #999;
+  color: var(--claude-text-muted);
 }
 
 .paper-list {
   flex: 1;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--claude-spacing-sm);
 }
 
 .paper-card {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px;
-  background: white;
-  border: 1px solid #eee;
-  border-radius: 8px;
-  margin-bottom: 8px;
-  transition: border-color 0.2s;
+  gap: var(--claude-spacing-sm);
+  padding: var(--claude-spacing-md);
+  background: var(--claude-bg-card);
+  border: 1px solid var(--claude-border);
+  border-radius: var(--claude-radius-md);
+  transition: all 0.2s ease;
 }
 
 .paper-card:hover {
-  border-color: #c8e6c8;
+  box-shadow: var(--claude-shadow-md);
+  border-color: var(--claude-primary-light);
 }
 
 .paper-info {
@@ -284,18 +289,18 @@ function formatDate(iso: string): string {
 .paper-title {
   font-size: 14px;
   font-weight: 500;
-  color: #1a1a1a;
+  color: var(--claude-text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  margin-bottom: 4px;
+  margin-bottom: var(--claude-spacing-xs);
 }
 
 .paper-meta {
   display: flex;
-  gap: 8px;
+  gap: var(--claude-spacing-sm);
   font-size: 12px;
-  color: #999;
+  color: var(--claude-text-muted);
   flex-wrap: wrap;
 }
 
@@ -308,22 +313,22 @@ function formatDate(iso: string): string {
   justify-content: center;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 4px;
-  color: #ccc;
+  border-radius: var(--claude-radius-sm);
+  color: var(--claude-text-muted);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .delete-btn:hover {
-  color: #ff4d4f;
-  border-color: #ffccc7;
-  background: #fff2f0;
+  color: var(--claude-error);
+  border-color: #F5C6C0;
+  background: #FFF5F3;
 }
 
 .no-results {
   text-align: center;
   padding: 20px 0;
-  color: #999;
+  color: var(--claude-text-muted);
   font-size: 13px;
 }
 </style>

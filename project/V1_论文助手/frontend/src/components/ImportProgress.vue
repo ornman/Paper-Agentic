@@ -28,20 +28,20 @@ const store = useLibraryStore()
 
 <style scoped>
 .import-progress {
-  padding: 12px 16px;
-  background: #f0f9f0;
-  border: 1px solid #c8e6c8;
-  border-radius: 8px;
-  margin-bottom: 12px;
+  padding: var(--claude-spacing-md) var(--claude-spacing-lg);
+  background: var(--claude-primary-light);
+  border: 1px solid #E8D5CC;
+  border-radius: var(--claude-radius-md);
 }
 
 .import-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: var(--claude-spacing-sm);
+  margin-bottom: var(--claude-spacing-sm);
   font-size: 14px;
   font-weight: 500;
+  color: var(--claude-text-primary);
 }
 
 .import-filename {
@@ -53,61 +53,61 @@ const store = useLibraryStore()
 .progress-bar-wrapper {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
+  gap: var(--claude-spacing-sm);
+  margin-bottom: var(--claude-spacing-xs);
 }
 
 .progress-bar {
   flex: 1;
   height: 6px;
-  background: #e0e0e0;
-  border-radius: 3px;
+  background: var(--claude-border);
+  border-radius: var(--claude-radius-full);
   overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
-  background: #6aae6a;
-  border-radius: 3px;
+  background: var(--claude-primary);
+  border-radius: var(--claude-radius-full);
   transition: width 0.3s ease;
 }
 
 .progress-percent {
   font-size: 12px;
-  color: #666;
+  color: var(--claude-text-secondary);
   min-width: 36px;
   text-align: right;
 }
 
 .import-step {
   font-size: 12px;
-  color: #888;
+  color: var(--claude-text-muted);
 }
 
 .import-error {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 8px;
-  padding: 6px 10px;
-  background: #fff2f0;
-  border: 1px solid #ffccc7;
-  border-radius: 4px;
+  margin-top: var(--claude-spacing-sm);
+  padding: var(--claude-spacing-xs) var(--claude-spacing-sm);
+  background: #FFF5F3;
+  border: 1px solid #F5C6C0;
+  border-radius: var(--claude-radius-sm);
   font-size: 13px;
-  color: #ff4d4f;
+  color: var(--claude-error);
 }
 
 .dismiss-btn {
   padding: 2px 8px;
   background: transparent;
-  border: 1px solid #ffccc7;
+  border: 1px solid #F5C6C0;
   border-radius: 3px;
   font-size: 12px;
-  color: #ff4d4f;
+  color: var(--claude-error);
   cursor: pointer;
 }
 
 .dismiss-btn:hover {
-  background: #fff2f0;
+  background: #FFF5F3;
 }
 </style>

@@ -33,7 +33,7 @@ defineEmits<{
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.35);
+  background: rgba(26, 25, 21, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -41,63 +41,64 @@ defineEmits<{
 }
 
 .dialog {
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
+  background: var(--claude-bg-card);
+  border-radius: var(--claude-radius-lg);
+  padding: var(--claude-spacing-lg);
   width: 320px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--claude-shadow-lg);
 }
 
 .dialog-title {
-  margin: 0 0 12px;
+  margin: 0 0 var(--claude-spacing-md);
   font-size: 16px;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--claude-text-primary);
 }
 
 .dialog-body {
-  margin: 0 0 20px;
+  margin: 0 0 var(--claude-spacing-lg);
   font-size: 14px;
   line-height: 1.6;
-  color: #595959;
+  color: var(--claude-text-secondary);
 }
 
 .dialog-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
+  gap: var(--claude-spacing-sm);
 }
 
 .btn-cancel {
-  padding: 6px 16px;
-  background: white;
-  border: 1px solid #d9d9d9;
-  border-radius: 6px;
+  padding: var(--claude-spacing-sm) var(--claude-spacing-md);
+  background: var(--claude-bg-card);
+  border: 1px solid var(--claude-border);
+  border-radius: var(--claude-radius-md);
   font-size: 14px;
-  color: #595959;
+  color: var(--claude-text-secondary);
   cursor: pointer;
 }
 
 .btn-cancel:hover {
-  border-color: #b3b3b3;
+  border-color: var(--claude-text-muted);
+  background: var(--claude-bg-muted);
 }
 
 .btn-danger {
-  padding: 6px 16px;
-  background: #ff4d4f;
+  padding: var(--claude-spacing-sm) var(--claude-spacing-md);
+  background: var(--claude-error);
   border: none;
-  border-radius: 6px;
+  border-radius: var(--claude-radius-md);
   font-size: 14px;
   color: white;
   cursor: pointer;
 }
 
 .btn-danger:hover:not(:disabled) {
-  background: #e04345;
+  background: #A83C3C;
 }
 
 .btn-danger:disabled {
-  background: #ffa39e;
+  opacity: 0.6;
   cursor: not-allowed;
 }
 </style>
