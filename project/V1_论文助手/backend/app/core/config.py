@@ -3,12 +3,7 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    # LLM 对话（用户自配，OpenAI 兼容）
-    llm_base_url: str = Field(default="https://api.deepseek.com", alias="LLM_BASE_URL")
-    llm_api_key: str = Field(default="", alias="LLM_API_KEY")
-    llm_model: str = Field(default="deepseek-chat", alias="LLM_MODEL")
-
-    # VLM 图片理解（Kimi Coding API）
+    # LLM 对话（Kimi Coding API，256K 上下文窗口）
     kimi_api_key: str = Field(default="", alias="KIMI_API_KEY")
     kimi_base_url: str = "https://api.kimi.com/coding/v1/messages"
     kimi_model: str = "K2.6-code-preview"

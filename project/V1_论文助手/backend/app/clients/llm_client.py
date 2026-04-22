@@ -1,11 +1,11 @@
-"""LLM 对话客户端（DeepSeek / OpenAI 兼容）"""
+"""LLM 对话客户端（Kimi Coding API）"""
 
 from __future__ import annotations
 
 import logging
 from collections.abc import AsyncIterator
 
-from openai import AsyncOpenAI
+import httpx
 
 from app.core.config import get_settings
 
@@ -15,29 +15,65 @@ logger = logging.getLogger("paper-assistant")
 class LLMClient:
     def __init__(self):
         settings = get_settings()
-        self._client = AsyncOpenAI(
-            base_url=settings.llm_base_url,
-            api_key=settings.llm_api_key,
+        self._api_key = settings.kimi_api_key
+        self._base_url = settings.kimi_base_url
+        self._model = settings.kimi_model
+        self._client = httpx.AsyncClient(
+            base_url=self._base_url,
+            headers={
+                "Authorization": f"Bearer {self._api_key}",
+                "anthropic-version": "2023-06-01",
+                "User-Agent": "claude-code",
+                "Content-Type": "application/json",
+            },
+            timeout=120.0,
         )
-        self._model = settings.llm_model
 
     async def chat(self, messages: list[dict]) -> str:
-        response = await self._client.chat.completions.create(
-            model=self._model,
-            messages=messages,
-        )
-        return response.choices[0].message.content or ""
+        payload = {
+            "model": self._model,
+            "messages": messages,
+            "stream": False,
+        }
+
+        response = await self._client.post("/messages", json=payload)
+        response.raise_for_status()
+        data = response.json()
+
+        # Kimi API 响应格式：{"content": [{"type": "text", "text": "..."}]}
+        if "content" in data and len(data["content"]) > 0:
+            return data["content"][0].get("text", "")
+        return ""
 
     async def chat_stream(self, messages: list[dict]) -> AsyncIterator[str]:
-        response = await self._client.chat.completions.create(
-            model=self._model,
-            messages=messages,
-            stream=True,
-        )
-        async for chunk in response:
-            delta = chunk.choices[0].delta
-            if delta.content:
-                yield delta.content
+        payload = {
+            "model": self._model,
+            "messages": messages,
+            "stream": True,
+        }
+
+        async with self._client.stream("POST", "/messages", json=payload) as response:
+            response.raise_for_status()
+
+            async for line in response.aiter_lines():
+                if not line.startswith("data: "):
+                    continue
+
+                data_str = line[6:].strip()
+                if data_str == "[DONE]":
+                    break
+
+                try:
+                    import json
+
+                    data = json.loads(data_str)
+                    # Kimi SSE 格式：{"content": [{"type": "text", "text": "..."}]}
+                    if "content" in data and len(data["content"]) > 0:
+                        text = data["content"][0].get("text", "")
+                        if text:
+                            yield text
+                except (json.JSONDecodeError, KeyError, IndexError):
+                    continue
 
     async def close(self) -> None:
-        await self._client.close()
+        await self._client.aclose()

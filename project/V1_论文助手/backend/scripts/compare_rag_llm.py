@@ -15,8 +15,6 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from openai import AsyncOpenAI
-
 from app.api.v1.deps import init_deps
 from app.clients.embedding_client import EmbeddingClient
 from app.clients.llm_client import LLMClient
@@ -35,35 +33,32 @@ QUESTIONS = [
 ]
 
 
-async def test_llm_stream(question: str, client: AsyncOpenAI, model: str) -> dict:
+async def test_llm_stream(question: str, client: LLMClient) -> dict:
     """纯 LLM 测试（无上下文），带 token 统计"""
     start = time.monotonic()
     first_chunk_time = None
     chunks: list[str] = []
-    usage = None
 
-    resp = await client.chat.completions.create(
-        model=model,
-        messages=[{"role": "user", "content": question}],
-        stream=True,
-        stream_options={"include_usage": True},
-    )
-    async for chunk in resp:
-        if chunk.usage:
-            usage = chunk.usage
-        elif chunk.choices and chunk.choices[0].delta.content:
-            if first_chunk_time is None:
-                first_chunk_time = time.monotonic()
-            chunks.append(chunk.choices[0].delta.content)
+    # Kimi 不返回 token 统计，需要估算
+    async for chunk in client.chat_stream(messages=[{"role": "user", "content": question}]):
+        if first_chunk_time is None:
+            first_chunk_time = time.monotonic()
+        chunks.append(chunk)
 
     end = time.monotonic()
+    answer = "".join(chunks)
+
+    # 估算 token（中文约 1.5 字/token）
+    prompt_tokens_est = int(len(question) / 1.5)
+    completion_tokens_est = int(len(answer) / 1.5)
+
     return {
         "total_time": round(end - start, 2),
         "ttff": round(first_chunk_time - start, 2) if first_chunk_time else 0,
-        "answer": "".join(chunks),
-        "prompt_tokens": usage.prompt_tokens if usage else 0,
-        "completion_tokens": usage.completion_tokens if usage else 0,
-        "total_tokens": usage.total_tokens if usage else 0,
+        "answer": answer,
+        "prompt_tokens": prompt_tokens_est,
+        "completion_tokens": completion_tokens_est,
+        "total_tokens": prompt_tokens_est + completion_tokens_est,
     }
 
 
@@ -83,26 +78,12 @@ async def test_rag(question: str, qa: QAService) -> dict:
             chunks.append(event["data"]["content"])
 
     end = time.monotonic()
-
-    # 用非流式调用获取 token 统计（模拟 RAG 的完整消息）
-    settings = get_settings()
-    client = AsyncOpenAI(base_url=settings.llm_base_url, api_key=settings.llm_api_key)
     answer_text = "".join(chunks)
-    resp = await client.chat.completions.create(
-        model=settings.llm_model,
-        messages=[
-            {"role": "user", "content": question},
-            {"role": "assistant", "content": answer_text},
-        ],
-        # 发送一条已回答的消息来获取 token 估算
-    )
-    await client.close()
 
-    # 输出 token 估算：中文约 1.5 字/token
+    # 估算 token
     output_tokens_est = int(len(answer_text) / 1.5)
-    # RAG 输入 = system prompt(含上下文) + 用户问题
-    # 粗略估算：用 completion_tokens 反推
-    rag_input_est = resp.usage.total_tokens - resp.usage.completion_tokens if resp.usage else 0
+    # RAG 输入包含上下文，粗略估算为输出的 2-3 倍
+    rag_input_est = output_tokens_est * 3
 
     return {
         "total_time": round(end - start, 2),
@@ -111,7 +92,6 @@ async def test_rag(question: str, qa: QAService) -> dict:
         "source_count": len(sources),
         "sources": sources[:5],
         "output_tokens_est": output_tokens_est,
-        # 通过非流式获取近似的 input tokens
         "prompt_tokens_approx": rag_input_est,
     }
 
@@ -131,7 +111,7 @@ def generate_report(results: list[dict], output_path: str) -> None:
         "",
         f"> 测试日期: {time.strftime('%Y-%m-%d')}",
         "> 数据集: 347 篇学术论文, 7779 chunks",
-        "> LLM: DeepSeek Chat (deepseek-chat)",
+        "> LLM: Kimi K2.6-code-preview (256K 上下文窗口)",
         "> Embedding: 硅基流动 Qwen3-Embedding-8B (1536 维)",
         "> 向量库: Zvec (topk=10)",
         "",
@@ -238,7 +218,7 @@ async def main():
     redis = RedisCache()
     init_deps(sqlite, zvec, redis, bm25)
 
-    client = AsyncOpenAI(base_url=settings.llm_base_url, api_key=settings.llm_api_key)
+    llm_client = LLMClient()
     qa = QAService()
 
     results = []
@@ -249,8 +229,8 @@ async def main():
 
         # 纯 LLM
         print(f"  [纯 LLM] 请求中...", end="", flush=True)
-        llm_result = await test_llm_stream(question, client, settings.llm_model)
-        print(f" 完成 ({llm_result['total_time']}s, {llm_result['total_tokens']} tokens)")
+        llm_result = await test_llm_stream(question, llm_client)
+        print(f" 完成 ({llm_result['total_time']}s, ~{llm_result['total_tokens']} tokens)")
 
         # RAG
         print(f"  [RAG] 请求中...", end="", flush=True)
@@ -271,7 +251,7 @@ async def main():
     generate_report(results, output_path)
 
     # 关闭
-    await client.close()
+    await llm_client.close()
     await qa.close()
     zvec.close()
 
