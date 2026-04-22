@@ -181,7 +181,25 @@ async def _do_import(
     return {"status": "ok", "file": basename, "paper_id": paper_id, "chunks": len(chunked)}
 
 
+def _cleanup_stale_locks() -> None:
+    """清理可能残留的 LOCK 文件（进程异常退出后）"""
+    lock_paths = [
+        "./data/zvec_db/LOCK",
+        "./data/zvec_db/idmap.0/LOCK",
+    ]
+    for path in lock_paths:
+        if os.path.exists(path):
+            logger.warning("清理残留 LOCK: %s", path)
+            try:
+                os.remove(path)
+            except OSError as e:
+                logger.warning("无法清理 %s: %s", path, e)
+
+
 async def main():
+    # 启动前清理残留 LOCK
+    _cleanup_stale_locks()
+
     parser = argparse.ArgumentParser(description="批量导入测试论文")
     parser.add_argument("--dir", default="../test_meta_papers", help="论文目录")
     parser.add_argument("--concurrency", type=int, default=5, help="并发数（建议 ≤5，匹配 MinerU 300/min 限流）")

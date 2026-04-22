@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import json
+import logging
 import math
 import os
 from collections import defaultdict
 
 import jieba
 from rank_bm25 import BM25Okapi
+
+logger = logging.getLogger("paper-assistant")
 
 
 class BM25Store:
@@ -26,23 +29,38 @@ class BM25Store:
         meta_path = os.path.join(self._index_dir, "meta.json")
         if not os.path.exists(meta_path):
             return
-        with open(meta_path, encoding="utf-8") as f:
-            meta = json.load(f)
-        self._doc_ids = meta.get("doc_ids", [])
-        corpus_path = os.path.join(self._index_dir, "corpus.json")
-        if os.path.exists(corpus_path):
-            with open(corpus_path, encoding="utf-8") as f:
-                self._corpus = json.load(f)
-            if self._corpus:
-                self._bm25 = BM25Okapi(self._corpus)
+        try:
+            with open(meta_path, encoding="utf-8") as f:
+                meta = json.load(f)
+            self._doc_ids = meta.get("doc_ids", [])
+            corpus_path = os.path.join(self._index_dir, "corpus.json")
+            if os.path.exists(corpus_path):
+                with open(corpus_path, encoding="utf-8") as f:
+                    self._corpus = json.load(f)
+                if self._corpus:
+                    self._bm25 = BM25Okapi(self._corpus)
+        except (json.JSONDecodeError, IOError) as e:
+            logger.warning("BM25 索引损坏，清空重建: %s", e)
+            self._corpus = []
+            self._doc_ids = []
+            self._bm25 = None
+            self._save_index()
 
     def _save_index(self) -> None:
         meta_path = os.path.join(self._index_dir, "meta.json")
-        with open(meta_path, "w", encoding="utf-8") as f:
-            json.dump({"doc_ids": self._doc_ids}, f, ensure_ascii=False)
         corpus_path = os.path.join(self._index_dir, "corpus.json")
-        with open(corpus_path, "w", encoding="utf-8") as f:
+
+        # 原子写入：先写临时文件，完成后重命名
+        meta_tmp = meta_path + ".tmp"
+        corpus_tmp = corpus_path + ".tmp"
+
+        with open(meta_tmp, "w", encoding="utf-8") as f:
+            json.dump({"doc_ids": self._doc_ids}, f, ensure_ascii=False)
+        with open(corpus_tmp, "w", encoding="utf-8") as f:
             json.dump(self._corpus, f, ensure_ascii=False)
+
+        os.replace(meta_tmp, meta_path)
+        os.replace(corpus_tmp, corpus_path)
 
     def add_documents(self, doc_ids: list[str], texts: list[str]) -> None:
         tokenized = [list(jieba.cut(text)) for text in texts]

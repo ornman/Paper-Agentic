@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import logging
 import os
 import shutil
 
 import zvec
 from zvec import Doc, VectorQuery
+
+logger = logging.getLogger("paper-assistant")
 
 
 class ZvecStore:
@@ -33,6 +36,7 @@ class ZvecStore:
         )
 
     def init(self) -> None:
+        self._cleanup_locks()
         schema = self._build_schema(self._dimension)
         try:
             self._collection = zvec.open(self._path)
@@ -41,6 +45,18 @@ class ZvecStore:
             if os.path.exists(self._path):
                 shutil.rmtree(self._path)
             self._collection = zvec.create_and_open(self._path, schema)
+
+    def _cleanup_locks(self) -> None:
+        """清理残留的 LOCK 文件"""
+        for root, _dirs, files in os.walk(self._path):
+            for f in files:
+                if f == "LOCK":
+                    lock_path = os.path.join(root, f)
+                    try:
+                        os.remove(lock_path)
+                        logger.warning("清理残留 LOCK: %s", lock_path)
+                    except OSError:
+                        pass
 
     def close(self) -> None:
         if self._collection:
