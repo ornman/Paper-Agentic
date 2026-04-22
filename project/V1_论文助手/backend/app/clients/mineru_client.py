@@ -16,6 +16,7 @@ from urllib.parse import urlparse
 import httpx
 
 from app.core.config import get_settings
+from app.utils.rate_limiter import RateLimiter
 
 logger = logging.getLogger("paper-assistant")
 
@@ -40,6 +41,7 @@ class MinerUClient:
         self._poll_interval = settings.mineru_poll_interval
         self._timeout = settings.mineru_timeout
         self._client: httpx.AsyncClient | None = None
+        self._rate_limiter = RateLimiter(rate=5.0)  # 5 请求/秒（官方 300/分钟）
 
     async def _get_client(self) -> httpx.AsyncClient:
         if self._client is None or self._client.is_closed:
@@ -56,10 +58,12 @@ class MinerUClient:
             h["Authorization"] = f"Bearer {self._api_key}"
         return h
 
+    _SUBMIT_RETRIES = 3
+
     # --- 提交 ---
 
     async def submit_task(self, file_path: str) -> str:
-        """上传 PDF 并返回 task_id"""
+        """上传 PDF 并返回 task_id（内置 429 重试）"""
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"PDF 不存在: {file_path}")
 
@@ -72,6 +76,26 @@ class MinerUClient:
             while len(stem.encode("utf-8")) > 120:
                 stem = stem[:-1]
 
+        for attempt in range(self._SUBMIT_RETRIES):
+            async with self._rate_limiter:
+                try:
+                    batch_id = await self._do_submit(client, file_path, filename, stem)
+                    logger.info("MinerU task submitted: %s", batch_id)
+                    return batch_id
+                except httpx.HTTPStatusError as e:
+                    if e.response.status_code == 429 and attempt < self._SUBMIT_RETRIES - 1:
+                        retry_after = int(e.response.headers.get("Retry-After", 5))
+                        logger.warning("MinerU 429 限流，%ds 后重试 (%d/%d): %s",
+                                       retry_after, attempt + 1, self._SUBMIT_RETRIES, filename)
+                        await asyncio.sleep(retry_after)
+                        continue
+                    raise
+
+        raise RuntimeError(f"MinerU 提交失败（{self._SUBMIT_RETRIES} 次重试后）: {filename}")
+
+    async def _do_submit(self, client: httpx.AsyncClient, file_path: str,
+                         filename: str, stem: str) -> str:
+        """实际提交逻辑"""
         # Step 1: 申请上传链接
         resp = await client.post(
             f"{self._base_url}/file-urls/batch",
@@ -104,7 +128,6 @@ class MinerUClient:
         put_resp = await client.put(upload_url, content=file_data)
         put_resp.raise_for_status()
 
-        logger.info("MinerU task submitted: %s", batch_id)
         return batch_id
 
     # --- 轮询 ---

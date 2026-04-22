@@ -22,7 +22,7 @@ async def inject_image_descriptions(
     images_dir: str,
     paper_dir: str,
     vlm: VLMClient,
-    concurrency: int = 10,
+    concurrency: int = 2,
 ) -> str:
     """扫描 MD 中的图片引用，调用 VLM 生成描述，回填到 alt text"""
     cache = _load_cache(paper_dir)

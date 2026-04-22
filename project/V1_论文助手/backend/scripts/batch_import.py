@@ -44,6 +44,7 @@ async def import_one(
     semaphore: asyncio.Semaphore,
     max_retries: int = 3,
     force_rebuild: bool = False,
+    vlm_concurrency: int = 2,
 ) -> dict:
     """导入单篇论文的完整流程（内置去重 + 自动重试）"""
     basename = os.path.basename(file_path)
@@ -83,6 +84,7 @@ async def import_one(
                 return await _do_import(
                     file_path, basename, paper_id, file_hash,
                     mineru, vlm, embedding, zvec, bm25, sqlite,
+                    vlm_concurrency,
                 )
             except Exception as e:
                 if attempt < max_retries and _is_retryable(e):
@@ -117,6 +119,7 @@ async def _do_import(
     zvec: ZvecStore,
     bm25: BM25Store,
     sqlite: SQLiteRepo,
+    vlm_concurrency: int = 2,
 ) -> dict:
     """实际导入逻辑（被 import_one 调用，失败由上层重试）"""
 
@@ -129,7 +132,7 @@ async def _do_import(
     # 2. VLM 图片描述
     if md_content and os.path.isdir(images_dir):
         md_content = await inject_image_descriptions(
-            md_content, images_dir, paper_dir, vlm, concurrency=5,
+            md_content, images_dir, paper_dir, vlm, concurrency=vlm_concurrency,
         )
 
     # 3. 清洗
@@ -181,7 +184,8 @@ async def _do_import(
 async def main():
     parser = argparse.ArgumentParser(description="批量导入测试论文")
     parser.add_argument("--dir", default="../test_meta_papers", help="论文目录")
-    parser.add_argument("--concurrency", type=int, default=10, help="并发数（MinerU 限制 50/min）")
+    parser.add_argument("--concurrency", type=int, default=5, help="并发数（建议 ≤5，匹配 MinerU 300/min 限流）")
+    parser.add_argument("--vlm-concurrency", type=int, default=2, help="VLM 图片描述并发数（建议 2-3）")
     parser.add_argument("--skip-existing", action="store_true", help="跳过已导入的文件")
     parser.add_argument("--force-rebuild", action="store_true", help="强制重建向量库（忽略 file_hash 去重）")
     parser.add_argument("--retries", type=int, default=3, help="单篇失败重试次数")
@@ -221,7 +225,8 @@ async def main():
     # 并发导入
     t0 = time.time()
     tasks = [
-        import_one(p, mineru, vlm, embed, zvec, bm25, sqlite, sem, args.retries, args.force_rebuild)
+        import_one(p, mineru, vlm, embed, zvec, bm25, sqlite, sem,
+                   args.retries, args.force_rebuild, args.vlm_concurrency)
         for p in pdfs
     ]
     results = await asyncio.gather(*tasks)
@@ -241,10 +246,22 @@ async def main():
     print(f"耗时: {time.time()-t0:.1f}s")
 
     if failed:
-        print(f"\n失败列表:")
+        print(f"\n{'='*50}")
+        print(f"失败论文详情 ({failed} 篇):")
+        print(f"{'='*50}")
         for r in results:
             if r["status"] == "failed":
-                print(f"  {r['file']}: {r['error'][:100]}")
+                err = r.get("error", "")
+                if "429" in err:
+                    tag = "429限流"
+                elif "timeout" in err.lower() or "timed out" in err.lower():
+                    tag = "超时"
+                elif "connection" in err.lower():
+                    tag = "连接错误"
+                else:
+                    tag = "服务端错误"
+                print(f"  [{tag}] {r['file']}")
+                print(f"           {err[:120]}")
 
     zvec.close()
     await mineru.close()
