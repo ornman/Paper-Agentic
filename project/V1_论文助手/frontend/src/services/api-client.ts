@@ -135,3 +135,15 @@ export async function fetchHealthCheck(): Promise<{ status: string }> {
   const response = await requestJson<{ status: string }>('/api/v1/health', undefined)
   return { status: response.data?.status ?? 'ok' }
 }
+
+export async function postJson<TData>(pathname: string, body: unknown): Promise<TData> {
+  const response = await fetch(buildApiUrl(pathname), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (!response.ok) {
+    throw new ApiClientError(`HTTP ${response.status}`, response.status)
+  }
+  return response.json() as Promise<TData>
+}

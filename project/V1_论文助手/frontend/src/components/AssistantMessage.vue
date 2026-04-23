@@ -26,19 +26,6 @@ const props = defineProps<{
   isStreaming?: boolean
 }>()
 
-function jumpToSource(index: number) {
-  const source = props.message.sources?.[index]
-  if (!source) return
-  // TODO: 调用 WPS API 跳转到 PDF 指定页码
-  // 目前先 alert 提示
-  alert(`跳转到: ${source.title} - 第 ${source.page} 页`)
-}
-
-// 挂载到 window 以便 v-html 中的 onclick 调用
-if (typeof window !== 'undefined') {
-  (window as any).__jumpToSource = (index: number) => jumpToSource(index)
-}
-
 const formattedContent = computed(() => {
   const text = props.message.content
   return text
@@ -47,8 +34,7 @@ const formattedContent = computed(() => {
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
     .replace(/`(.+?)`/g, '<code>$1</code>')
     .replace(/\[(\d+)\]/g, (_match, num) => {
-      const idx = parseInt(num) - 1
-      return `<a class="source-link" onclick="window.__jumpToSource(${idx})">[${num}]</a>`
+      return `<span class="source-ref">[${num}]</span>`
     })
     .replace(/\n/g, '<br>')
 })
@@ -69,11 +55,11 @@ const formattedContent = computed(() => {
 
 .assistant-bubble {
   padding: var(--space-3) var(--space-4);
-  background: var(--color-assistant-bg);
-  border: 1px solid var(--color-assistant-border);
+  background: #f0f4ff;
+  border: 1px solid #d0d9ff;
   border-radius: var(--radius-md);
   border-bottom-left-radius: 6px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
 
 .empty-content {
@@ -119,17 +105,19 @@ const formattedContent = computed(() => {
   font-size: 13px;
 }
 
-.content-text :deep(.source-link) {
-  color: var(--color-accent);
-  text-decoration: none;
-  border-bottom: 1px dotted var(--color-accent);
-  cursor: pointer;
-  font-weight: 500;
-  padding: 0 1px;
-}
-
-.content-text :deep(.source-link:hover) {
-  background: var(--color-accent-soft);
-  border-bottom-style: solid;
+.content-text :deep(.source-ref) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 4px;
+  margin: 0 2px;
+  background: var(--color-accent);
+  color: white;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  vertical-align: baseline;
 }
 </style>

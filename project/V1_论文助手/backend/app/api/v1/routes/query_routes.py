@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 
 from fastapi import APIRouter
+from pydantic import BaseModel
 from starlette.responses import StreamingResponse
 
 from app.models.query import QueryRequest
@@ -34,9 +35,25 @@ async def query(req: QueryRequest):
             selection=req.selection,
             draft=req.draft,
             paper_ids=req.paper_ids,
+            enable_rag=req.enable_rag,
         ):
             event_type = event.get("event", "chunk")
             data = json.dumps(event.get("data", {}), ensure_ascii=False)
             yield f"event: {event_type}\ndata: {data}\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+
+class TitleRequest(BaseModel):
+    message: str
+
+
+@router.post("/generate-title")
+async def generate_title(req: TitleRequest):
+    """根据首条消息生成对话标题"""
+    qa = _get_qa()
+    try:
+        title = await qa.generate_title(req.message)
+        return {"title": title}
+    except Exception as e:
+        return {"title": req.message[:20]}

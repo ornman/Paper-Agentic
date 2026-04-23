@@ -9,6 +9,7 @@ class QueryRequest(BaseModel):
     selection: str = ""
     draft: str = ""
     paper_ids: list[str] | None = None
+    enable_rag: bool = True  # 是否启用 RAG 检索，默认启用
 
 
 class SourceRef(BaseModel):

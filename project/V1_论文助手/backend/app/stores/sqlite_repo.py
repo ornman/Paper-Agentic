@@ -87,6 +87,21 @@ class SQLiteRepo:
     def get_session(self) -> Session:
         return self._session_factory()
 
+    def get_messages(self, session_id: str, limit: int = 50) -> list[dict]:
+        """获取对话历史"""
+        with self.get_session() as session:
+            result = session.execute(text("""
+                SELECT role, content, created_at
+                FROM conversations
+                WHERE session_id = :sid
+                ORDER BY created_at ASC
+                LIMIT :limit
+            """), {"sid": session_id, "limit": limit})
+            return [
+                {"role": row[0], "content": row[1], "created_at": row[2]}
+                for row in result
+            ]
+
     def get_paper_count(self) -> int:
         with self._engine.begin() as conn:
             result = conn.execute(text("SELECT COUNT(*) FROM papers WHERE status = 'completed'"))

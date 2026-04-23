@@ -133,7 +133,7 @@ async function confirmDelete(paperId: string) {
   <section class="drawer-page">
     <!-- 主导航 -->
     <section v-if="currentSection === 'nav'" class="nav-page">
-      <h1 class="brand-title">论文助手</h1>
+      <h1 class="brand-title">AIForScience</h1>
 
       <nav class="nav-menu">
         <button class="nav-link nav-link-accent" type="button" @click="handleNewChat">

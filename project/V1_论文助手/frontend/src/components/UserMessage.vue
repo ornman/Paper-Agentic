@@ -21,13 +21,14 @@ defineProps<{
 .user-bubble {
   max-width: 75%;
   padding: var(--space-3) var(--space-4);
-  background: var(--color-user-bubble);
-  color: var(--color-user-bubble-text);
+  background: #0066cc;
+  color: #ffffff;
   border-radius: var(--radius-lg);
   border-bottom-right-radius: 6px;
   font-size: var(--font-size-body);
   line-height: 1.6;
   word-break: break-word;
   white-space: pre-wrap;
+  box-shadow: 0 2px 8px rgba(0, 102, 204, 0.25);
 }
 </style>

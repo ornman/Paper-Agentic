@@ -11,6 +11,7 @@ import EmptyState from './components/EmptyState.vue'
 const store = useConversationStore()
 const libraryStore = useLibraryStore()
 const uiStore = useUiStore()
+const enableRag = ref(true)  // RAG 开关状态，默认开启
 
 const inputText = ref('')
 const inputRef = ref<HTMLTextAreaElement>()
@@ -31,6 +32,7 @@ async function handleSend() {
   await store.sendPrompt({
     session_id: store.sessionId,
     prompt: query,
+    enable_rag: enableRag.value,  // 传递 RAG 开关状态
   })
 }
 
@@ -177,6 +179,7 @@ watch(() => store.status, (s) => {
       <!-- 顶部导航栏 -->
       <TopNavBar
         v-if="!drawerOpen"
+        :title="store.title"
         @open-history="handleOpenHistory"
         @new-chat="handleNewChat"
       />
@@ -222,7 +225,7 @@ watch(() => store.status, (s) => {
               title="导入 PDF"
               @click="triggerFileSelect"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/>
               </svg>
             </button>
@@ -235,6 +238,14 @@ watch(() => store.status, (s) => {
               @change="handleFileSelect"
             />
             <div class="composer-spacer" />
+
+            <!-- 结合知识库开关 -->
+            <label class="inline-toggle" :class="{ disabled: isBusy }" title="结合知识库">
+              <input type="checkbox" v-model="enableRag" :disabled="isBusy" />
+              <span class="inline-slider"></span>
+              <span class="inline-label">结合知识库</span>
+            </label>
+
             <button
               class="send-button"
               type="button"
@@ -258,7 +269,7 @@ watch(() => store.status, (s) => {
   width: 100%;
   height: 100%;
   min-height: 100vh;
-  background: #ffffff;
+  background: var(--color-surface-base);
   color: var(--color-text-primary);
   position: relative;
 }
@@ -290,30 +301,29 @@ watch(() => store.status, (s) => {
 
 .sidebar-container {
   position: relative;
-  display: grid;
-  grid-template-rows: auto 1fr auto;
+  display: flex;
+  flex-direction: column;
   width: 100%;
   max-width: 100%;
   min-height: 100vh;
-  padding: var(--space-3);
-  background: var(--color-surface-base);
-  overflow: hidden;
+  background: transparent;
 }
 
 /* ─── 消息区域 ─── */
 .sidebar-main {
-  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
   padding-top: var(--space-2);
 }
 
 .sidebar-content {
-  height: 100%;
-  display: grid;
-  align-content: start;
-  gap: var(--space-5);
-  padding: 0 var(--space-1) var(--space-1);
+  flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
+  display: block;
+  padding: var(--space-4) var(--space-3) 140px;
 }
 
 .conversation-error {
@@ -329,18 +339,79 @@ watch(() => store.status, (s) => {
 
 /* ─── 底部输入栏 ─── */
 .bottom-bar {
-  position: sticky;
+  position: fixed;
   bottom: 0;
-  padding: var(--space-2) 0 var(--space-3);
-  background: var(--color-surface-muted);
+  left: 0;
+  right: 0;
+  padding: var(--space-3);
+  background: var(--color-surface-base);
+  border-top: 1px solid var(--color-border-subtle);
+  z-index: 100;
+}
+
+/* ─── 内联功能开关（DeepSeek 风格）─── */
+.inline-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+  user-select: none;
+}
+
+.inline-toggle.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.inline-toggle input[type="checkbox"] {
+  display: none;
+}
+
+.inline-slider {
+  position: relative;
+  width: 32px;
+  height: 18px;
+  background: #d1d5db;
+  border-radius: 9px;
+  transition: background 0.2s ease;
+}
+
+.inline-toggle input[type="checkbox"]:checked + .inline-slider {
+  background: var(--color-accent);
+}
+
+.inline-slider::before {
+  content: '';
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 16px;
+  height: 16px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.inline-toggle input[type="checkbox"]:checked + .inline-slider::before {
+  transform: translateX(14px);
+}
+
+.inline-label {
+  font-size: 13px;
+  color: var(--color-text-primary);
+  font-weight: 500;
 }
 
 .composer-card {
   width: 100%;
-  padding: var(--space-4) 18px 18px;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: var(--space-3) var(--space-4);
   border: 1px solid var(--composer-border);
-  border-radius: 32px;
+  border-radius: 24px;
   background: var(--composer-surface);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .composer-input {

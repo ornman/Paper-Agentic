@@ -10,15 +10,18 @@ from datetime import datetime, timezone
 
 from sqlalchemy import text
 
-from app.api.v1.deps import get_bm25, get_redis, get_sqlite, get_zvec
+from app.api.v1.deps import get_bm25, get_chroma, get_sqlite
 from app.clients.embedding_client import EmbeddingClient
 from app.clients.mineru_client import MinerUClient
 from app.clients.vlm_client import VLMClient
+from app.pipelines.ingestion.backup_manager import BackupManager
 from app.pipelines.ingestion.chunker import chunk_text
 from app.pipelines.ingestion.cleaner import clean_markdown
 from app.pipelines.ingestion.image_handler import inject_image_descriptions
 
 logger = logging.getLogger("paper-assistant")
+
+_backup = BackupManager()
 
 
 class IngestionService:
@@ -36,10 +39,8 @@ class IngestionService:
         if not task_id:
             task_id = uuid.uuid4().hex[:12]
 
-        paper_id = uuid.uuid4().hex[:16]
         file_hash = _hash_file(file_path)
         import_time = datetime.now(timezone.utc).isoformat()
-
         sqlite = get_sqlite()
 
         # 去重
@@ -51,68 +52,135 @@ class IngestionService:
             if result.fetchone():
                 raise ValueError(f"该论文已导入 (hash: {file_hash[:8]})")
 
+        # 检查备份，支持断点续传
+        backup = _backup.get_backup(file_hash)
+        if backup and backup["status"] == "completed":
+            raise ValueError(f"该论文已完成导入 (hash: {file_hash[:8]})")
+
+        resume_stage = _backup.get_resume_stage(file_hash) if backup else None
+        if resume_stage:
+            paper_id = backup["paper_id"]
+            logger.info("从阶段 %s 恢复导入: %s", resume_stage, file_hash[:12])
+        else:
+            paper_id = uuid.uuid4().hex[:16]
+            _backup.create(file_hash, file_path, paper_id)
+
         # ── Stage 1: MinerU 解析 ──
-        self._log(sqlite, task_id, file_path, "parsing", "MinerU 解析中")
-        if progress_callback:
-            await progress_callback("parsing", "正在提交 PDF 解析...")
+        md_content = ""
+        paper_dir = ""
+        images_dir = ""
 
-        mineru_result = await self._mineru.run(file_path)
-        md_content = mineru_result.md_content or ""
-        paper_dir = mineru_result.paper_dir
-        images_dir = os.path.join(paper_dir, "images")
+        if _backup.get_backup(file_hash)["stages"].get("mineru") != "completed":
+            self._log(sqlite, task_id, file_path, "parsing", "MinerU 解析中")
+            if progress_callback:
+                await progress_callback("parsing", "正在提交 PDF 解析...")
 
-        # ── Stage 2: VLM 图片描述注入（对原始 MD 操作） ──
-        self._log(sqlite, task_id, file_path, "vlm", "图片理解中")
-        if progress_callback:
-            await progress_callback("vlm", "正在处理图片...")
+            try:
+                mineru_result = await self._mineru.run(file_path)
+                md_content = mineru_result.md_content or ""
+                paper_dir = mineru_result.paper_dir
+                images_dir = os.path.join(paper_dir, "images")
 
-        if md_content and os.path.isdir(images_dir):
-            md_content = await inject_image_descriptions(
-                md_content, images_dir, paper_dir, self._vlm, concurrency=10,
-            )
-            # 写回带描述的 MD
-            desc_path = os.path.join(paper_dir, "full_with_desc.md")
-            with open(desc_path, "w", encoding="utf-8") as f:
-                f.write(md_content)
+                _backup.save_stage_data(file_hash, "mineru", md_content)
+                _backup.update_stage(file_hash, "mineru", "completed")
+            except Exception as e:
+                _backup.update_stage(file_hash, "mineru", "failed")
+                raise
+        else:
+            md_content = _backup.load_stage_data(file_hash, "mineru") or ""
+            logger.info("跳过已完成阶段: mineru")
 
-        # ── Stage 3: 清洗（在带描述的 MD 上操作） ──
+        # ── Stage 2: VLM 图片描述注入（可降级） ──
+        vlm_stage = _backup.get_backup(file_hash)["stages"].get("vlm")
+        if vlm_stage not in ("completed", "skipped"):
+            self._log(sqlite, task_id, file_path, "vlm", "图片理解中")
+            if progress_callback:
+                await progress_callback("vlm", "正在处理图片...")
+
+            try:
+                if not paper_dir:
+                    paper_dir = os.path.join("./data/papers", task_id)
+                    images_dir = os.path.join(paper_dir, "images")
+
+                if md_content and os.path.isdir(images_dir):
+                    md_content = await inject_image_descriptions(
+                        md_content, images_dir, paper_dir, self._vlm,
+                        concurrency=10, on_error="default",
+                    )
+
+                _backup.save_stage_data(file_hash, "vlm", md_content)
+                _backup.update_stage(file_hash, "vlm", "completed")
+            except Exception as e:
+                logger.warning("VLM 阶段整体失败，降级跳过: %s", e)
+                _backup.update_stage(file_hash, "vlm", "skipped")
+        else:
+            md_content = _backup.load_stage_data(file_hash, "vlm") or ""
+            logger.info("跳过已完成阶段: vlm")
+
+        # ── Stage 3: 清洗 ──
+        chunks = clean_markdown(md_content, paper_id)
         self._log(sqlite, task_id, file_path, "cleaning", "数据清洗中")
         if progress_callback:
             await progress_callback("cleaning", "正在清洗解析结果...")
 
-        chunks = clean_markdown(md_content, paper_id)
-
         # ── Stage 4: 切块 ──
-        self._log(sqlite, task_id, file_path, "chunking", "切块中")
-        if progress_callback:
-            await progress_callback("chunking", "正在切分文档...")
+        chunked = None
+        if _backup.get_backup(file_hash)["stages"].get("chunking") != "completed":
+            self._log(sqlite, task_id, file_path, "chunking", "切块中")
+            if progress_callback:
+                await progress_callback("chunking", "正在切分文档...")
 
-        chunked = chunk_text(chunks)
+            try:
+                chunked = chunk_text(chunks)
+                _backup.save_stage_data(file_hash, "chunking", chunked)
+                _backup.update_stage(file_hash, "chunking", "completed",
+                                     extra={"chunk_count": len(chunked)})
+            except Exception as e:
+                _backup.update_stage(file_hash, "chunking", "failed")
+                raise
+        else:
+            chunked = _backup.load_stage_data(file_hash, "chunking") or []
+            logger.info("跳过已完成阶段: chunking")
 
         # ── Stage 5: Embedding ──
-        self._log(sqlite, task_id, file_path, "embedding", "向量化中")
-        if progress_callback:
-            await progress_callback("embedding", "正在生成向量...")
+        vectors = None
+        if _backup.get_backup(file_hash)["stages"].get("embedding") != "completed":
+            self._log(sqlite, task_id, file_path, "embedding", "向量化中")
+            if progress_callback:
+                await progress_callback("embedding", "正在生成向量...")
 
-        texts = [c["content"] for c in chunked]
-        vectors = await self._embedding.embed(texts)
+            try:
+                texts = [c["content"] for c in chunked]
+                vectors = await self._embedding.embed(texts)
+                _backup.save_stage_data(file_hash, "embedding", vectors)
+                _backup.update_stage(file_hash, "embedding", "completed")
+            except Exception as e:
+                _backup.update_stage(file_hash, "embedding", "failed")
+                raise
+        else:
+            vectors = _backup.load_stage_data(file_hash, "embedding") or []
+            logger.info("跳过已完成阶段: embedding")
 
         # ── Stage 6: 存储 ──
         self._log(sqlite, task_id, file_path, "storing", "写入存储")
         if progress_callback:
             await progress_callback("storing", "正在保存数据...")
 
-        zvec = get_zvec()
+        chroma = get_chroma()
         bm25 = get_bm25()
 
-        stored_count = zvec.insert_chunks(
+        stored_count = chroma.insert_chunks(
             paper_id=paper_id,
             chunks=[{**c, "file_hash": file_hash} for c in chunked],
             vectors=vectors,
         )
 
+        texts = [c["content"] for c in chunked]
         doc_ids = [f"{paper_id}_{i}" for i in range(len(chunked))]
         bm25.add_documents(doc_ids, texts)
+
+        # file_path 存储备份目录中的 PDF 路径（确保文件始终可访问）
+        backup_pdf_path = _backup.get_pdf_path(file_hash) or file_path
 
         with sqlite.get_session() as session:
             session.execute(
@@ -125,7 +193,7 @@ class IngestionService:
                     "pid": paper_id,
                     "title": _guess_title(md_content, file_path),
                     "authors": "",
-                    "path": file_path,
+                    "path": backup_pdf_path,
                     "hash": file_hash,
                     "size": os.path.getsize(file_path),
                     "chunks": stored_count,
@@ -134,6 +202,7 @@ class IngestionService:
             )
             session.commit()
 
+        _backup.update_stage(file_hash, "chroma", "completed")
         self._log(sqlite, task_id, file_path, "completed", "", paper_id=paper_id)
 
         result = {
@@ -148,12 +217,12 @@ class IngestionService:
         return result
 
     async def delete_paper(self, paper_id: str) -> None:
-        """全量删除：Zvec + BM25 + SQLite"""
-        zvec = get_zvec()
+        """全量删除：Chroma + BM25 + SQLite"""
+        chroma = get_chroma()
         bm25 = get_bm25()
         sqlite = get_sqlite()
 
-        zvec.delete_paper(paper_id)
+        chroma.delete_paper(paper_id)
         bm25.delete_paper(paper_id)
         with sqlite.get_session() as session:
             session.execute(text("DELETE FROM papers WHERE paper_id = :pid"), {"pid": paper_id})

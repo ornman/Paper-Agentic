@@ -6,6 +6,7 @@ export interface AskRequestPayload {
   selection?: string
   draft?: string
   paper_ids?: string[] | null
+  enable_rag?: boolean  // 是否启用 RAG 检索，默认 true
 }
 
 export interface AskInspirationStreamHandlers {
@@ -177,20 +178,21 @@ function normalizeSourceCard(input: unknown, index: number): SourceCard | null {
           ? record.section
           : `来源 ${index + 1}`
 
-  const snippet =
-    typeof record.snippet === 'string'
-      ? record.snippet
-      : typeof record.content === 'string'
-        ? record.content
-        : ''
+  const content = typeof record.content === 'string' ? record.content : ''
 
   const page = typeof record.page === 'number' ? record.page : undefined
+  const section = typeof record.section === 'string' ? record.section : undefined
+  const file_path = typeof record.file_path === 'string' ? record.file_path : undefined
+  const paper_id = typeof record.paper_id === 'string' ? record.paper_id : undefined
 
   return {
     id,
+    paper_id,
     title,
     page,
-    snippet,
+    section,
+    file_path,
+    content,
   }
 }
 

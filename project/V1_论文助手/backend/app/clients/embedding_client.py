@@ -8,11 +8,12 @@ import logging
 import httpx
 
 from app.core.config import get_settings
+from app.utils import error_handler
 
 logger = logging.getLogger("paper-assistant")
 
 _BATCH_SIZE = 32
-_MAX_CONCURRENCY = 5
+_MAX_CONCURRENCY = 20  # RPM 2000, batch 32 → 20 并发批次安全
 _MAX_RETRIES = 3
 
 
@@ -55,17 +56,19 @@ class EmbeddingClient:
 
     async def _embed_batch(self, texts: list[str]) -> list[list[float]]:
         async with self._semaphore:
+            last_error: Exception | None = None
             for attempt in range(_MAX_RETRIES):
                 try:
                     return await self._call_api(texts)
-                except (httpx.HTTPStatusError, httpx.RemoteProtocolError) as e:
-                    if attempt < _MAX_RETRIES - 1:
-                        wait = 2 ** attempt
-                        logger.warning("Embedding error %s, retrying in %ds", type(e).__name__, wait)
-                        await asyncio.sleep(wait)
-                        continue
-                    raise
-            return await self._call_api(texts)
+                except Exception as e:
+                    last_error = e
+                    if not error_handler.is_retryable(e) or attempt == _MAX_RETRIES - 1:
+                        raise
+                    backoff = error_handler.get_backoff(attempt, e)
+                    logger.warning("Embedding 失败，%.1fs 后重试 (%d/%d): %s",
+                                   backoff, attempt + 1, _MAX_RETRIES, e)
+                    await asyncio.sleep(backoff)
+            raise last_error  # type: ignore[misc]
 
     async def _call_api(self, texts: list[str]) -> list[list[float]]:
         client = await self._get_client()

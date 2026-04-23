@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from ..deps import get_sqlite, get_zvec, get_redis
+from ..deps import get_sqlite, get_zvec
 
 router = APIRouter(tags=["system"])
 
@@ -11,7 +11,6 @@ router = APIRouter(tags=["system"])
 async def health_check():
     sqlite = get_sqlite()
     zvec = get_zvec()
-    redis = get_redis()
 
     components = {}
 
@@ -26,12 +25,6 @@ async def health_check():
         components["zvec"] = {"status": "ok", "doc_count": doc_count}
     except Exception as e:
         components["zvec"] = {"status": "error", "detail": str(e)}
-
-    try:
-        ok = await redis.ping()
-        components["redis"] = {"status": "ok" if ok else "error"}
-    except Exception as e:
-        components["redis"] = {"status": "error", "detail": str(e)}
 
     overall = "ok" if all(
         c.get("status") == "ok" for c in components.values()

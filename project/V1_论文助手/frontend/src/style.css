@@ -1,14 +1,15 @@
 :root {
-  --color-surface-base: #f7f4ee;
-  --color-surface-muted: #ebe7e0;
-  --color-surface-card: #ffffff;
-  --color-border-subtle: #ddd8cf;
-  --color-border-strong: #d2cbc0;
-  --color-text-primary: #26231f;
-  --color-text-secondary: #9c978e;
-  --color-text-muted: #b8b3ab;
-  --color-accent: #aebeff;
-  --color-accent-soft: #edf2ff;
+  /* 护眼暖色调 - 类似 Claude Desktop */
+  --color-surface-base: #f4f1ea;
+  --color-surface-muted: #ebe7dd;
+  --color-surface-card: #faf8f3;
+  --color-border-subtle: #e0ddd5;
+  --color-border-strong: #d4d0c8;
+  --color-text-primary: #2c2a25;
+  --color-text-secondary: #6b6963;
+  --color-text-muted: #a39f96;
+  --color-accent: #0066cc;
+  --color-accent-soft: #d6e4ff;
 
   --space-1: 4px;
   --space-2: 8px;
@@ -22,29 +23,30 @@
   --radius-lg: 22px;
   --radius-full: 9999px;
 
-  --font-size-caption: 12px;
-  --font-size-body: 14px;
-  --font-size-title: 18px;
-  --font-size-hero: clamp(28px, 4.5vw, 34px);
+  --font-size-base: 14px; /* 用户可调节基准 */
+  --font-size-caption: calc(var(--font-size-base) * 0.857);
+  --font-size-body: var(--font-size-base);
+  --font-size-title: calc(var(--font-size-base) * 1.286);
+  --font-size-hero: clamp(calc(var(--font-size-base) * 2), 4.5vw, calc(var(--font-size-base) * 2.43));
 
   --font-family-base: "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
 
-  --composer-surface: #ffffff;
-  --composer-border: #dfd8cf;
+  --composer-surface: #faf8f3;
+  --composer-border: #d4d0c8;
 
-  --color-error: #b42318;
-  --color-error-bg: rgba(180, 35, 24, 0.08);
-  --color-error-border: rgba(180, 35, 24, 0.35);
+  --color-error: #d32f2f;
+  --color-error-bg: #ffebee;
+  --color-error-border: #ffcdd2;
 
-  --color-user-bubble: #26231f;
+  --color-user-bubble: #0066cc;
   --color-user-bubble-text: #ffffff;
 
-  --color-assistant-bg: #e8e3da;
-  --color-assistant-border: #d4cfc5;
+  --color-assistant-bg: #f5f5f5;
+  --color-assistant-border: #e5e5e5;
 
-  --color-source-bg: #faf8f4;
-  --color-source-border: #e8e3da;
-  --color-source-hover: #c5784f;
+  --color-source-bg: #fafafa;
+  --color-source-border: #e5e5e5;
+  --color-source-hover: #0066cc;
 }
 
 * {

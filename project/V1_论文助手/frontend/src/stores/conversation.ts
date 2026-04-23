@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { SourceCard } from '../components/SourceCardList.vue'
-import { ApiClientError } from '../services/api-client'
+import { ApiClientError, postJson } from '../services/api-client'
 import { postAskStream } from '../services/sse-client'
 import type { AskRequestPayload } from '../services/sse-client'
 
@@ -51,6 +51,7 @@ export const useConversationStore = defineStore('conversation', () => {
   const errorMessage = ref<string | null>(null)
   const messages = ref<ConversationRecord[]>([])
   const sessionId = ref<string>(createSessionId())
+  const title = ref<string>('AIForScience')
 
   const activeAssistantMessageId = ref<string | null>(null)
   const pendingAssistantSources = ref<SourceCard[] | null>(null)
@@ -162,6 +163,7 @@ export const useConversationStore = defineStore('conversation', () => {
 
   async function sendPrompt(payload: AskRequestPayload) {
     startRequest()
+    const isFirstMessage = messages.value.length === 0
     appendUserActionMessage({
       content: payload.prompt,
       kind: 'prompt',
@@ -198,6 +200,22 @@ export const useConversationStore = defineStore('conversation', () => {
         activeAssistantMessageId.value = null
         pendingAssistantSources.value = null
       }
+
+      // 首条消息后自动生成标题
+      if (isFirstMessage && payload.prompt.trim()) {
+        try {
+          const result = await postJson<{ title: string }>(
+            '/api/v1/query/generate-title',
+            { message: payload.prompt }
+          )
+          if (result.title) {
+            title.value = result.title
+          }
+        } catch {
+          // 标题生成失败不影响主流程，使用消息前 20 字
+          title.value = payload.prompt.slice(0, 20)
+        }
+      }
     } catch (error) {
       const message =
         error instanceof ApiClientError || error instanceof Error
@@ -216,6 +234,7 @@ export const useConversationStore = defineStore('conversation', () => {
     activeAssistantMessageId.value = null
     pendingAssistantSources.value = null
     sessionId.value = createSessionId()
+    title.value = 'AIForScience'
   }
 
   function loadHistory(data: { session_id: string; messages: Array<{ role: string; content: string }> }) {
@@ -250,6 +269,7 @@ export const useConversationStore = defineStore('conversation', () => {
     errorMessage,
     messages,
     sessionId,
+    title,
     startRequest,
     startStreaming,
     finishResponse,

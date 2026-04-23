@@ -5,21 +5,17 @@ from __future__ import annotations
 import logging
 from collections.abc import AsyncIterator
 
-from app.api.v1.deps import get_bm25, get_redis, get_sqlite, get_zvec
+from app.api.v1.deps import get_bm25, get_sqlite, get_zvec
 from app.clients.embedding_client import EmbeddingClient
 from app.clients.llm_client import LLMClient
 from app.pipelines.ingestion.chunker import estimate_tokens
 
 logger = logging.getLogger("paper-assistant")
 
-_SYSTEM_PROMPT = """你是一个学术论文研究助手。你的职责是：
-1. 基于提供的参考文献片段，准确回答用户关于论文内容的问题
-2. 回答时引用来源（标注论文标题和页码）
-3. 如果参考内容不足以回答问题，坦诚说明
-4. 使用中文回答
+_SYSTEM_PROMPT = """你是一个有帮助的助手。请用中文回答用户的问题。
 
-参考文献片段：
-{context}"""
+{context}
+"""
 
 _MAX_CONTEXT_TOKENS = 30000
 _RRF_K = 60  # RRF 融合常数
@@ -75,8 +71,13 @@ class QAService:
         selection: str = "",
         draft: str = "",
         paper_ids: list[str] | None = None,
+        enable_rag: bool = True,
     ) -> AsyncIterator[dict]:
-        """流式问答，yield SSE 事件"""
+        """流式问答，yield SSE 事件
+
+        Args:
+            enable_rag: 是否启用 RAG 检索。False 时直接调用 LLM，不检索文献
+        """
         # 1. 构建查询
         query_text = prompt
         if selection:
@@ -86,6 +87,59 @@ class QAService:
 
         if not query_text:
             yield {"event": "error", "data": {"message": "请提供问题或内容"}}
+            return
+
+        # 如果禁用 RAG，直接调用 LLM
+        if not enable_rag:
+            logger.info("RAG 已禁用，直接调用 LLM")
+            yield {
+                "event": "metadata",
+                "data": {"session_id": session_id, "source_count": 0, "sources": []},
+            }
+
+            # 加载对话历史
+            messages = []
+            try:
+                sqlite = get_sqlite()
+                history = sqlite.get_messages(session_id, limit=20)
+                for msg in history[-10:]:
+                    if msg.get("role") in ("user", "assistant"):
+                        messages.append({"role": msg["role"], "content": msg["content"]})
+            except Exception:
+                pass
+
+            messages.append({"role": "user", "content": query_text})
+
+            full_response: list[str] = []
+            try:
+                async for chunk in self._llm.chat_stream(messages):
+                    full_response.append(chunk)
+                    yield {"event": "chunk", "data": {"content": chunk}}
+            except Exception as e:
+                logger.error("LLM 流式调用失败: %s", e)
+                yield {"event": "error", "data": {"message": "LLM 服务暂时不可用"}}
+
+            # 保存对话历史
+            if full_response:
+                import time
+                now = time.strftime("%Y-%m-%dT%H:%M:%S")
+                try:
+                    sqlite = get_sqlite()
+                    with sqlite.get_session() as session:
+                        from sqlalchemy import text as sa_text
+                        session.execute(sa_text(
+                            "INSERT INTO conversations (session_id, role, content, created_at) "
+                            "VALUES (:sid, :role, :content, :time)"
+                        ), {"sid": session_id, "role": "user", "content": query_text, "time": now})
+                        session.execute(sa_text(
+                            "INSERT INTO conversations (session_id, role, content, created_at) "
+                            "VALUES (:sid, :role, :content, :time)"
+                        ), {"sid": session_id, "role": "assistant", "content": "".join(full_response), "time": now})
+                        session.commit()
+                except Exception as e:
+                    logger.warning("保存对话到 SQLite 失败: %s", e)
+
+            yield {"event": "done", "data": {}}
             return
 
         # 2. Dense 检索
@@ -163,11 +217,13 @@ class QAService:
 
             pid = fields.get("paper_id", "") if isinstance(fields, dict) else ""
             source_info = {
+                "id": f"{pid}_{fields.get('chunk_id', '')}",  # 唯一ID
                 "paper_id": pid,
                 "title": paper_titles.get(pid, ""),
                 "page": fields.get("source_page", 0) if isinstance(fields, dict) else 0,
                 "section": fields.get("section_title", "") if isinstance(fields, dict) else "",
                 "file_path": paper_paths.get(pid, ""),
+                "content": content,  # 完整段落内容
             }
             sources.append(source_info)
             context_parts.append(
@@ -184,8 +240,8 @@ class QAService:
 
         # 加载对话历史
         try:
-            redis = get_redis()
-            history = await redis.get_messages(session_id, limit=20)
+            sqlite = get_sqlite()
+            history = sqlite.get_messages(session_id, limit=20)
             for msg in history[-10:]:
                 if msg.get("role") in ("user", "assistant"):
                     messages.append({"role": msg["role"], "content": msg["content"]})
@@ -213,18 +269,10 @@ class QAService:
             logger.error("LLM 流式调用失败: %s", e)
             yield {"event": "error", "data": {"message": "LLM 服务暂时不可用"}}
 
-        # 7. 保存对话历史（Redis + SQLite 双写）
+        # 7. 保存对话历史
         if full_response:
             import time
             now = time.strftime("%Y-%m-%dT%H:%M:%S")
-            try:
-                redis = get_redis()
-                await redis.add_message(session_id, {"role": "user", "content": query_text})
-                await redis.add_message(
-                    session_id, {"role": "assistant", "content": "".join(full_response)}
-                )
-            except Exception:
-                pass
             try:
                 sqlite = get_sqlite()
                 with sqlite.get_session() as session:
@@ -246,3 +294,16 @@ class QAService:
     async def close(self) -> None:
         await self._llm.close()
         await self._embedding.close()
+
+    async def generate_title(self, first_message: str) -> str:
+        """根据首条用户消息生成简短对话标题"""
+        prompt = (
+            "请根据以下用户消息，生成一个简短的对话标题（5-12个汉字）。\n"
+            "要求：简洁概括主题，不要加引号或标点。\n\n"
+            f"用户消息：{first_message[:200]}\n\n标题："
+        )
+        response = await self._llm.chat([{"role": "user", "content": prompt}])
+        title = response.strip().strip('"\'""''')
+        if not title:
+            title = first_message[:20]
+        return title

@@ -6,6 +6,22 @@
     </div>
 
     <div class="claude-input-area">
+      <!-- RAG 开关 -->
+      <div class="claude-controls">
+        <label class="toggle-switch" :class="{ disabled: isBusy }">
+          <input
+            type="checkbox"
+            v-model="enableRag"
+            :disabled="isBusy"
+          />
+          <span class="toggle-slider"></span>
+          <span class="toggle-label">
+            <span class="toggle-label-text">文献检索</span>
+            <span class="toggle-label-status">{{ enableRag ? '开启' : '关闭' }}</span>
+          </span>
+        </label>
+      </div>
+
       <div class="claude-input-wrapper">
         <textarea
           ref="inputRef"
@@ -50,6 +66,7 @@ const store = useConversationStore()
 const inputText = ref('')
 const inputRef = ref<HTMLTextAreaElement>()
 const messagesContainer = ref<HTMLElement>()
+const enableRag = ref(true)  // RAG 开关状态，默认开启
 
 const isBusy = computed(() => store.status === 'requesting' || store.status === 'streaming')
 
@@ -66,6 +83,7 @@ async function handleSend() {
   await store.sendPrompt({
     session_id: store.sessionId,
     prompt: query,
+    enable_rag: enableRag.value,  // 传递 RAG 开关状态
   })
 
   scrollToBottom()
@@ -95,64 +113,150 @@ watch(() => store.status, (s) => {
   display: flex;
   flex-direction: column;
   flex: 1;
-  background: var(--claude-bg-card);
-  border-radius: var(--claude-radius-lg);
-  border: 1px solid var(--claude-border);
+  background: var(--color-surface-base);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-subtle);
   overflow: hidden;
+  position: relative;
 }
 
 .claude-messages {
   flex: 1;
   overflow-y: auto;
-  padding: var(--claude-spacing-lg);
+  padding: var(--space-4);
+  padding-bottom: var(--space-6);
+  min-height: 0;
 }
 
 .claude-input-area {
   flex-shrink: 0;
-  padding: var(--claude-spacing-md) var(--claude-spacing-lg);
-  border-top: 1px solid var(--claude-border);
-  background: var(--claude-bg-card);
+  padding: var(--space-4);
+  border-top: 1px solid var(--color-border-subtle);
+  background: var(--color-surface-base);
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+}
+
+.claude-controls {
+  display: flex;
+  align-items: center;
+  padding-bottom: var(--space-2);
+}
+
+/* ─── Toggle Switch ─── */
+.toggle-switch {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+  user-select: none;
+}
+
+.toggle-switch.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.toggle-switch input[type="checkbox"] {
+  display: none;
+}
+
+.toggle-slider {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background: #d1d5db;
+  border-radius: 12px;
+  transition: background 0.2s ease;
+}
+
+.toggle-switch input[type="checkbox"]:checked + .toggle-slider {
+  background: var(--color-accent);
+}
+
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-switch input[type="checkbox"]:checked + .toggle-slider::before {
+  transform: translateX(20px);
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.toggle-label-text {
+  font-size: 13px;
+  color: var(--color-text-primary);
+  font-weight: 500;
+}
+
+.toggle-label-status {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--color-surface-muted);
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+
+.toggle-switch input[type="checkbox"]:checked ~ .toggle-label .toggle-label-status {
+  background: var(--color-accent);
+  color: white;
 }
 
 .claude-input-wrapper {
   display: flex;
-  gap: var(--claude-spacing-sm);
+  gap: var(--space-2);
   align-items: flex-end;
 }
 
 .claude-textarea {
   flex: 1;
-  border: 1px solid var(--claude-border);
-  border-radius: var(--claude-radius-md);
-  padding: var(--claude-spacing-md);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
   font-size: 14px;
   line-height: 1.6;
   resize: none;
   font-family: inherit;
-  background: var(--claude-bg-card);
-  color: var(--claude-text-primary);
+  background: var(--color-surface-card);
+  color: var(--color-text-primary);
   transition: border-color 0.2s ease;
 }
 
 .claude-textarea:focus {
-  border-color: var(--claude-primary);
+  border-color: var(--color-accent);
   outline: none;
 }
 
 .claude-textarea:disabled {
-  background: var(--claude-bg-muted);
-  color: var(--claude-text-muted);
+  background: var(--color-surface-muted);
+  color: var(--color-text-muted);
 }
 
 .claude-input-footer {
   display: flex;
   justify-content: flex-end;
-  margin-top: var(--claude-spacing-xs);
+  margin-top: var(--space-1);
 }
 
 .claude-input-hint {
   font-size: 12px;
-  color: var(--claude-text-muted);
+  color: var(--color-text-muted);
 }
 
 .claude-send-btn {
@@ -161,9 +265,9 @@ watch(() => store.status, (s) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--claude-primary);
+  background: var(--color-accent);
   border: none;
-  border-radius: var(--claude-radius-md);
+  border-radius: var(--radius-md);
   color: white;
   cursor: pointer;
   transition: all 0.2s;
@@ -171,16 +275,15 @@ watch(() => store.status, (s) => {
 }
 
 .claude-send-btn:hover:not(:disabled) {
-  background: var(--claude-primary-hover);
+  opacity: 0.85;
 }
 
 .claude-send-btn:active:not(:disabled) {
-  background: var(--claude-primary-hover);
   transform: scale(0.96);
 }
 
 .claude-send-btn:disabled {
-  background: var(--claude-border);
+  background: var(--color-border-subtle);
   cursor: not-allowed;
 }
 
@@ -194,12 +297,12 @@ watch(() => store.status, (s) => {
 }
 
 .claude-error-message {
-  margin-top: var(--claude-spacing-sm);
-  padding: var(--claude-spacing-sm) var(--claude-spacing-md);
-  background: #FFF5F3;
-  border: 1px solid #F5C6C0;
-  border-radius: var(--claude-radius-sm);
+  margin-top: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-error-bg);
+  border: 1px solid var(--color-error-border);
+  border-radius: var(--radius-sm);
   font-size: 13px;
-  color: var(--claude-error);
+  color: var(--color-error);
 }
 </style>

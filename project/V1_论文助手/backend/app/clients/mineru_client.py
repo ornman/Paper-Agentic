@@ -16,6 +16,7 @@ from urllib.parse import urlparse
 import httpx
 
 from app.core.config import get_settings
+from app.utils import error_handler
 from app.utils.rate_limiter import RateLimiter
 
 logger = logging.getLogger("paper-assistant")
@@ -41,7 +42,10 @@ class MinerUClient:
         self._poll_interval = settings.mineru_poll_interval
         self._timeout = settings.mineru_timeout
         self._client: httpx.AsyncClient | None = None
-        self._rate_limiter = RateLimiter(rate=5.0)  # 5 请求/秒（官方 300/分钟）
+        # 提交限速：50/min ≈ 0.83/s（burst 5 允许短时突发）
+        self._submit_limiter = RateLimiter(rate=0.83, burst=5)
+        # 轮询限速：1000/min ≈ 16.7/s（burst 50）
+        self._poll_limiter = RateLimiter(rate=16.7, burst=50)
 
     async def _get_client(self) -> httpx.AsyncClient:
         if self._client is None or self._client.is_closed:
@@ -63,7 +67,7 @@ class MinerUClient:
     # --- 提交 ---
 
     async def submit_task(self, file_path: str) -> str:
-        """上传 PDF 并返回 task_id（内置 429 重试）"""
+        """上传 PDF 并返回 task_id（智能重试）"""
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"PDF 不存在: {file_path}")
 
@@ -76,22 +80,23 @@ class MinerUClient:
             while len(stem.encode("utf-8")) > 120:
                 stem = stem[:-1]
 
+        last_error: Exception | None = None
         for attempt in range(self._SUBMIT_RETRIES):
-            async with self._rate_limiter:
+            async with self._submit_limiter:
                 try:
                     batch_id = await self._do_submit(client, file_path, filename, stem)
                     logger.info("MinerU task submitted: %s", batch_id)
                     return batch_id
-                except httpx.HTTPStatusError as e:
-                    if e.response.status_code == 429 and attempt < self._SUBMIT_RETRIES - 1:
-                        retry_after = int(e.response.headers.get("Retry-After", 5))
-                        logger.warning("MinerU 429 限流，%ds 后重试 (%d/%d): %s",
-                                       retry_after, attempt + 1, self._SUBMIT_RETRIES, filename)
-                        await asyncio.sleep(retry_after)
-                        continue
-                    raise
+                except Exception as e:
+                    last_error = e
+                    if not error_handler.is_retryable(e) or attempt == self._SUBMIT_RETRIES - 1:
+                        raise
+                    backoff = error_handler.get_backoff(attempt, e)
+                    logger.warning("MinerU 提交失败，%.1fs 后重试 (%d/%d): %s - %s",
+                                   backoff, attempt + 1, self._SUBMIT_RETRIES, filename, e)
+                    await asyncio.sleep(backoff)
 
-        raise RuntimeError(f"MinerU 提交失败（{self._SUBMIT_RETRIES} 次重试后）: {filename}")
+        raise RuntimeError(f"MinerU 提交失败（{self._SUBMIT_RETRIES} 次重试后）: {filename}") from last_error
 
     async def _do_submit(self, client: httpx.AsyncClient, file_path: str,
                          filename: str, stem: str) -> str:
@@ -145,12 +150,13 @@ class MinerUClient:
             if elapsed > self._timeout:
                 raise TimeoutError(f"MinerU 超时 ({self._timeout}s): {task_id}")
 
-            resp = await client.get(
-                f"{self._base_url}/extract-results/batch/{task_id}",
-                headers=self._headers(),
-            )
-            resp.raise_for_status()
-            body = resp.json()
+            async with self._poll_limiter:
+                resp = await client.get(
+                    f"{self._base_url}/extract-results/batch/{task_id}",
+                    headers=self._headers(),
+                )
+                resp.raise_for_status()
+                body = resp.json()
 
             results = (
                 body.get("data", {}).get("extract_result", [])

@@ -20,9 +20,8 @@ class Settings(BaseSettings):
     mineru_timeout: float = 300.0
 
     # 存储
-    zvec_data_dir: str = "./data/zvec_db"
-    redis_url: str = "redis://localhost:6379/0"
-    redis_ttl: int = 3600
+    chroma_data_dir: str = "./data/chroma_db"
+    backup_dir: str = "./data/backups"
 
     # 切分策略
     chunk_max_context: int = 32000

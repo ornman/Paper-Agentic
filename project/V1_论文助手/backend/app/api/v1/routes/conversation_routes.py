@@ -5,7 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter
 from sqlalchemy import text as sa_text
 
-from app.api.v1.deps import get_redis, get_sqlite
+from app.api.v1.deps import get_sqlite
 from app.core.errors import AppError
 from app.models.conversation import ChatMessage, ConversationResponse
 
@@ -40,7 +40,7 @@ async def list_conversations(limit: int = 20, offset: int = 0):
 
 @router.get("/{session_id}")
 async def get_conversation(session_id: str):
-    """获取单个对话的完整历史（从 SQLite，降级到 Redis）"""
+    """获取单个对话的完整历史（从 SQLite）"""
     sqlite = get_sqlite()
 
     try:
@@ -57,26 +57,18 @@ async def get_conversation(session_id: str):
                     session_id=session_id,
                     messages=[ChatMessage(role=r[0], content=r[1]) for r in rows],
                 ).model_dump()
-    except Exception:
-        pass
-
-    # 降级到 Redis
-    redis = get_redis()
-    try:
-        messages = await redis.get_messages(session_id)
     except Exception as e:
-        raise AppError(3001, f"Redis 不可用: {e}")
+        raise AppError(3002, f"查询对话历史失败: {e}")
 
     return ConversationResponse(
         session_id=session_id,
-        messages=[ChatMessage(**m) for m in messages],
+        messages=[],
     ).model_dump()
 
 
 @router.delete("/{session_id}")
 async def delete_conversation(session_id: str):
-    """删除对话会话（SQLite + Redis 双删）"""
-    # SQLite
+    """删除对话会话"""
     try:
         sqlite = get_sqlite()
         with sqlite.get_session() as session:
@@ -84,14 +76,7 @@ async def delete_conversation(session_id: str):
                 "DELETE FROM conversations WHERE session_id = :sid"
             ), {"sid": session_id})
             session.commit()
-    except Exception:
-        pass
-
-    # Redis
-    try:
-        redis = get_redis()
-        await redis.delete_conversation(session_id)
     except Exception as e:
-        raise AppError(3001, f"Redis 不可用: {e}")
+        raise AppError(3002, f"删除对话失败: {e}")
 
     return {"status": "deleted", "session_id": session_id}
