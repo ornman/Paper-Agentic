@@ -162,7 +162,7 @@ function normalizeSourceCard(input: unknown, index: number): SourceCard | null {
 
   const record = input as Record<string, unknown>
 
-  const rawId = record.id
+  const rawId = record.id ?? record.paper_id
   const id =
     (typeof rawId === 'string' && rawId) || typeof rawId === 'number'
       ? String(rawId)
@@ -173,7 +173,9 @@ function normalizeSourceCard(input: unknown, index: number): SourceCard | null {
       ? record.title
       : typeof record.document === 'string'
         ? record.document
-        : ''
+        : typeof record.section === 'string' && record.section
+          ? record.section
+          : `来源 ${index + 1}`
 
   const snippet =
     typeof record.snippet === 'string'
@@ -183,10 +185,6 @@ function normalizeSourceCard(input: unknown, index: number): SourceCard | null {
         : ''
 
   const page = typeof record.page === 'number' ? record.page : undefined
-
-  if (!title && !snippet) {
-    return null
-  }
 
   return {
     id,
@@ -231,8 +229,13 @@ async function readSseStream(
         }
         return
       }
-      case 'sources': {
-        handlers.onSources?.(normalizeSources(parsedFrame.data))
+      case 'sources':
+      case 'metadata': {
+        const data = parsedFrame.data as Record<string, unknown> | null
+        const rawSources = data && typeof data === 'object'
+          ? (data as Record<string, unknown>).sources ?? parsedFrame.data
+          : parsedFrame.data
+        handlers.onSources?.(normalizeSources(rawSources))
         return
       }
       case 'done': {

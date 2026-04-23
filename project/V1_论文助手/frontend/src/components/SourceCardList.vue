@@ -1,11 +1,6 @@
 <template>
   <div class="source-list">
     <div class="source-header">
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
-        <path d="M7 0C3.13 0 0 3.13 0 7s3.13 7 7 7 7-3.13 7-7-3.13-7-7-7zm0 12c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/>
-        <path d="M6 4h2v5H6z"/>
-        <circle cx="7" cy="11" r="1"/>
-      </svg>
       <span>参考来源</span>
       <span class="source-count">{{ sources.length }}</span>
     </div>
@@ -41,28 +36,28 @@ function truncateSnippet(snippet: string, maxLength = 120) {
 .source-list {
   display: flex;
   flex-direction: column;
-  gap: var(--claude-spacing-sm);
-  padding: var(--claude-spacing-md);
-  background: var(--claude-bg-main);
-  border: 1px solid var(--claude-border);
-  border-radius: var(--claude-radius-md);
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--color-source-bg);
+  border: 1px solid var(--color-source-border);
+  border-radius: var(--radius-sm);
 }
 
 .source-header {
   display: flex;
   align-items: center;
-  gap: var(--claude-spacing-xs);
-  font-size: 12px;
+  gap: var(--space-1);
+  font-size: var(--font-size-caption);
   font-weight: 600;
-  color: var(--claude-text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .source-count {
   margin-left: auto;
   padding: 2px 8px;
-  background: var(--claude-primary-light);
-  color: var(--claude-primary);
-  border-radius: var(--claude-radius-full);
+  background: var(--color-surface-base);
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-full);
   font-size: 11px;
   font-weight: 500;
 }
@@ -70,39 +65,38 @@ function truncateSnippet(snippet: string, maxLength = 120) {
 .source-cards {
   display: flex;
   flex-direction: column;
-  gap: var(--claude-spacing-sm);
+  gap: var(--space-2);
 }
 
 .source-card {
-  padding: 10px 12px;
-  background: var(--claude-bg-card);
-  border: 1px solid var(--claude-border);
-  border-radius: var(--claude-radius-sm);
+  padding: var(--space-3);
+  background: var(--color-surface-card);
+  border: 1px solid var(--color-source-border);
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: border-color 0.15s ease;
 }
 
 .source-card:hover {
-  border-color: var(--claude-primary);
-  box-shadow: var(--claude-shadow-sm);
+  border-color: var(--color-source-hover);
 }
 
 .source-title {
   font-size: 13px;
   font-weight: 500;
-  color: var(--claude-text-primary);
-  margin-bottom: var(--claude-spacing-xs);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-1);
 }
 
 .source-page {
   font-size: 11px;
-  color: var(--claude-text-muted);
-  margin-bottom: var(--claude-spacing-xs);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-1);
 }
 
 .source-snippet {
-  font-size: 12px;
-  color: var(--claude-text-secondary);
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
   line-height: 1.6;
 }
 </style>

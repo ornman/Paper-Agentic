@@ -48,7 +48,9 @@
 
     <!-- 空状态 -->
     <div v-else-if="store.paperCount === 0" class="empty-state">
-      <div class="empty-icon">📚</div>
+      <div class="empty-icon">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#b3b3b3" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+      </div>
       <div class="empty-text">还没有导入论文</div>
       <div class="empty-hint">点击上方"上传 PDF"按钮开始导入</div>
     </div>

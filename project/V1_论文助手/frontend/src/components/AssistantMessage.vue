@@ -28,8 +28,6 @@ const props = defineProps<{
 
 const formattedContent = computed(() => {
   const text = props.message.content
-
-  // 简单的 Markdown 格式化
   return text
     .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
@@ -46,18 +44,19 @@ const formattedContent = computed(() => {
 }
 
 .assistant-content {
-  max-width: 85%;
+  max-width: 88%;
   display: flex;
   flex-direction: column;
-  gap: var(--claude-spacing-md);
+  gap: var(--space-3);
 }
 
 .assistant-bubble {
-  padding: var(--claude-spacing-md) var(--claude-spacing-lg);
-  background: var(--claude-bg-muted);
-  border: 1px solid var(--claude-border);
-  border-radius: var(--claude-radius-lg);
-  border-bottom-left-radius: var(--claude-radius-sm);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-assistant-bg);
+  border: 1px solid var(--color-assistant-border);
+  border-radius: var(--radius-md);
+  border-bottom-left-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
 .empty-content {
@@ -70,7 +69,7 @@ const formattedContent = computed(() => {
   display: inline-block;
   width: 2px;
   height: 16px;
-  background: var(--claude-primary);
+  background: var(--color-text-primary);
   margin-left: 2px;
   animation: blink 1s infinite;
 }
@@ -81,9 +80,9 @@ const formattedContent = computed(() => {
 }
 
 .content-text {
-  font-size: 14px;
+  font-size: var(--font-size-body);
   line-height: 1.8;
-  color: var(--claude-text-primary);
+  color: var(--color-text-primary);
   word-break: break-word;
 }
 
@@ -97,9 +96,9 @@ const formattedContent = computed(() => {
 
 .content-text :deep(code) {
   padding: 2px 6px;
-  background: var(--claude-bg-muted);
-  border-radius: 3px;
-  font-family: 'Consolas', monospace;
+  background: var(--color-surface-base);
+  border-radius: 4px;
+  font-family: 'Consolas', 'Menlo', monospace;
   font-size: 13px;
 }
 </style>

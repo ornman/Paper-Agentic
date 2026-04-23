@@ -1,8 +1,6 @@
 <template>
   <div class="user-message">
-    <div class="user-bubble">
-      {{ message.content }}
-    </div>
+    <div class="user-bubble">{{ message.content }}</div>
   </div>
 </template>
 
@@ -21,13 +19,13 @@ defineProps<{
 }
 
 .user-bubble {
-  max-width: 70%;
-  padding: var(--claude-spacing-md) var(--claude-spacing-lg);
-  background: var(--claude-primary);
-  color: white;
-  border-radius: var(--claude-radius-lg);
-  border-bottom-right-radius: var(--claude-radius-sm);
-  font-size: 14px;
+  max-width: 75%;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-user-bubble);
+  color: var(--color-user-bubble-text);
+  border-radius: var(--radius-lg);
+  border-bottom-right-radius: 6px;
+  font-size: var(--font-size-body);
   line-height: 1.6;
   word-break: break-word;
   white-space: pre-wrap;

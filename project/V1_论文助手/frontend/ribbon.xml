@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<customUI xmlns="http://schemas.microsoft.com/office/2009/07/customui">
+  <ribbon>
+    <tabs>
+      <tab id="TabThesisAssistant" label="论文助手 V1">
+        <group id="GroupMain" label="主要功能">
+          <button id="ButtonOpenPane"
+                  label="打开助手"
+                  size="large"
+                  imageMso="AutoChartNew"
+                  onAction="OnOpenPane" />
+        </group>
+      </tab>
+    </tabs>
+  </ribbon>
+</customUI>
