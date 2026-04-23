@@ -1,8 +1,10 @@
-"""对话连续性测试：10 个 session 验证上下文记忆
+"""对话连续性测试：同一会话 10 轮对话验证上下文记忆
 
 测试内容：
-1. 第 1-5 个 session 建立上下文
-2. 第 6-10 个 session 测试记忆回溯
+1. 第 1-5 轮：建立上下文（自我介绍、讨论学术话题）
+2. 第 6-10 轮：测试记忆回溯（名字、研究方向、讨论内容）
+
+关键：所有查询使用同一个 session_id，共享对话历史
 
 用法:
     uv run pytest tests/test_conversation_continuity.py -v -s
@@ -11,6 +13,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 
 import pytest
@@ -18,6 +21,7 @@ import pytest
 from app.api.v1.deps import init_deps
 from app.pipelines.retrieval.service import QAService
 from app.stores.bm25_store import BM25Store
+from app.stores.memory_cache import MemoryCache
 from app.stores.redis_cache import RedisCache
 from app.stores.sqlite_repo import SQLiteRepo
 from app.stores.zvec_store import ZvecStore
@@ -25,67 +29,87 @@ from app.stores.zvec_store import ZvecStore
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("continuity_test")
 
+# 统一 session_id —— 所有查询共享同一会话
+SESSION_ID = "continuity_test"
 
-# 对话流程
-CONVERSATION_FLOW = [
-    # Session 1-5: 建立上下文
-    ("session_1", "你好，我叫小明，是一名研究生，正在研究城乡社区治理。请介绍一下这个领域的研究背景。"),
-    ("session_2", "我想了解城乡社区治理的主要模式和特征。"),
-    ("session_3", "城乡关系政策是如何演进的？从二元到融合的过程是怎样的？"),
-    ("session_4", "专业合作组织在农村环境治理中有什么作用？"),
-    ("session_5", "东西部地区在公共数字文化服务方面有什么差异？"),
+# 10 轮对话流程
+QUESTIONS = [
+    # 第 1-5 轮：建立上下文
+    "你好，我叫小明，是一名研究生，正在研究城乡社区治理。请简单介绍一下这个领域的研究背景。",
+    "我想了解城乡社区治理的主要模式和特征有哪些？",
+    "城乡关系政策是如何演进的？从二元到融合经历了哪些阶段？",
+    "专业合作组织在农村环境治理中有什么作用？",
+    "东西部地区在公共数字文化服务方面有什么差异？",
 
-    # Session 6-10: 测试记忆回溯
-    ("session_6", "我叫什么名字？我的研究方向是什么？"),
-    ("session_7", "我之前问了几个问题？请列举一下。"),
-    ("session_8", "我们在第二个问题中讨论了什么内容？"),
-    ("session_9", "请总结一下我们刚才讨论的主要内容。"),
-    ("session_10", "我对哪个问题最感兴趣？根据我们的对话记录判断。"),
+    # 第 6-10 轮：测试记忆回溯
+    "我叫什么名字？我的研究方向是什么？",
+    "我之前问了几个问题？请列举一下。",
+    "我们在第二个问题中讨论了什么内容？",
+    "请总结一下我们刚才讨论的主要内容。",
+    "我对哪个问题最感兴趣？根据我们的对话记录判断。",
 ]
+
+# 记忆回溯的期望关键词（第 6-10 轮）
+EXPECTED_KEYWORDS = {
+    6: ["小明", "研究生", "城乡社区治理"],       # 名字 + 研究方向
+    7: ["5", "五", "模式", "演进", "治理"],      # 列举问题
+    8: ["模式", "特征", "行政", "自治", "共治"],  # 第二个问题的内容
+    9: ["社区治理", "政策", "环境", "数字文化"],  # 总结内容
+    10: ["社区治理", "治理"],                      # 兴趣判断
+}
 
 
 @pytest.mark.asyncio
 async def test_conversation_continuity():
-    """测试对话连续性（10 个 session）"""
+    """测试对话连续性（10 轮同一会话）"""
     # 初始化依赖
     sqlite = SQLiteRepo("./data/app.db")
     sqlite.init()
     zvec = ZvecStore("./data/zvec_db")
     zvec.init()
 
+    # 尝试使用 Redis，失败则使用内存存储
     redis = RedisCache()
     try:
         await redis.init()
-    except Exception:
-        logger.warning("Redis 不可用，测试跳过")
-        pytest.skip("Redis 不可用")
+        logger.info("Redis 连接成功")
+    except Exception as e:
+        logger.warning(f"Redis 不可用 ({e})，使用内存存储替代")
+        redis = MemoryCache()
+        await redis.init()
 
     bm25 = BM25Store("./data/bm25_index")
     bm25.init()
 
     init_deps(sqlite, zvec, redis, bm25)
 
+    # 清除旧的对话历史
+    try:
+        await redis.delete_conversation(SESSION_ID)
+        logger.info("已清除旧的对话历史")
+    except Exception:
+        pass
+
     qa_service = QAService()
 
-    # 记录对话历史
-    history: dict[str, list[dict]] = {}
+    # 记录对话
+    history: list[dict] = []
     results: list[dict] = []
 
     logger.info("=" * 60)
-    logger.info("开始对话连续性测试")
+    logger.info(f"开始对话连续性测试 (session_id={SESSION_ID})")
     logger.info("=" * 60)
 
-    for i, (session_id, question) in enumerate(CONVERSATION_FLOW, 1):
-        logger.info(f"\n--- Session {i}/10 ---")
-        logger.info(f"问题: {question}")
+    for i, question in enumerate(QUESTIONS, 1):
+        logger.info(f"\n--- 第 {i}/10 轮对话 ---")
+        logger.info(f"问题: {question[:60]}...")
 
-        # 执行查询
         response_chunks = []
         sources = []
 
         try:
             async for event in qa_service.query(
-                session_id=session_id,
+                session_id=SESSION_ID,
                 prompt=question,
             ):
                 event_type = event.get("event", "")
@@ -103,37 +127,41 @@ async def test_conversation_continuity():
             response = "".join(response_chunks)
 
             # 记录对话
-            if session_id not in history:
-                history[session_id] = []
-            history[session_id].append({
+            history.append({
+                "round": i,
                 "question": question,
                 "answer": response,
-                "sources": sources,
+                "answer_length": len(response),
+                "source_count": len(sources),
             })
 
-            # 测试记忆回溯（Session 6-10）
+            logger.info(f"回答长度: {len(response)} 字")
+            logger.info(f"来源数: {len(sources)}")
+
+            # 第 6-10 轮：测试记忆回溯
             if i >= 6:
-                # 检查是否能回答记忆相关的问题
-                has_context = _check_context_awareness(question, response, history)
+                has_context, matched = _check_context(i, response)
                 results.append({
-                    "session": i,
-                    "session_id": session_id,
+                    "round": i,
                     "question": question,
-                    "response_length": len(response),
+                    "answer_preview": response[:300],
                     "has_context": has_context,
-                    "source_count": len(sources),
+                    "matched_keywords": matched,
+                    "expected_keywords": EXPECTED_KEYWORDS.get(i, []),
+                    "answer_length": len(response),
                 })
 
-                logger.info(f"回答长度: {len(response)} 字")
-                logger.info(f"上下文感知: {'✓' if has_context else '✗'}")
-            else:
-                logger.info(f"回答长度: {len(response)} 字")
+                status = "PASS" if has_context else "FAIL"
+                logger.info(f"记忆回溯: {status} (匹配: {matched})")
+                logger.info(f"回答预览: {response[:200]}...")
+
+            # 每轮间隔 1 秒避免限流
+            await asyncio.sleep(1)
 
         except Exception as e:
-            logger.error(f"Session {i} 失败: {e}")
+            logger.error(f"第 {i} 轮失败: {e}")
             results.append({
-                "session": i,
-                "session_id": session_id,
+                "round": i,
                 "error": str(e),
             })
 
@@ -145,52 +173,42 @@ async def test_conversation_continuity():
     logger.info("对话连续性测试总结")
     logger.info("=" * 60)
 
-    context_aware_count = sum(1 for r in results if r.get("has_context"))
-    total_tested = len(results)
+    passed = sum(1 for r in results if r.get("has_context"))
+    total = len(results)
 
-    print(f"\n记忆回溯测试: {context_aware_count}/{total_tested} 通过")
+    print(f"\n记忆回溯测试: {passed}/{total} 通过")
 
-    if context_aware_count == total_tested:
-        print("✓ 所有记忆回溯测试通过")
-    else:
-        print(f"✗ {total_tested - context_aware_count} 个测试未通过")
+    for r in results:
+        status = "PASS" if r.get("has_context") else "FAIL"
+        print(f"  轮次 {r['round']}: {status} — {r['question'][:30]}...")
 
     # 保存结果
-    import json
     with open("tests/conversation_continuity_results.json", "w", encoding="utf-8") as f:
         json.dump({
+            "session_id": SESSION_ID,
             "history": history,
             "results": results,
             "summary": {
-                "total_sessions": len(CONVERSATION_FLOW),
-                "context_aware": context_aware_count,
-                "total_tested": total_tested,
+                "total_rounds": len(QUESTIONS),
+                "context_aware": passed,
+                "total_tested": total,
             }
         }, f, ensure_ascii=False, indent=2)
 
     logger.info("\n详细结果已保存到 tests/conversation_continuity_results.json")
 
 
-def _check_context_awareness(question: str, response: str, history: dict) -> bool:
-    """检查回答是否具有上下文感知能力"""
-    # 简单启发式检查
-    context_keywords = [
-        "小明",  # 名字
-        "研究生",  # 身份
-        "城乡社区治理",  # 研究方向
-        "之前", "刚才", "我们讨论",  # 对话引用词
-    ]
+def _check_context(round_idx: int, response: str) -> tuple[bool, list[str]]:
+    """检查回答是否包含期望的上下文关键词
 
-    # 检查是否包含上下文关键词
-    for keyword in context_keywords:
-        if keyword in response:
-            return True
-
-    # 检查是否回答了具体问题（非空泛回答）
-    if len(response) > 50 and "对不起" not in response and "无法" not in response:
-        return True
-
-    return False
+    Returns:
+        (has_context, matched_keywords)
+    """
+    expected = EXPECTED_KEYWORDS.get(round_idx, [])
+    matched = [kw for kw in expected if kw in response]
+    # 至少匹配一半的期望关键词
+    has_context = len(matched) >= max(1, len(expected) // 2)
+    return has_context, matched
 
 
 if __name__ == "__main__":
