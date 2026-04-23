@@ -35,7 +35,7 @@ _SENTENCE_PUNCTUATION = set("。！？.!?")
 _MIN_MEANINGFUL_TEXT_LENGTH = 2
 
 
-def clean_mineru_payload(
+async def clean_mineru_payload(
     *,
     document_id: str,
     title: str,
@@ -89,11 +89,11 @@ def clean_mineru_payload(
     # 为图片块生成描述
     if image_blocks:
         print(f"[CLEANING] 为 {len(image_blocks)} 个图片块生成描述...")
-        described_images = asyncio.run(_describe_images(
+        described_images = await _describe_images(
             document_id,
             file_path,
             image_blocks,
-        ))
+        )
         cleaned_blocks.extend(described_images)
 
     return CleanedDocument(

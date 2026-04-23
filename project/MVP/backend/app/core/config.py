@@ -68,6 +68,11 @@ class Settings(BaseSettings):
     )
     llm_temperature: float = Field(default=0.7, ge=0.0, le=2.0, description="问答温度")
     llm_max_tokens: int = Field(default=2048, ge=1, description="问答最大输出 token")
+    llm_timeout: float = Field(
+        default=60.0,
+        ge=1.0,
+        description="🔴 P1-1: LLM 请求超时时间（秒）",
+    )
 
     # ============ SiliconFlow 配置 ============
     # Embedding 与 Rerank 统一走 SiliconFlow，避免不同服务商混用导致契约漂移。
@@ -122,6 +127,17 @@ class Settings(BaseSettings):
         ),
     )
     embedding_batch_size: int = Field(default=32, ge=1, description="批量嵌入大小")
+    embedding_concurrency: int = Field(
+        default=5,
+        ge=1,
+        le=10,
+        description="🔴 P0-3: Embedding 并发批次数",
+    )
+    embedding_rate_limit: int = Field(
+        default=100,
+        ge=1,
+        description="🔴 P0-3: 每分钟最大请求数（速率限制）",
+    )
     rerank_model: str = Field(
         default=PINNED_RERANK_MODEL,
         description="固定的 Rerank 模型",
@@ -137,7 +153,23 @@ class Settings(BaseSettings):
         default="https://mineru.net/api/v1",
         description="MinerU API Base URL",
     )
-    mineru_poll_interval: int = Field(default=5, ge=1, description="MinerU 轮询间隔（秒）")
+    # 🔴 P0-4 优化：更新默认轮询间隔为 2 秒（原来 5 秒）
+    mineru_poll_interval: int = Field(
+        default=2,
+        ge=1,
+        le=10,
+        description="🔴 P0-4: MinerU 初始轮询间隔（秒），将根据进度自适应调整",
+    )
+    mineru_poll_interval_min: int = Field(
+        default=1,
+        ge=1,
+        description="🔴 P0-4: MinerU 最小轮询间隔（秒）",
+    )
+    mineru_poll_interval_max: int = Field(
+        default=10,
+        ge=5,
+        description="🔴 P0-4: MinerU 最大轮询间隔（秒）",
+    )
     mineru_timeout: int = Field(default=300, ge=1, description="MinerU 最大等待时间（秒）")
 
     # ============ Kimi Coding API 配置 ============

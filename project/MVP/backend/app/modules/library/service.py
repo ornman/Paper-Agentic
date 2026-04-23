@@ -60,24 +60,26 @@ class LibraryService:
         )
         return self.repository.save_document(record)
 
-    def import_pdf(
+    async def import_pdf(
         self,
         file_path: str,
-        index_mode: str = "brute",
-        title: str = "",
+        index_mode: str = “distributed”,
+        title: str = “”,
         tags: Optional[list[str]] = None,
     ) -> DocumentRecord:
-        """登记 PDF 并立即触发导入链路。
+        “””登记 PDF 并立即触发导入链路。
 
         为什么不直接复用 import_document 作为公开入口名：
-        - Task 3 的 import_document 语义是“只登记”。
-        - Task 4 新增的是“登记后继续导入”。
+        - Task 3 的 import_document 语义是”只登记”。
+        - Task 4 新增的是”登记后继续导入”。
         - 拆成 import_pdf 可以避免把原有行为悄悄改坏，测试边界也更清晰。
 
         这里额外收紧 PDF 导入边界，但不回写到 import_document。
         原因是 Task 3 的最小登记语义必须保持不变；
         Task 4 只需要把真正进入 MinerU 链路的输入面收住即可。
-        """
+
+        注意：此函数现在是异步的，以避免在 FastAPI 事件循环中使用 asyncio.run()。
+        “””
         normalized_pdf_path = self._validate_import_pdf_path(file_path)
         created_record = self.import_document(
             file_path=normalized_pdf_path,
@@ -85,9 +87,9 @@ class LibraryService:
             index_mode=index_mode,
             tags=tags,
         )
-        return self._get_ingestion_service().ingest_document(created_record)
+        return await self._get_ingestion_service().ingest_document(created_record)
 
-    def resume_import(
+    async def resume_import(
         self,
         document_id: str,
     ) -> DocumentRecord:
@@ -123,7 +125,7 @@ class LibraryService:
         )
 
         # 重新触发导入
-        return self._get_ingestion_service().ingest_document(updated_record)
+        return await self._get_ingestion_service().ingest_document(updated_record)
 
     def _get_ingestion_service(self) -> "IngestionService":
         """按需构造 ingestion service，避免模块导入阶段形成循环依赖。"""
@@ -152,6 +154,10 @@ class LibraryService:
         if not normalized_file_path:
             raise ValueError("import_pdf 只接受本地 PDF 文件路径")
 
+        # 🔴 P2-1 优化：路径遍历检测（检测 .. 和 . 开头）
+        if ".." in normalized_file_path or normalized_file_path.startswith("."):
+            raise ValueError("检测到路径遍历攻击，路径不能包含 .. 或以 . 开头")
+
         parsed_path = urlsplit(normalized_file_path)
         has_uri_scheme = "://" in normalized_file_path
         if has_uri_scheme and (parsed_path.scheme or parsed_path.netloc):
@@ -163,11 +169,17 @@ class LibraryService:
         # 原因：Windows 文件系统对中文引号等特殊字符的处理更稳定
         if not normalized_file_path.lower().endswith(".pdf"):
             raise ValueError("import_pdf 只接受 .pdf 文件")
-        if not os.path.isfile(normalized_file_path):
-            raise ValueError(f"PDF 文件不存在: {normalized_file_path}")
 
-        # 转换为规范化路径（统一斜杠方向）
-        local_path = Path(normalized_file_path)
+        # 🔴 P2-1 优化：规范化路径并检测符号链接
+        local_path = Path(normalized_file_path).resolve()
+
+        # 🔴 P2-1 优化：检测符号链接
+        if local_path.is_symlink():
+            raise ValueError("不允许使用符号链接，以防止路径遍历攻击")
+
+        if not local_path.is_file():
+            raise ValueError(f"PDF 文件不存在: {local_path}")
+
         return str(local_path)
 
     def list_documents(self) -> list[DocumentRecord]:

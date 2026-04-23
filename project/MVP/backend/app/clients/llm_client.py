@@ -6,13 +6,18 @@ from app.core.config import get_settings
 
 
 class LLMClient:
-    """LLM 客户端，支持 OpenAI 兼容协议（DeepSeek / 智谱 / 硅基流动等）"""
+    """LLM 客户端，支持 OpenAI 兼容协议（DeepSeek / 智谱 / 硅基流动等）
+
+    🔴 P1-1 优化：添加超时配置
+    """
 
     def __init__(self):
         settings = get_settings()
         self._client = AsyncOpenAI(
             api_key=settings.llm_api_key,
             base_url=settings.llm_base_url,
+            # 🔴 P1-1 优化：添加超时配置（默认 60 秒）
+            timeout=getattr(settings, 'llm_timeout', 60.0),
         )
         self._model = settings.llm_model
         self._temperature = settings.llm_temperature

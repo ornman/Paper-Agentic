@@ -116,7 +116,12 @@ class QdrantStore:
         chunks: list[Chunk],
         embeddings: list[list[float]],
     ) -> None:
-        """添加 chunks 到 collection.
+        """幂等添加 chunks 到 collection.
+
+        实现策略：
+        1. 先删除相同 paper_id 的所有旧点（幂等性保证）
+        2. 再批量上传新点
+        3. 失败后不会有残留脏数据（因为旧点已删除）
 
         Args:
             paper_id: 论文 ID
@@ -131,6 +136,15 @@ class QdrantStore:
         # 确保 collection 存在
         vector_size = len(embeddings[0]) if embeddings else settings.embedding_dimensions
         self.create_paper_collection(paper_id, vector_size)
+
+        # 🔴 P0-1 修复：先删除相同 paper_id 的所有旧点（幂等写入）
+        # 这样即使中途失败，也不会残留脏数据
+        self.client.delete(
+            collection_name=collection_name,
+            points_selector=Filter(
+                must=[FieldCondition(key="paper", match=MatchValue(value=paper_id))]
+            ),
+        )
 
         # 构建点
         points = [

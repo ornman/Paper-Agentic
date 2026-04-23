@@ -5,10 +5,12 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
+from logging.handlers import RotatingFileHandler
 
 # 日志格式
 LOG_FORMAT = "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
@@ -16,6 +18,11 @@ DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 # 日志级别
 LOG_LEVEL = logging.INFO
+
+# 🔴 P1-4 优化：日志轮转配置
+MAX_LOG_BYTES = 100 * 1024 * 1024  # 100MB
+BACKUP_COUNT = 3  # 保留 3 个备份
+LOG_RETENTION_DAYS = 30  # 保留 30 天的日志
 
 
 class DesktopFileHandler(logging.FileHandler):
@@ -111,13 +118,74 @@ class DateRotatingFileHandler(DesktopFileHandler):
             return Path("logs")
 
 
+# 🔴 P1-4 优化：按大小轮转的日志处理器
+class SizeRotatingFileHandler(DesktopFileHandler):
+    """按大小轮转的日志处理器（使用 RotatingFileHandler）.
+
+    🔴 P1-4 优化：当日志文件达到 100MB 时轮转，保留 3 个备份
+    """
+
+    def __init__(
+        self,
+        filename: str = "paper_assistant.log",
+        mode: str = "a",
+        encoding: str | None = "utf-8",
+        maxBytes: int = MAX_LOG_BYTES,
+        backupCount: int = BACKUP_COUNT,
+    ) -> None:
+        """初始化大小轮转处理器.
+
+        Args:
+            filename: 日志文件名
+            mode: 文件模式
+            encoding: 文件编码
+            maxBytes: 单个日志文件最大字节数
+            backupCount: 保留的备份文件数量
+        """
+        # 获取日志目录
+        log_dir = self._get_log_dir()
+        log_dir.mkdir(parents=True, exist_ok=True)
+        filepath = log_dir / filename
+
+        # 使用 RotatingFileHandler
+        DesktopFileHandler.__init__(self, str(filepath), mode, encoding)
+
+        # 替换为 RotatingFileHandler
+        from logging.handlers import RotatingFileHandler
+        self.handler = RotatingFileHandler(
+            str(filepath),
+            mode=mode,
+            encoding=encoding,
+            maxBytes=maxBytes,
+            backupCount=backupCount,
+        )
+
+    def emit(self, record: logging.LogRecord) -> None:
+        """写入日志."""
+        self.handler.emit(record)
+
+    def close(self) -> None:
+        """关闭处理器."""
+        self.handler.close()
+
+    def _get_log_dir(self) -> Path:
+        """获取日志目录."""
+        desktop = self._get_desktop_path()
+        if desktop:
+            return desktop / "论文助手_logs"
+        else:
+            return Path("logs")
+
+
 def setup_logging(
     name: str = "paper_assistant",
     level: int | None = None,
     enable_console: bool = True,
     enable_file: bool = True,
 ) -> logging.Logger:
-    """设置日志系统.
+    """设置日志系统（支持大小轮转）.
+
+    🔴 P1-4 优化：使用 RotatingFileHandler 实现大小轮转
 
     Args:
         name: 日志器名称
@@ -157,9 +225,9 @@ def setup_logging(
         console_handler.setFormatter(formatter)
         logger.addHandler(console_handler)
 
-    # 文件处理器（按日期轮转）
+    # 🔴 P1-4 优化：文件处理器（按大小轮转）
     if enable_file:
-        file_handler = DateRotatingFileHandler()
+        file_handler = SizeRotatingFileHandler()
         file_handler.setLevel(level)
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
@@ -232,3 +300,60 @@ def export_logs_to_desktop(
 
     logger.info(f"日志已导出到: {export_path}")
     return str(export_path)
+
+
+# 🔴 P1-4 优化：过期日志清理功能
+def cleanup_old_logs(days: int = LOG_RETENTION_DAYS) -> int:
+    """清理过期的日志文件.
+
+    🔴 P1-4 优化：删除超过指定天数的日志文件
+
+    Args:
+        days: 保留天数，默认 30 天
+
+    Returns:
+        删除的文件数量
+    """
+    logger = get_logger()
+    desktop = Path.home() / "Desktop"
+    log_dir = desktop / "论文助手_logs"
+
+    if not log_dir.exists():
+        return 0
+
+    # 计算截止日期
+    cutoff_date = datetime.now() - timedelta(days=days)
+    deleted_count = 0
+
+    # 遍历日志文件
+    for log_file in log_dir.glob("paper_assistant_*.log"):
+        try:
+            # 从文件名提取日期
+            match = re.search(r'(\d{4}-\d{2}-\d{2})', log_file.name)
+            if match:
+                file_date = datetime.strptime(match.group(1), '%Y-%m-%d')
+                if file_date < cutoff_date:
+                    log_file.unlink()
+                    deleted_count += 1
+                    logger.info(f"删除过期日志: {log_file.name}")
+        except Exception as e:
+            logger.warning(f"删除日志文件失败 {log_file.name}: {e}")
+
+    if deleted_count > 0:
+        logger.info(f"清理完成，删除了 {deleted_count} 个过期日志文件")
+
+    return deleted_count
+
+
+# 🔴 P1-4 优化：应用启动时清理过期日志
+def initialize_log_cleanup():
+    """初始化日志清理（应用启动时调用）.
+
+    🔴 P1-4 优化：在应用启动时自动清理过期日志
+    """
+    try:
+        cleanup_old_logs()
+    except Exception as e:
+        # 清理失败不影响应用启动
+        print(f"[LOG] 日志清理失败: {e}")
+

@@ -28,11 +28,14 @@ DOCUMENT_STATUSES = (
     "deleted",
 )
 
-# Task 3 当前只支持两种索引模式。
-# 把合法值集中定义，避免服务层、路由层、测试层各写一份魔法字符串。
+# 索引模式定义：
+# - brute: 暴力搜索（无索引）
+# - distributed: 分布式多 Collection（每篇论文独立 Collection）
+# - parent_child: 父子 Collection（已废弃，保留用于兼容性）
 DOCUMENT_INDEX_MODES = (
     "brute",
-    "parent_child",
+    "distributed",
+    "parent_child",  # 已废弃
 )
 
 

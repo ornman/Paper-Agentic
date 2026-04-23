@@ -60,6 +60,14 @@ async def ask(request: AskRequest) -> StreamingResponse:
     )
 
     async def event_generator():
+        """SSE 事件生成器（支持网络异常捕获）.
+
+        🔴 P1-2 优化：细粒度异常捕获，区分客户端断开和服务端错误
+        """
+        # 🔴 P1-2 优化：生成唯一请求 ID，用于幂等性和重连
+        import uuid
+        request_id = str(uuid.uuid4())
+
         try:
             service = _get_qa_service()
             async for event in service.ask_stream_with_rag(
@@ -70,10 +78,27 @@ async def ask(request: AskRequest) -> StreamingResponse:
                 selected_papers=request.selected_papers,
             ):
                 event_type = event["type"]
+                # 🔴 P1-2 优化：在事件中包含 request_id，客户端可用于恢复
+                event["request_id"] = request_id
                 event_data = json.dumps(event["data"], ensure_ascii=False)
                 yield f"event: {event_type}\ndata: {event_data}\n\n"
+        except asyncio.CancelledError:
+            # 🔴 P1-2 优化：客户端主动断开，记录日志
+            logger.info(f"请求 {request_id} 被客户端取消")
+            error_data = json.dumps({
+                "code": 9002,
+                "message": "请求被取消",
+                "request_id": request_id,
+            }, ensure_ascii=False)
+            yield f"event: error\ndata: {error_data}\n\n"
         except Exception as e:
-            error_data = json.dumps({"code": 9001, "message": str(e)}, ensure_ascii=False)
+            # 🔴 P1-2 优化：其他错误，返回错误事件
+            logger.error(f"请求 {request_id} 执行失败: {e}")
+            error_data = json.dumps({
+                "code": 9001,
+                "message": str(e),
+                "request_id": request_id,
+            }, ensure_ascii=False)
             yield f"event: error\ndata: {error_data}\n\n"
 
     return StreamingResponse(

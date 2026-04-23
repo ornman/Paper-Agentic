@@ -100,7 +100,7 @@ async def describe_chunks_async(
 
         print(f"    VLM: {len(to_describe)} images to describe ({CONCURRENCY} concurrent)...")
 
-        results = asyncio.run(_run_batch())
+        results = await _run_batch()
         for index, rel_path, description in results:
             cache[rel_path] = description
 

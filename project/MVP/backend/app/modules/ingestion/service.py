@@ -47,8 +47,11 @@ class IngestionService:
         self.embedding_client = embedding_client or EmbeddingClient()
         self.qdrant_store = qdrant_store or QdrantStore()
 
-    def ingest_document(self, record: DocumentRecord) -> DocumentRecord:
-        """执行文档导入链路，并返回最终文档状态（完整版）."""
+    async def ingest_document(self, record: DocumentRecord) -> DocumentRecord:
+        """执行文档导入链路，并返回最终文档状态（完整版）.
+
+        注意：此函数现在是异步的，以避免在 FastAPI 事件循环中使用 asyncio.run()。
+        """
         current_record = self.repository.save_document(record.transition("parsing"))
 
         try:
@@ -62,7 +65,7 @@ class IngestionService:
 
             # 阶段2: 清洗
             print(f"[INGEST] 阶段2: 清洗数据...")
-            cleaned_document = self._clean_document(current_record, mineru_payload)
+            cleaned_document = await self._clean_document(current_record, mineru_payload)
             if cleaned_document.cleaned_block_count == 0:
                 raise IngestionError(
                     code="cleaned_document_empty",
@@ -75,10 +78,10 @@ class IngestionService:
             image_count = self._count_images(mineru_payload)
             if image_count > 0:
                 print(f"[INGEST] 阶段3: VLM 图片描述 ({image_count} images)...")
-                chunks_with_images = asyncio.run(self._describe_images(
+                chunks_with_images = await self._describe_images(
                     current_record,
                     mineru_payload,
-                ))
+                )
                 print(f"[INGEST]   ✅ 描述完成")
             else:
                 print(f"[INGEST] 阶段3: VLM 图片描述 (跳过，无图片)")
@@ -89,12 +92,14 @@ class IngestionService:
             text_chunks = self._chunk_chunks(current_record, chunks_with_images)
             print(f"[INGEST]   ✅ 切分完成: {len(text_chunks)} text chunks")
 
-            current_record = self.repository.save_document(current_record.transition("indexing"))
-
             # 阶段5: Embedding
             print(f"[INGEST] 阶段5: Embedding ({len(text_chunks)} chunks)...")
-            embeddings = asyncio.run(self._embed_chunks(text_chunks))
+            embeddings = await self._embed_chunks(text_chunks)
             print(f"[INGEST]   ✅ Embedding 完成: {len(embeddings)} vectors")
+
+            # 🔴 P0-1 修复：Embedding 成功后才迁移到 indexing 状态
+            # 这样如果 Embedding 失败，文档状态会回退到 failed，而不是永久卡在 indexing
+            current_record = self.repository.save_document(current_record.transition("indexing"))
 
             # 阶段6: Qdrant 存储
             print(f"[INGEST] 阶段6: Qdrant 存储...")
@@ -120,9 +125,9 @@ class IngestionService:
             )
             return self._mark_failed(current_record, unexpected_error)
 
-    def _clean_document(self, record: DocumentRecord, mineru_payload: dict) -> CleanedDocument:
+    async def _clean_document(self, record: DocumentRecord, mineru_payload: dict) -> CleanedDocument:
         """调用清洗入口，把 MinerU 结果归一化为正文块."""
-        return clean_mineru_payload(
+        return await clean_mineru_payload(
             document_id=record.document_id,
             title=record.title,
             file_path=record.file_path,

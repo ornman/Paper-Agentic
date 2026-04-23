@@ -7,6 +7,8 @@
 
 from __future__ import annotations
 
+import asyncio
+import random
 import time
 from pathlib import Path
 from typing import Any, Callable, Optional
@@ -132,10 +134,27 @@ class MineruClient:
             ) from exc
 
     def poll_task(self, task_id: str) -> MineruTaskState:
-        """轮询批量任务直到成功、失败或超时。"""
+        """轮询批量任务直到成功、失败或超时（带自适应间隔）.
+
+        🔴 P0-4 优化：
+        1. 根据任务进度动态调整轮询间隔（指数退避）
+        2. 添加抖动避免多个任务同时轮询
+        3. 最小间隔 1 秒，最大间隔 10 秒
+        """
         started_at = self.monotonic_fn()
         success_statuses = {"success", "succeeded", "completed", "done"}
         failed_statuses = {"failed", "error", "cancelled", "canceled"}
+
+        # 🔴 P0-4 优化：自适应轮询间隔
+        # 初始间隔：2 秒（从配置读取）
+        # 最小间隔：1 秒
+        # 最大间隔：10 秒
+        current_interval = float(self.poll_interval)
+        min_interval = 1.0
+        max_interval = 10.0
+
+        last_progress = None
+        stable_count = 0  # 进度稳定计数
 
         while True:
             elapsed = self.monotonic_fn() - started_at
@@ -183,14 +202,35 @@ class MineruClient:
                     detail={"batch_id": task_id, "result": result},
                 )
 
-            # 显示进度
+            # 🔴 P0-4 优化：根据进度动态调整间隔
             progress = result.get("extract_progress", {})
             if progress:
                 extracted = progress.get("extracted_pages", 0)
                 total = progress.get("total_pages", 0)
-                print(f"[MinerU] 解析进度: {extracted}/{total} 页")
 
-            self.sleep_fn(self.poll_interval)
+                # 进度变化时显示
+                if extracted != last_progress:
+                    print(f"[MinerU] 解析进度: {extracted}/{total} 页")
+                    last_progress = extracted
+                    stable_count = 0
+                    # 🔴 有进度时保持当前间隔或稍作缩短
+                    current_interval = max(min_interval, current_interval * 0.9)
+                else:
+                    stable_count += 1
+                    # 🔴 进度稳定时逐渐延长间隔（指数退避）
+                    if stable_count > 2:
+                        current_interval = min(max_interval, current_interval * 1.5)
+            else:
+                # 🔴 无进度信息时使用默认退避
+                current_interval = min(max_interval, current_interval * 1.1)
+
+            # 🔴 P0-4 优化：添加抖动，避免多个任务同时轮询
+            jitter = random.uniform(0.8, 1.2)
+            actual_interval = current_interval * jitter
+
+            print(f"[MinerU] 等待 {actual_interval:.1f} 秒后重试...")
+
+            self.sleep_fn(actual_interval)
 
     def fetch_result_json(self, result_url: str, task_id: str) -> dict[str, Any]:
         """拉取最终 JSON 结果。

@@ -2,33 +2,73 @@
 # 使用 SQLAlchemy ORM 管理会话、消息、导入任务和文档库记录
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import create_engine, func, select
+import threading
+from sqlalchemy import create_engine, func, select, text
 from sqlalchemy.orm import Session as DBSession
+from sqlalchemy.pool import StaticPool
 from app.models.session import Base, SessionORM, MessageORM, IngestTaskORM
 from app.core.config import get_settings
 import json
 
 
 def _get_engine():
-    """创建 SQLAlchemy 引擎（SQLite）"""
+    """创建 SQLAlchemy 引擎（SQLite，带并发优化）.
+
+    🔴 P0-2 修复：添加并发优化配置
+    1. 允许跨线程使用连接（check_same_thread=False）
+    2. 使用 StaticPool 连接池（SQLite 单进程最佳选择）
+    3. 启用 WAL 模式（读写并发）
+    4. 添加其他性能优化 PRAGMA
+    """
     settings = get_settings()
     db_path = settings.sqlite_db_path
     # 确保目录存在
     from pathlib import Path
     Path(db_path).parent.mkdir(parents=True, exist_ok=True)
-    return create_engine(f"sqlite:///{db_path}", echo=False)
+
+    # 构建 SQLite 连接 URL
+    sqlite_url = f"sqlite:///{db_path}"
+
+    # 创建引擎，配置连接池和线程安全
+    engine = create_engine(
+        sqlite_url,
+        echo=False,
+        connect_args={
+            "check_same_thread": False,  # 🔴 允许跨线程使用连接
+        },
+        poolclass=StaticPool,  # 🔴 使用静态连接池（SQLite 推荐）
+        pool_pre_ping=True,  # 🔴 连接前检查有效性
+    )
+
+    # 🔴 启用 WAL 模式（Write-Ahead Logging）
+    # WAL 模式允许读写并发，显著提升性能
+    with engine.connect() as conn:
+        conn.execute(text("PRAGMA journal_mode=WAL"))
+        conn.execute(text("PRAGMA synchronous=NORMAL"))
+        conn.execute(text("PRAGMA cache_size=-64000"))  # 64MB 缓存
+        conn.execute(text("PRAGMA temp_store=memory"))
+        conn.commit()
+
+    return engine
 
 
 # 模块级引擎（单例）
 _engine = None
+_engine_lock = threading.Lock()  # 🔴 P0-2 修复：添加线程锁
 
 
 def get_engine():
+    """获取引擎实例（线程安全）.
+
+    🔴 P0-2 修复：使用双重检查锁定确保线程安全
+    """
     global _engine
     if _engine is None:
-        _engine = _get_engine()
-        # 自动建表
-        Base.metadata.create_all(_engine)
+        with _engine_lock:  # 🔴 线程锁保护
+            if _engine is None:
+                _engine = _get_engine()
+                # 自动建表
+                Base.metadata.create_all(_engine)
     return _engine
 
 
