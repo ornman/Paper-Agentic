@@ -1,0 +1,578 @@
+{
+  "metadata": {
+    "confidence": "确定性提取",
+    "total_edges": 95
+  },
+  "edges": [
+    {
+      "caller": "main:OnOpenPane",
+      "callee": "main:GetUrlPath",
+      "type": "CALLS",
+      "caller_line": 22
+    },
+    {
+      "caller": "api-client:normalizeCurrentRuntimeOrigin",
+      "callee": "sse-client:isAllowedLocalHost",
+      "type": "CALLS",
+      "caller_line": 56
+    },
+    {
+      "caller": "api-client:normalizeConfiguredApiBaseUrl",
+      "callee": "sse-client:normalizeCurrentRuntimeOrigin",
+      "type": "CALLS",
+      "caller_line": 78
+    },
+    {
+      "caller": "api-client:resolveApiBaseUrl",
+      "callee": "sse-client:normalizeConfiguredApiBaseUrl",
+      "type": "CALLS",
+      "caller_line": 128
+    },
+    {
+      "caller": "api-client:buildApiUrl",
+      "callee": "sse-client:resolveApiBaseUrl",
+      "type": "CALLS",
+      "caller_line": 137
+    },
+    {
+      "caller": "api-client:requestJson",
+      "callee": "sse-client:buildApiUrl",
+      "type": "CALLS",
+      "caller_line": 201
+    },
+    {
+      "caller": "api-client:requestJson",
+      "callee": "sse-client:readJsonSafely",
+      "type": "CALLS",
+      "caller_line": 202
+    },
+    {
+      "caller": "api-client:requestJson",
+      "callee": "sse-client:extractErrorMessage",
+      "type": "CALLS",
+      "caller_line": 205
+    },
+    {
+      "caller": "sse-client:normalizeCurrentRuntimeOrigin",
+      "callee": "sse-client:isAllowedLocalHost",
+      "type": "CALLS",
+      "caller_line": 54
+    },
+    {
+      "caller": "sse-client:normalizeConfiguredApiBaseUrl",
+      "callee": "sse-client:normalizeCurrentRuntimeOrigin",
+      "type": "CALLS",
+      "caller_line": 69
+    },
+    {
+      "caller": "sse-client:resolveApiBaseUrl",
+      "callee": "sse-client:normalizeConfiguredApiBaseUrl",
+      "type": "CALLS",
+      "caller_line": 107
+    },
+    {
+      "caller": "sse-client:buildApiUrl",
+      "callee": "sse-client:resolveApiBaseUrl",
+      "type": "CALLS",
+      "caller_line": 111
+    },
+    {
+      "caller": "sse-client:parseSseFrame",
+      "callee": "sse-client:parseJsonSafely",
+      "type": "CALLS",
+      "caller_line": 193
+    },
+    {
+      "caller": "sse-client:processFrame",
+      "callee": "sse-client:parseSseFrame",
+      "type": "CALLS",
+      "caller_line": 297
+    },
+    {
+      "caller": "sse-client:processFrame",
+      "callee": "sse-client:normalizeChunkText",
+      "type": "CALLS",
+      "caller_line": 304
+    },
+    {
+      "caller": "sse-client:processFrame",
+      "callee": "conversation:onChunk",
+      "type": "CALLS",
+      "caller_line": 306
+    },
+    {
+      "caller": "sse-client:processFrame",
+      "callee": "conversation:onSources",
+      "type": "CALLS",
+      "caller_line": 311
+    },
+    {
+      "caller": "sse-client:processFrame",
+      "callee": "sse-client:normalizeSources",
+      "type": "CALLS",
+      "caller_line": 311
+    },
+    {
+      "caller": "sse-client:processFrame",
+      "callee": "conversation:onDone",
+      "type": "CALLS",
+      "caller_line": 316
+    },
+    {
+      "caller": "sse-client:processFrame",
+      "callee": "conversation:onErrorEvent",
+      "type": "CALLS",
+      "caller_line": 322
+    },
+    {
+      "caller": "sse-client:processFrame",
+      "callee": "sse-client:extractErrorMessage",
+      "type": "CALLS",
+      "caller_line": 322
+    },
+    {
+      "caller": "sse-client:drainBuffer",
+      "callee": "sse-client:processFrame",
+      "type": "CALLS",
+      "caller_line": 339
+    },
+    {
+      "caller": "sse-client:drainBuffer",
+      "callee": "sse-client:processFrame",
+      "type": "CALLS",
+      "caller_line": 344
+    },
+    {
+      "caller": "sse-client:readSseStream",
+      "callee": "sse-client:drainBuffer",
+      "type": "CALLS",
+      "caller_line": 354
+    },
+    {
+      "caller": "sse-client:readSseStream",
+      "callee": "sse-client:drainBuffer",
+      "type": "CALLS",
+      "caller_line": 359
+    },
+    {
+      "caller": "sse-client:postAskInspirationStream",
+      "callee": "sse-client:buildApiUrl",
+      "type": "CALLS",
+      "caller_line": 375
+    },
+    {
+      "caller": "sse-client:postAskInspirationStream",
+      "callee": "sse-client:readJsonSafely",
+      "type": "CALLS",
+      "caller_line": 385
+    },
+    {
+      "caller": "sse-client:postAskInspirationStream",
+      "callee": "sse-client:extractErrorMessage",
+      "type": "CALLS",
+      "caller_line": 386
+    },
+    {
+      "caller": "sse-client:postAskInspirationStream",
+      "callee": "sse-client:readSseStream",
+      "type": "CALLS",
+      "caller_line": 393
+    },
+    {
+      "caller": "wps-host:createSnapshotFromApplication",
+      "callee": "wps-host:createUnavailableSnapshot",
+      "type": "CALLS",
+      "caller_line": 162
+    },
+    {
+      "caller": "wps-host:createSnapshotFromApplication",
+      "callee": "wps-selection:normalizeString",
+      "type": "CALLS",
+      "caller_line": 167
+    },
+    {
+      "caller": "wps-host:createSnapshotFromApplication",
+      "callee": "wps-selection:normalizeString",
+      "type": "CALLS",
+      "caller_line": 168
+    },
+    {
+      "caller": "wps-host:readSnapshotFromApi",
+      "callee": "wps-host:createReadResult",
+      "type": "CALLS",
+      "caller_line": 197
+    },
+    {
+      "caller": "wps-host:readSnapshotFromApi",
+      "callee": "wps-host:createUnavailableSnapshot",
+      "type": "CALLS",
+      "caller_line": 197
+    },
+    {
+      "caller": "wps-host:readSnapshotFromApi",
+      "callee": "wps-host:createSnapshotFromApplication",
+      "type": "CALLS",
+      "caller_line": 202
+    },
+    {
+      "caller": "wps-host:readSnapshotFromApi",
+      "callee": "wps-host:createReadResult",
+      "type": "CALLS",
+      "caller_line": 204
+    },
+    {
+      "caller": "wps-host:readSnapshotFromApi",
+      "callee": "wps-host:createReadResult",
+      "type": "CALLS",
+      "caller_line": 206
+    },
+    {
+      "caller": "wps-host:readSnapshotFromApi",
+      "callee": "wps-host:createReadErrorSnapshot",
+      "type": "CALLS",
+      "caller_line": 206
+    },
+    {
+      "caller": "wps-host:writeReadResultToHostStore",
+      "callee": "host:markStale",
+      "type": "CALLS",
+      "caller_line": 229
+    },
+    {
+      "caller": "wps-host:writeReadResultToHostStore",
+      "callee": "host:syncSnapshot",
+      "type": "CALLS",
+      "caller_line": 234
+    },
+    {
+      "caller": "wps-host:writeReadResultToHostStore",
+      "callee": "wps-host:cloneSnapshot",
+      "type": "CALLS",
+      "caller_line": 234
+    },
+    {
+      "caller": "wps-host:writeReadResultToHostStore",
+      "callee": "host:markReady",
+      "type": "CALLS",
+      "caller_line": 244
+    },
+    {
+      "caller": "wps-host:writeReadResultToHostStore",
+      "callee": "host:markNoDocument",
+      "type": "CALLS",
+      "caller_line": 248
+    },
+    {
+      "caller": "wps-host:createWpsHostAdapter",
+      "callee": "wps-host:createUnavailableSnapshot",
+      "type": "CALLS",
+      "caller_line": 260
+    },
+    {
+      "caller": "wps-host:pollOnce",
+      "callee": "wps-host:readSnapshotFromApi",
+      "type": "CALLS",
+      "caller_line": 264
+    },
+    {
+      "caller": "wps-host:pollOnce",
+      "callee": "wps-selection:resolveWpsApi",
+      "type": "CALLS",
+      "caller_line": 264
+    },
+    {
+      "caller": "wps-host:pollOnce",
+      "callee": "wps-host:writeReadResultToHostStore",
+      "type": "CALLS",
+      "caller_line": 271
+    },
+    {
+      "caller": "wps-host:pollOnce",
+      "callee": "wps-host:cloneSnapshot",
+      "type": "CALLS",
+      "caller_line": 272
+    },
+    {
+      "caller": "wps-host:startPolling",
+      "callee": "wps-host:stopPolling",
+      "type": "CALLS",
+      "caller_line": 286
+    },
+    {
+      "caller": "wps-host:startPolling",
+      "callee": "wps-host:pollOnce",
+      "type": "CALLS",
+      "caller_line": 290
+    },
+    {
+      "caller": "wps-host:startPolling",
+      "callee": "host:markPolling",
+      "type": "CALLS",
+      "caller_line": 294
+    },
+    {
+      "caller": "wps-host:startPolling",
+      "callee": "wps-host:pollOnce",
+      "type": "CALLS",
+      "caller_line": 295
+    },
+    {
+      "caller": "wps-host:getSnapshot",
+      "callee": "wps-host:cloneSnapshot",
+      "type": "CALLS",
+      "caller_line": 314
+    },
+    {
+      "caller": "wps-selection:readSelectionSnapshot",
+      "callee": "wps-selection:resolveWpsApi",
+      "type": "CALLS",
+      "caller_line": 37
+    },
+    {
+      "caller": "wps-selection:readSelectionSnapshot",
+      "callee": "wps-selection:normalizeString",
+      "type": "CALLS",
+      "caller_line": 40
+    },
+    {
+      "caller": "wps-selection:readSelectionSnapshot",
+      "callee": "wps-selection:normalizeString",
+      "type": "CALLS",
+      "caller_line": 40
+    },
+    {
+      "caller": "wps-selection:emitIfChanged",
+      "callee": "wps-selection:readSelectionSnapshot",
+      "type": "CALLS",
+      "caller_line": 74
+    },
+    {
+      "caller": "wps-selection:stop",
+      "callee": "wps-selection:resolveWpsApi",
+      "type": "CALLS",
+      "caller_line": 84
+    },
+    {
+      "caller": "wps-selection:start",
+      "callee": "wps-selection:resolveWpsApi",
+      "type": "CALLS",
+      "caller_line": 107
+    },
+    {
+      "caller": "wps-selection:start",
+      "callee": "wps-selection:readSelectionSnapshot",
+      "type": "CALLS",
+      "caller_line": 115
+    },
+    {
+      "caller": "wps-selection:handler",
+      "callee": "wps-selection:emitIfChanged",
+      "type": "CALLS",
+      "caller_line": 122
+    },
+    {
+      "caller": "conversation:appendUserActionMessage",
+      "callee": "conversation:createMessageId",
+      "type": "CALLS",
+      "caller_line": 182
+    },
+    {
+      "caller": "conversation:appendAssistantMessage",
+      "callee": "conversation:createMessageId",
+      "type": "CALLS",
+      "caller_line": 204
+    },
+    {
+      "caller": "conversation:appendAssistantMessage",
+      "callee": "conversation:cloneSources",
+      "type": "CALLS",
+      "caller_line": 209
+    },
+    {
+      "caller": "conversation:createStreamingAssistantMessage",
+      "callee": "conversation:createMessageId",
+      "type": "CALLS",
+      "caller_line": 223
+    },
+    {
+      "caller": "conversation:createStreamingAssistantMessage",
+      "callee": "conversation:cloneSources",
+      "type": "CALLS",
+      "caller_line": 229
+    },
+    {
+      "caller": "conversation:ensureStreamingAssistantMessage",
+      "callee": "conversation:createStreamingAssistantMessage",
+      "type": "CALLS",
+      "caller_line": 265
+    },
+    {
+      "caller": "conversation:appendAssistantChunk",
+      "callee": "conversation:ensureStreamingAssistantMessage",
+      "type": "CALLS",
+      "caller_line": 276
+    },
+    {
+      "caller": "conversation:appendAssistantChunk",
+      "callee": "conversation:updateAssistantMessage",
+      "type": "CALLS",
+      "caller_line": 278
+    },
+    {
+      "caller": "conversation:attachAssistantSources",
+      "callee": "conversation:cloneSources",
+      "type": "CALLS",
+      "caller_line": 295
+    },
+    {
+      "caller": "conversation:attachAssistantSources",
+      "callee": "conversation:updateAssistantMessage",
+      "type": "CALLS",
+      "caller_line": 301
+    },
+    {
+      "caller": "conversation:askInspiration",
+      "callee": "conversation:startRequest",
+      "type": "CALLS",
+      "caller_line": 324
+    },
+    {
+      "caller": "conversation:askInspiration",
+      "callee": "conversation:appendUserActionMessage",
+      "type": "CALLS",
+      "caller_line": 325
+    },
+    {
+      "caller": "conversation:askInspiration",
+      "callee": "sse-client:postAskInspirationStream",
+      "type": "CALLS",
+      "caller_line": 336
+    },
+    {
+      "caller": "conversation:onChunk",
+      "callee": "conversation:startStreaming",
+      "type": "CALLS",
+      "caller_line": 339
+    },
+    {
+      "caller": "conversation:onChunk",
+      "callee": "conversation:appendAssistantChunk",
+      "type": "CALLS",
+      "caller_line": 342
+    },
+    {
+      "caller": "conversation:onSources",
+      "callee": "conversation:startStreaming",
+      "type": "CALLS",
+      "caller_line": 346
+    },
+    {
+      "caller": "conversation:onSources",
+      "callee": "conversation:attachAssistantSources",
+      "type": "CALLS",
+      "caller_line": 349
+    },
+    {
+      "caller": "conversation:onDone",
+      "callee": "conversation:finishResponse",
+      "type": "CALLS",
+      "caller_line": 352
+    },
+    {
+      "caller": "conversation:onErrorEvent",
+      "callee": "host:markError",
+      "type": "CALLS",
+      "caller_line": 357
+    },
+    {
+      "caller": "conversation:askInspiration",
+      "callee": "conversation:finishResponse",
+      "type": "CALLS",
+      "caller_line": 366
+    },
+    {
+      "caller": "conversation:askInspiration",
+      "callee": "host:markError",
+      "type": "CALLS",
+      "caller_line": 376
+    },
+    {
+      "caller": "conversation:sendPrompt",
+      "callee": "conversation:startRequest",
+      "type": "CALLS",
+      "caller_line": 383
+    },
+    {
+      "caller": "conversation:sendPrompt",
+      "callee": "conversation:appendUserActionMessage",
+      "type": "CALLS",
+      "caller_line": 384
+    },
+    {
+      "caller": "conversation:sendPrompt",
+      "callee": "sse-client:postAskInspirationStream",
+      "type": "CALLS",
+      "caller_line": 390
+    },
+    {
+      "caller": "conversation:onChunk",
+      "callee": "conversation:startStreaming",
+      "type": "CALLS",
+      "caller_line": 393
+    },
+    {
+      "caller": "conversation:onChunk",
+      "callee": "conversation:appendAssistantChunk",
+      "type": "CALLS",
+      "caller_line": 396
+    },
+    {
+      "caller": "conversation:onSources",
+      "callee": "conversation:startStreaming",
+      "type": "CALLS",
+      "caller_line": 400
+    },
+    {
+      "caller": "conversation:onSources",
+      "callee": "conversation:attachAssistantSources",
+      "type": "CALLS",
+      "caller_line": 403
+    },
+    {
+      "caller": "conversation:onDone",
+      "callee": "conversation:finishResponse",
+      "type": "CALLS",
+      "caller_line": 406
+    },
+    {
+      "caller": "conversation:onErrorEvent",
+      "callee": "host:markError",
+      "type": "CALLS",
+      "caller_line": 411
+    },
+    {
+      "caller": "conversation:sendPrompt",
+      "callee": "conversation:finishResponse",
+      "type": "CALLS",
+      "caller_line": 418
+    },
+    {
+      "caller": "conversation:sendPrompt",
+      "callee": "host:markError",
+      "type": "CALLS",
+      "caller_line": 428
+    },
+    {
+      "caller": "conversation:reset",
+      "callee": "conversation:createSessionId",
+      "type": "CALLS",
+      "caller_line": 448
+    },
+    {
+      "caller": "main:OnOpenPane",
+      "callee": "main:GetUrlPath",
+      "type": "CALLS",
+      "caller_line": 48
+    }
+  ]
+}

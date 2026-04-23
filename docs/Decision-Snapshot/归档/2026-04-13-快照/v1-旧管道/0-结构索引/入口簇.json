@@ -1,0 +1,259 @@
+{
+  "metadata": {
+    "confidence": "确定性提取",
+    "total_entries": 29,
+    "entry_types": {
+      "http_handler": 22,
+      "main": 7
+    }
+  },
+  "entries": [
+    {
+      "entry_type": "http_handler",
+      "symbol_id": null,
+      "file": "app/api/v1/routes/config.py",
+      "line": 32,
+      "detail": "GET /",
+      "route": "/",
+      "http_method": "GET"
+    },
+    {
+      "entry_type": "http_handler",
+      "symbol_id": null,
+      "file": "app/api/v1/routes/config.py",
+      "line": 60,
+      "detail": "POST /test",
+      "route": "/test",
+      "http_method": "POST"
+    },
+    {
+      "entry_type": "http_handler",
+      "symbol_id": null,
+      "file": "app/api/v1/routes/config.py",
+      "line": 97,
+      "detail": "GET /models",
+      "route": "/models",
+      "http_method": "GET"
+    },
+    {
+      "entry_type": "http_handler",
+      "symbol_id": null,
+      "file": "app/api/v1/routes/config.py",
+      "line": 121,
+      "detail": "POST /export_logs",
+      "route": "/export_logs",
+      "http_method": "POST"
+    },
+    {
+      "entry_type": "http_handler",
+      "symbol_id": null,
+      "file": "app/api/v1/routes/config.py",
+      "line": 155,
+      "detail": "POST /reload",
+      "route": "/reload",
+      "http_method": "POST"
+    },
+    {
+      "entry_type": "http_handler",
+      "symbol_id": null,
+      "file": "app/api/v1/routes/health.py",
+      "line": 9,
+      "detail": "GET /",
+      "route": "/",
+      "http_method": "GET"
+    },
+    {
+      "entry_type": "http_handler",
+      "symbol_id": null,
+      "file": "app/api/v1/routes/library.py",
+      "line": 35,
+      "detail": "POST /import",
+      "route": "/import",
+      "http_method": "POST"
+    },
+    {
+      "entry_type": "http_handler",
+      "symbol_id": null,
+      "file": "app/api/v1/routes/library.py",
+      "line": 89,
+      "detail": "POST /import-path",
+      "route": "/import-path",
+      "http_method": "POST"
+    },
+    {
+      "entry_type": "http_handler",
+      "symbol_id": null,
+      "file": "app/api/v1/routes/library.py",
+      "line": 147,
+      "detail": "POST /resume/{document_id}",
+      "route": "/resume/{document_id}",
+      "http_method": "POST"
+    },
+    {
+      "entry_type": "http_handler",
+      "symbol_id": null,
+      "file": "app/api/v1/routes/library.py",
+      "line": 200,
+      "detail": "GET /papers",
+      "route": "/papers",
+      "http_method": "GET"
+    },
+    {
+      "entry_type": "http_handler",
+      "symbol_id": null,
+      "file": "app/api/v1/routes/library.py",
+      "line": 220,
+      "detail": "GET /papers/{paper_id}",
+      "route": "/papers/{paper_id}",
+      "http_method": "GET"
+    },
+    {
+      "entry_type": "http_handler",
+      "symbol_id": null,
+      "file": "app/api/v1/routes/library.py",
+      "line": 236,
+      "detail": "DELETE /papers/{paper_id}",
+      "route": "/papers/{paper_id}",
+      "http_method": "DELETE"
+    },
+    {
+      "entry_type": "http_handler",
+      "symbol_id": null,
+      "file": "app/api/v1/routes/library.py",
+      "line": 258,
+      "detail": "GET /status",
+      "route": "/status",
+      "http_method": "GET"
+    },
+    {
+      "entry_type": "http_handler",
+      "symbol_id": null,
+      "file": "app/api/v1/routes/query.py",
+      "line": 23,
+      "detail": "POST /ask",
+      "route": "/ask",
+      "http_method": "POST"
+    },
+    {
+      "entry_type": "http_handler",
+      "symbol_id": null,
+      "file": "app/api/v1/routes/query.py",
+      "line": 90,
+      "detail": "POST /retrieve",
+      "route": "/retrieve",
+      "http_method": "POST"
+    },
+    {
+      "entry_type": "http_handler",
+      "symbol_id": null,
+      "file": "app/api/v1/routes/session.py",
+      "line": 17,
+      "detail": "POST /",
+      "route": "/",
+      "http_method": "POST"
+    },
+    {
+      "entry_type": "http_handler",
+      "symbol_id": null,
+      "file": "app/api/v1/routes/session.py",
+      "line": 32,
+      "detail": "GET /",
+      "route": "/",
+      "http_method": "GET"
+    },
+    {
+      "entry_type": "http_handler",
+      "symbol_id": null,
+      "file": "app/api/v1/routes/session.py",
+      "line": 57,
+      "detail": "GET /{session_id}",
+      "route": "/{session_id}",
+      "http_method": "GET"
+    },
+    {
+      "entry_type": "http_handler",
+      "symbol_id": null,
+      "file": "app/api/v1/routes/session.py",
+      "line": 73,
+      "detail": "PUT /{session_id}/title",
+      "route": "/{session_id}/title",
+      "http_method": "PUT"
+    },
+    {
+      "entry_type": "http_handler",
+      "symbol_id": null,
+      "file": "app/api/v1/routes/session.py",
+      "line": 82,
+      "detail": "DELETE /{session_id}",
+      "route": "/{session_id}",
+      "http_method": "DELETE"
+    },
+    {
+      "entry_type": "http_handler",
+      "symbol_id": null,
+      "file": "app/api/v1/routes/session.py",
+      "line": 91,
+      "detail": "GET /{session_id}/history",
+      "route": "/{session_id}/history",
+      "http_method": "GET"
+    },
+    {
+      "entry_type": "http_handler",
+      "symbol_id": null,
+      "file": "app/api/v1/routes/session.py",
+      "line": 113,
+      "detail": "DELETE /{session_id}/history",
+      "route": "/{session_id}/history",
+      "http_method": "DELETE"
+    },
+    {
+      "entry_type": "main",
+      "symbol_id": null,
+      "file": "check_env.py",
+      "line": 184,
+      "detail": "if __name__ == '__main__'"
+    },
+    {
+      "entry_type": "main",
+      "symbol_id": "check_env:main",
+      "file": "check_env.py",
+      "line": 0,
+      "detail": "def main()"
+    },
+    {
+      "entry_type": "main",
+      "symbol_id": null,
+      "file": "main.py",
+      "line": 6,
+      "detail": "if __name__ == '__main__'"
+    },
+    {
+      "entry_type": "main",
+      "symbol_id": null,
+      "file": "test_batch_import.py",
+      "line": 141,
+      "detail": "if __name__ == '__main__'"
+    },
+    {
+      "entry_type": "main",
+      "symbol_id": "test_batch_import:main",
+      "file": "test_batch_import.py",
+      "line": 0,
+      "detail": "def main()"
+    },
+    {
+      "entry_type": "main",
+      "symbol_id": null,
+      "file": "tests/test_kimi_api.py",
+      "line": 133,
+      "detail": "if __name__ == '__main__'"
+    },
+    {
+      "entry_type": "main",
+      "symbol_id": "test_kimi_api:main",
+      "file": "tests/test_kimi_api.py",
+      "line": 0,
+      "detail": "def main()"
+    }
+  ]
+}

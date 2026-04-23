@@ -1,0 +1,127 @@
+{
+  "metadata": {
+    "generated_at": "2026-04-12 22:53",
+    "confidence": "确定性推导",
+    "total_dimensions_recommended": 8
+  },
+  "characteristics": {
+    "primary_language": "python",
+    "language_distribution": {
+      "python": 71
+    },
+    "entry_types": {
+      "http_handler": 22,
+      "main": 7
+    },
+    "scale": "medium",
+    "total_symbols": 462,
+    "total_files": 71,
+    "total_lines": 10240,
+    "total_communities": 16,
+    "has_database": true,
+    "has_state_keywords": true,
+    "has_game_loop": false,
+    "fitness_overall": 0.809
+  },
+  "recommended_dimensions": [
+    {
+      "id": "module_boundaries",
+      "name": "模块边界与依赖",
+      "description": "社区结构、模块依赖方向、循环依赖",
+      "mermaid_type": "flowchart TD",
+      "data_sources": [
+        "社区.json",
+        "导入图.json",
+        "区域显著度.json"
+      ],
+      "priority": "high",
+      "reason": "所有项目的基础：社区结构、依赖方向"
+    },
+    {
+      "id": "code_organization",
+      "name": "代码组织与规模",
+      "description": "文件规模分布、巨文件警告、符号密度",
+      "mermaid_type": null,
+      "data_sources": [
+        "文件统计表.json",
+        "符号表.json"
+      ],
+      "priority": "high",
+      "reason": "所有项目的基础：规模分布、巨文件警告"
+    },
+    {
+      "id": "fitness_and_debt",
+      "name": "架构适应度与债务",
+      "description": "五维度评分、盲区、覆盖闭环",
+      "mermaid_type": null,
+      "data_sources": [
+        "架构适应度.json",
+        "盲区账本.json",
+        "覆盖闭环.json"
+      ],
+      "priority": "medium",
+      "reason": "所有项目适用：适应度评分、盲区概览"
+    },
+    {
+      "id": "api_protocols",
+      "name": "API接口与协议",
+      "description": "端点清单、路由树、认证机制",
+      "mermaid_type": "graph LR",
+      "data_sources": [
+        "入口簇.json",
+        "调用图.json",
+        "符号表.json"
+      ],
+      "priority": "high",
+      "reason": "HTTP项目：检测到 22 个HTTP入口"
+    },
+    {
+      "id": "request_lifecycle",
+      "name": "请求生命周期",
+      "description": "从入口到响应的调用链、中间件管道",
+      "mermaid_type": "sequenceDiagram",
+      "data_sources": [
+        "调用图.json",
+        "入口簇.json"
+      ],
+      "priority": "high",
+      "reason": "HTTP项目：22 个入口的调用链分析"
+    },
+    {
+      "id": "async_boundaries",
+      "name": "异步边界与错误传播",
+      "description": "async/await链、错误处理、重试机制",
+      "mermaid_type": "flowchart TD",
+      "data_sources": [
+        "调用图.json",
+        "盲区账本.json"
+      ],
+      "priority": "medium",
+      "reason": "python 项目：异步边界与错误传播分析"
+    },
+    {
+      "id": "data_model",
+      "name": "数据模型与存储",
+      "description": "数据类/模型定义、存储层抽象、Schema",
+      "mermaid_type": "classDiagram",
+      "data_sources": [
+        "符号表.json",
+        "继承图.json"
+      ],
+      "priority": "high",
+      "reason": "检测到数据库相关符号：数据模型与存储分析"
+    },
+    {
+      "id": "state_machine",
+      "name": "状态流转",
+      "description": "核心状态机、状态转换、生命周期",
+      "mermaid_type": "stateDiagram-v2",
+      "data_sources": [
+        "调用图.json",
+        "符号表.json"
+      ],
+      "priority": "medium",
+      "reason": "检测到状态相关符号：状态流转分析"
+    }
+  ]
+}

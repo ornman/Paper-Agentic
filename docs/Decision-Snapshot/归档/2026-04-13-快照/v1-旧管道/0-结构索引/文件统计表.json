@@ -1,0 +1,650 @@
+{
+  "metadata": {
+    "generated_at": "2026-04-12 22:50",
+    "confidence": "确定性统计",
+    "total_files": 71,
+    "total_lines": 10240,
+    "total_code_lines": 7745
+  },
+  "files": [
+    {
+      "path": "tests/ingestion/test_ingestion_pipeline.py",
+      "language": "python",
+      "total_lines": 732,
+      "code_lines": 575,
+      "blank_lines": 148,
+      "comment_lines": 9,
+      "symbols_count": 47
+    },
+    {
+      "path": "tests/indexing/test_index_modes.py",
+      "language": "python",
+      "total_lines": 634,
+      "code_lines": 471,
+      "blank_lines": 160,
+      "comment_lines": 3,
+      "symbols_count": 47
+    },
+    {
+      "path": "app/modules/ingestion/mineru_client.py",
+      "language": "python",
+      "total_lines": 518,
+      "code_lines": 403,
+      "blank_lines": 77,
+      "comment_lines": 38,
+      "symbols_count": 14
+    },
+    {
+      "path": "app/services_archive/retrieval_service.py",
+      "language": "python",
+      "total_lines": 412,
+      "code_lines": 275,
+      "blank_lines": 69,
+      "comment_lines": 68,
+      "symbols_count": 7
+    },
+    {
+      "path": "app/modules/ingestion/cleaning.py",
+      "language": "python",
+      "total_lines": 395,
+      "code_lines": 284,
+      "blank_lines": 74,
+      "comment_lines": 37,
+      "symbols_count": 13
+    },
+    {
+      "path": "app/clients/kimi_client.py",
+      "language": "python",
+      "total_lines": 380,
+      "code_lines": 297,
+      "blank_lines": 76,
+      "comment_lines": 7,
+      "symbols_count": 15
+    },
+    {
+      "path": "app/core/config.py",
+      "language": "python",
+      "total_lines": 367,
+      "code_lines": 298,
+      "blank_lines": 40,
+      "comment_lines": 29,
+      "symbols_count": 17
+    },
+    {
+      "path": "app/modules/ingestion/service.py",
+      "language": "python",
+      "total_lines": 345,
+      "code_lines": 280,
+      "blank_lines": 46,
+      "comment_lines": 19,
+      "symbols_count": 13
+    },
+    {
+      "path": "app/processing/chunker.py",
+      "language": "python",
+      "total_lines": 330,
+      "code_lines": 241,
+      "blank_lines": 67,
+      "comment_lines": 22,
+      "symbols_count": 11
+    },
+    {
+      "path": "app/stores/qdrant_store.py",
+      "language": "python",
+      "total_lines": 298,
+      "code_lines": 231,
+      "blank_lines": 48,
+      "comment_lines": 19,
+      "symbols_count": 11
+    },
+    {
+      "path": "app/processing/cleaner.py",
+      "language": "python",
+      "total_lines": 269,
+      "code_lines": 201,
+      "blank_lines": 47,
+      "comment_lines": 21,
+      "symbols_count": 6
+    },
+    {
+      "path": "app/api/v1/routes/library.py",
+      "language": "python",
+      "total_lines": 268,
+      "code_lines": 218,
+      "blank_lines": 40,
+      "comment_lines": 10,
+      "symbols_count": 9
+    },
+    {
+      "path": "app/repositories/sqlite_repo.py",
+      "language": "python",
+      "total_lines": 243,
+      "code_lines": 195,
+      "blank_lines": 38,
+      "comment_lines": 10,
+      "symbols_count": 16
+    },
+    {
+      "path": "app/core/logging_config.py",
+      "language": "python",
+      "total_lines": 234,
+      "code_lines": 168,
+      "blank_lines": 43,
+      "comment_lines": 23,
+      "symbols_count": 10
+    },
+    {
+      "path": "app/modules/library/service.py",
+      "language": "python",
+      "total_lines": 232,
+      "code_lines": 184,
+      "blank_lines": 40,
+      "comment_lines": 8,
+      "symbols_count": 12
+    },
+    {
+      "path": "app/services/query_rewrite_service.py",
+      "language": "python",
+      "total_lines": 229,
+      "code_lines": 151,
+      "blank_lines": 47,
+      "comment_lines": 31,
+      "symbols_count": 6
+    },
+    {
+      "path": "app/core/retry.py",
+      "language": "python",
+      "total_lines": 207,
+      "code_lines": 144,
+      "blank_lines": 47,
+      "comment_lines": 16,
+      "symbols_count": 8
+    },
+    {
+      "path": "app/modules/library/models.py",
+      "language": "python",
+      "total_lines": 196,
+      "code_lines": 144,
+      "blank_lines": 40,
+      "comment_lines": 12,
+      "symbols_count": 13
+    },
+    {
+      "path": "app/services_archive/qa_service_rag.py",
+      "language": "python",
+      "total_lines": 191,
+      "code_lines": 149,
+      "blank_lines": 32,
+      "comment_lines": 10,
+      "symbols_count": 2
+    },
+    {
+      "path": "app/services_archive/qa_service.py",
+      "language": "python",
+      "total_lines": 188,
+      "code_lines": 133,
+      "blank_lines": 40,
+      "comment_lines": 15,
+      "symbols_count": 5
+    },
+    {
+      "path": "app/clients/mineru_client.py",
+      "language": "python",
+      "total_lines": 187,
+      "code_lines": 138,
+      "blank_lines": 40,
+      "comment_lines": 9,
+      "symbols_count": 8
+    },
+    {
+      "path": "app/modules/qa/service.py",
+      "language": "python",
+      "total_lines": 187,
+      "code_lines": 144,
+      "blank_lines": 30,
+      "comment_lines": 13,
+      "symbols_count": 4
+    },
+    {
+      "path": "check_env.py",
+      "language": "python",
+      "total_lines": 185,
+      "code_lines": 141,
+      "blank_lines": 39,
+      "comment_lines": 5,
+      "symbols_count": 7
+    },
+    {
+      "path": "app/api/v1/routes/config.py",
+      "language": "python",
+      "total_lines": 184,
+      "code_lines": 158,
+      "blank_lines": 25,
+      "comment_lines": 1,
+      "symbols_count": 9
+    },
+    {
+      "path": "app/clients/vlm_client.py",
+      "language": "python",
+      "total_lines": 183,
+      "code_lines": 145,
+      "blank_lines": 38,
+      "comment_lines": 0,
+      "symbols_count": 14
+    },
+    {
+      "path": "app/services_archive/ingest_service.py",
+      "language": "python",
+      "total_lines": 182,
+      "code_lines": 145,
+      "blank_lines": 30,
+      "comment_lines": 7,
+      "symbols_count": 5
+    },
+    {
+      "path": "app/core/error_messages.py",
+      "language": "python",
+      "total_lines": 163,
+      "code_lines": 129,
+      "blank_lines": 24,
+      "comment_lines": 10,
+      "symbols_count": 3
+    },
+    {
+      "path": "app/processing/describer.py",
+      "language": "python",
+      "total_lines": 156,
+      "code_lines": 122,
+      "blank_lines": 31,
+      "comment_lines": 3,
+      "symbols_count": 6
+    },
+    {
+      "path": "tests/library/test_document_state_machine.py",
+      "language": "python",
+      "total_lines": 147,
+      "code_lines": 103,
+      "blank_lines": 39,
+      "comment_lines": 5,
+      "symbols_count": 7
+    },
+    {
+      "path": "test_batch_import.py",
+      "language": "python",
+      "total_lines": 142,
+      "code_lines": 100,
+      "blank_lines": 30,
+      "comment_lines": 12,
+      "symbols_count": 2
+    },
+    {
+      "path": "tests/test_kimi_api.py",
+      "language": "python",
+      "total_lines": 134,
+      "code_lines": 107,
+      "blank_lines": 25,
+      "comment_lines": 2,
+      "symbols_count": 3
+    },
+    {
+      "path": "tests/core/test_error_contract.py",
+      "language": "python",
+      "total_lines": 130,
+      "code_lines": 103,
+      "blank_lines": 25,
+      "comment_lines": 2,
+      "symbols_count": 5
+    },
+    {
+      "path": "app/core/errors.py",
+      "language": "python",
+      "total_lines": 125,
+      "code_lines": 86,
+      "blank_lines": 37,
+      "comment_lines": 2,
+      "symbols_count": 15
+    },
+    {
+      "path": "app/api/v1/routes/session.py",
+      "language": "python",
+      "total_lines": 121,
+      "code_lines": 103,
+      "blank_lines": 16,
+      "comment_lines": 2,
+      "symbols_count": 8
+    },
+    {
+      "path": "app/clients/embedding_client.py",
+      "language": "python",
+      "total_lines": 119,
+      "code_lines": 94,
+      "blank_lines": 20,
+      "comment_lines": 5,
+      "symbols_count": 7
+    },
+    {
+      "path": "app/models/query.py",
+      "language": "python",
+      "total_lines": 116,
+      "code_lines": 79,
+      "blank_lines": 30,
+      "comment_lines": 7,
+      "symbols_count": 10
+    },
+    {
+      "path": "app/repositories/bm25_repo.py",
+      "language": "python",
+      "total_lines": 112,
+      "code_lines": 90,
+      "blank_lines": 15,
+      "comment_lines": 7,
+      "symbols_count": 10
+    },
+    {
+      "path": "app/api/v1/routes/query.py",
+      "language": "python",
+      "total_lines": 111,
+      "code_lines": 89,
+      "blank_lines": 19,
+      "comment_lines": 3,
+      "symbols_count": 5
+    },
+    {
+      "path": "app/modules/retrieval/service.py",
+      "language": "python",
+      "total_lines": 106,
+      "code_lines": 79,
+      "blank_lines": 17,
+      "comment_lines": 10,
+      "symbols_count": 4
+    },
+    {
+      "path": "app/models/session.py",
+      "language": "python",
+      "total_lines": 91,
+      "code_lines": 60,
+      "blank_lines": 27,
+      "comment_lines": 4,
+      "symbols_count": 9
+    },
+    {
+      "path": "app/services_archive/embedding_service.py",
+      "language": "python",
+      "total_lines": 86,
+      "code_lines": 59,
+      "blank_lines": 18,
+      "comment_lines": 9,
+      "symbols_count": 4
+    },
+    {
+      "path": "tests/core/test_config_contract.py",
+      "language": "python",
+      "total_lines": 82,
+      "code_lines": 57,
+      "blank_lines": 23,
+      "comment_lines": 2,
+      "symbols_count": 7
+    },
+    {
+      "path": "app/clients/rerank_client.py",
+      "language": "python",
+      "total_lines": 69,
+      "code_lines": 55,
+      "blank_lines": 11,
+      "comment_lines": 3,
+      "symbols_count": 3
+    },
+    {
+      "path": "app/modules/library/repository.py",
+      "language": "python",
+      "total_lines": 69,
+      "code_lines": 49,
+      "blank_lines": 16,
+      "comment_lines": 4,
+      "symbols_count": 5
+    },
+    {
+      "path": "app/modules/ingestion/dto.py",
+      "language": "python",
+      "total_lines": 65,
+      "code_lines": 40,
+      "blank_lines": 20,
+      "comment_lines": 5,
+      "symbols_count": 4
+    },
+    {
+      "path": "app/models/base.py",
+      "language": "python",
+      "total_lines": 63,
+      "code_lines": 43,
+      "blank_lines": 14,
+      "comment_lines": 6,
+      "symbols_count": 4
+    },
+    {
+      "path": "app/clients/llm_client.py",
+      "language": "python",
+      "total_lines": 60,
+      "code_lines": 49,
+      "blank_lines": 9,
+      "comment_lines": 2,
+      "symbols_count": 4
+    },
+    {
+      "path": "app/modules/session/service.py",
+      "language": "python",
+      "total_lines": 54,
+      "code_lines": 37,
+      "blank_lines": 13,
+      "comment_lines": 4,
+      "symbols_count": 4
+    },
+    {
+      "path": "app/main.py",
+      "language": "python",
+      "total_lines": 52,
+      "code_lines": 37,
+      "blank_lines": 9,
+      "comment_lines": 6,
+      "symbols_count": 2
+    },
+    {
+      "path": "app/api/v1/routes/health.py",
+      "language": "python",
+      "total_lines": 30,
+      "code_lines": 21,
+      "blank_lines": 6,
+      "comment_lines": 3,
+      "symbols_count": 1
+    },
+    {
+      "path": "tests/conftest.py",
+      "language": "python",
+      "total_lines": 18,
+      "code_lines": 16,
+      "blank_lines": 2,
+      "comment_lines": 0,
+      "symbols_count": 1
+    },
+    {
+      "path": "main.py",
+      "language": "python",
+      "total_lines": 13,
+      "code_lines": 10,
+      "blank_lines": 2,
+      "comment_lines": 1,
+      "symbols_count": 0
+    },
+    {
+      "path": "app/api/v1/router.py",
+      "language": "python",
+      "total_lines": 11,
+      "code_lines": 8,
+      "blank_lines": 2,
+      "comment_lines": 1,
+      "symbols_count": 0
+    },
+    {
+      "path": "app/modules/qa/__init__.py",
+      "language": "python",
+      "total_lines": 4,
+      "code_lines": 2,
+      "blank_lines": 1,
+      "comment_lines": 1,
+      "symbols_count": 0
+    },
+    {
+      "path": "app/modules/retrieval/__init__.py",
+      "language": "python",
+      "total_lines": 4,
+      "code_lines": 2,
+      "blank_lines": 1,
+      "comment_lines": 1,
+      "symbols_count": 0
+    },
+    {
+      "path": "app/modules/session/__init__.py",
+      "language": "python",
+      "total_lines": 4,
+      "code_lines": 2,
+      "blank_lines": 1,
+      "comment_lines": 1,
+      "symbols_count": 0
+    },
+    {
+      "path": "app/modules/__init__.py",
+      "language": "python",
+      "total_lines": 2,
+      "code_lines": 0,
+      "blank_lines": 0,
+      "comment_lines": 2,
+      "symbols_count": 0
+    },
+    {
+      "path": "app/modules/ingestion/__init__.py",
+      "language": "python",
+      "total_lines": 2,
+      "code_lines": 0,
+      "blank_lines": 0,
+      "comment_lines": 2,
+      "symbols_count": 0
+    },
+    {
+      "path": "app/modules/library/__init__.py",
+      "language": "python",
+      "total_lines": 2,
+      "code_lines": 0,
+      "blank_lines": 0,
+      "comment_lines": 2,
+      "symbols_count": 0
+    },
+    {
+      "path": "tests/__init__.py",
+      "language": "python",
+      "total_lines": 1,
+      "code_lines": 1,
+      "blank_lines": 0,
+      "comment_lines": 0,
+      "symbols_count": 0
+    },
+    {
+      "path": "app/__init__.py",
+      "language": "python",
+      "total_lines": 0,
+      "code_lines": 0,
+      "blank_lines": 0,
+      "comment_lines": 0,
+      "symbols_count": 0
+    },
+    {
+      "path": "app/api/__init__.py",
+      "language": "python",
+      "total_lines": 0,
+      "code_lines": 0,
+      "blank_lines": 0,
+      "comment_lines": 0,
+      "symbols_count": 0
+    },
+    {
+      "path": "app/api/v1/__init__.py",
+      "language": "python",
+      "total_lines": 0,
+      "code_lines": 0,
+      "blank_lines": 0,
+      "comment_lines": 0,
+      "symbols_count": 0
+    },
+    {
+      "path": "app/api/v1/routes/__init__.py",
+      "language": "python",
+      "total_lines": 0,
+      "code_lines": 0,
+      "blank_lines": 0,
+      "comment_lines": 0,
+      "symbols_count": 0
+    },
+    {
+      "path": "app/clients/__init__.py",
+      "language": "python",
+      "total_lines": 0,
+      "code_lines": 0,
+      "blank_lines": 0,
+      "comment_lines": 0,
+      "symbols_count": 0
+    },
+    {
+      "path": "app/core/__init__.py",
+      "language": "python",
+      "total_lines": 0,
+      "code_lines": 0,
+      "blank_lines": 0,
+      "comment_lines": 0,
+      "symbols_count": 0
+    },
+    {
+      "path": "app/models/__init__.py",
+      "language": "python",
+      "total_lines": 0,
+      "code_lines": 0,
+      "blank_lines": 0,
+      "comment_lines": 0,
+      "symbols_count": 0
+    },
+    {
+      "path": "app/processing/__init__.py",
+      "language": "python",
+      "total_lines": 0,
+      "code_lines": 0,
+      "blank_lines": 0,
+      "comment_lines": 0,
+      "symbols_count": 0
+    },
+    {
+      "path": "app/services_archive/__init__.py",
+      "language": "python",
+      "total_lines": 0,
+      "code_lines": 0,
+      "blank_lines": 0,
+      "comment_lines": 0,
+      "symbols_count": 0
+    },
+    {
+      "path": "app/stores/__init__.py",
+      "language": "python",
+      "total_lines": 0,
+      "code_lines": 0,
+      "blank_lines": 0,
+      "comment_lines": 0,
+      "symbols_count": 0
+    },
+    {
+      "path": "app/workflows/__init__.py",
+      "language": "python",
+      "total_lines": 0,
+      "code_lines": 0,
+      "blank_lines": 0,
+      "comment_lines": 0,
+      "symbols_count": 0
+    }
+  ]
+}

@@ -1,0 +1,4169 @@
+{
+  "metadata": {
+    "generated_at": "2026-04-12 22:50",
+    "tool": "tree-sitter",
+    "confidence": "确定性提取",
+    "total_symbols": 462,
+    "total_files": 51
+  },
+  "symbols": [
+    {
+      "id": "config:LLMConfigUpdate",
+      "type": "Class",
+      "file": "app/api/v1/routes/config.py",
+      "line": 13,
+      "end_line": 18,
+      "exported": true,
+      "signature": "class LLMConfigUpdate(BaseModel):"
+    },
+    {
+      "id": "config:RetrievalConfigUpdate",
+      "type": "Class",
+      "file": "app/api/v1/routes/config.py",
+      "line": 21,
+      "end_line": 25,
+      "exported": true,
+      "signature": "class RetrievalConfigUpdate(BaseModel):"
+    },
+    {
+      "id": "config:ConfigTestRequest",
+      "type": "Class",
+      "file": "app/api/v1/routes/config.py",
+      "line": 28,
+      "end_line": 29,
+      "exported": true,
+      "signature": "class ConfigTestRequest(BaseModel):"
+    },
+    {
+      "id": "config:get_config",
+      "type": "Function",
+      "file": "app/api/v1/routes/config.py",
+      "line": 33,
+      "end_line": 57,
+      "exported": true,
+      "signature": "async def get_config():"
+    },
+    {
+      "id": "config:mask_key",
+      "type": "Function",
+      "file": "app/api/v1/routes/config.py",
+      "line": 37,
+      "end_line": 41,
+      "exported": true,
+      "signature": "def mask_key(key: str) -> str:"
+    },
+    {
+      "id": "config:test_config",
+      "type": "Function",
+      "file": "app/api/v1/routes/config.py",
+      "line": 61,
+      "end_line": 94,
+      "exported": true,
+      "signature": "async def test_config(request: ConfigTestRequest):"
+    },
+    {
+      "id": "config:get_models",
+      "type": "Function",
+      "file": "app/api/v1/routes/config.py",
+      "line": 98,
+      "end_line": 118,
+      "exported": true,
+      "signature": "async def get_models():"
+    },
+    {
+      "id": "config:export_logs",
+      "type": "Function",
+      "file": "app/api/v1/routes/config.py",
+      "line": 122,
+      "end_line": 152,
+      "exported": true,
+      "signature": "async def export_logs("
+    },
+    {
+      "id": "config:reload_config",
+      "type": "Function",
+      "file": "app/api/v1/routes/config.py",
+      "line": 156,
+      "end_line": 184,
+      "exported": true,
+      "signature": "async def reload_config():"
+    },
+    {
+      "id": "health:health_check",
+      "type": "Function",
+      "file": "app/api/v1/routes/health.py",
+      "line": 10,
+      "end_line": 30,
+      "exported": true,
+      "signature": "async def health_check():"
+    },
+    {
+      "id": "library:_get_library_service",
+      "type": "Function",
+      "file": "app/api/v1/routes/library.py",
+      "line": 25,
+      "end_line": 27,
+      "exported": false,
+      "signature": "def _get_library_service() -> LibraryService:"
+    },
+    {
+      "id": "library:_get_store",
+      "type": "Function",
+      "file": "app/api/v1/routes/library.py",
+      "line": 30,
+      "end_line": 32,
+      "exported": false,
+      "signature": "def _get_store() -> QdrantStore:"
+    },
+    {
+      "id": "library:import_pdf",
+      "type": "Function",
+      "file": "app/api/v1/routes/library.py",
+      "line": 36,
+      "end_line": 86,
+      "exported": true,
+      "signature": "async def import_pdf(file: UploadFile):"
+    },
+    {
+      "id": "library:import_pdf_by_path",
+      "type": "Function",
+      "file": "app/api/v1/routes/library.py",
+      "line": 90,
+      "end_line": 144,
+      "exported": true,
+      "signature": "async def import_pdf_by_path("
+    },
+    {
+      "id": "library:resume_import",
+      "type": "Function",
+      "file": "app/api/v1/routes/library.py",
+      "line": 148,
+      "end_line": 197,
+      "exported": true,
+      "signature": "async def resume_import(document_id: str):"
+    },
+    {
+      "id": "library:list_papers",
+      "type": "Function",
+      "file": "app/api/v1/routes/library.py",
+      "line": 201,
+      "end_line": 217,
+      "exported": true,
+      "signature": "async def list_papers():"
+    },
+    {
+      "id": "library:get_paper",
+      "type": "Function",
+      "file": "app/api/v1/routes/library.py",
+      "line": 221,
+      "end_line": 233,
+      "exported": true,
+      "signature": "async def get_paper(paper_id: str):"
+    },
+    {
+      "id": "library:delete_paper",
+      "type": "Function",
+      "file": "app/api/v1/routes/library.py",
+      "line": 237,
+      "end_line": 255,
+      "exported": true,
+      "signature": "async def delete_paper(paper_id: str):"
+    },
+    {
+      "id": "library:get_status",
+      "type": "Function",
+      "file": "app/api/v1/routes/library.py",
+      "line": 259,
+      "end_line": 268,
+      "exported": true,
+      "signature": "async def get_status():"
+    },
+    {
+      "id": "query:_get_qa_service",
+      "type": "Function",
+      "file": "app/api/v1/routes/query.py",
+      "line": 13,
+      "end_line": 15,
+      "exported": false,
+      "signature": "def _get_qa_service() -> QAService:"
+    },
+    {
+      "id": "query:_get_retrieval_service",
+      "type": "Function",
+      "file": "app/api/v1/routes/query.py",
+      "line": 18,
+      "end_line": 20,
+      "exported": false,
+      "signature": "def _get_retrieval_service() -> RetrievalService:"
+    },
+    {
+      "id": "query:ask",
+      "type": "Function",
+      "file": "app/api/v1/routes/query.py",
+      "line": 24,
+      "end_line": 87,
+      "exported": true,
+      "signature": "async def ask(request: AskRequest) -> StreamingResponse:"
+    },
+    {
+      "id": "query:event_generator",
+      "type": "Function",
+      "file": "app/api/v1/routes/query.py",
+      "line": 62,
+      "end_line": 77,
+      "exported": true,
+      "signature": "async def event_generator():"
+    },
+    {
+      "id": "query:retrieve_endpoint",
+      "type": "Function",
+      "file": "app/api/v1/routes/query.py",
+      "line": 91,
+      "end_line": 111,
+      "exported": true,
+      "signature": "async def retrieve_endpoint(request: RetrieveRequest):"
+    },
+    {
+      "id": "session:_get_session_service",
+      "type": "Function",
+      "file": "app/api/v1/routes/session.py",
+      "line": 12,
+      "end_line": 14,
+      "exported": false,
+      "signature": "def _get_session_service() -> SessionService:"
+    },
+    {
+      "id": "session:create_session",
+      "type": "Function",
+      "file": "app/api/v1/routes/session.py",
+      "line": 18,
+      "end_line": 29,
+      "exported": true,
+      "signature": "async def create_session(request: SessionCreate):"
+    },
+    {
+      "id": "session:list_sessions",
+      "type": "Function",
+      "file": "app/api/v1/routes/session.py",
+      "line": 33,
+      "end_line": 54,
+      "exported": true,
+      "signature": "async def list_sessions("
+    },
+    {
+      "id": "session:get_session",
+      "type": "Function",
+      "file": "app/api/v1/routes/session.py",
+      "line": 58,
+      "end_line": 70,
+      "exported": true,
+      "signature": "async def get_session(session_id: str):"
+    },
+    {
+      "id": "session:update_title",
+      "type": "Function",
+      "file": "app/api/v1/routes/session.py",
+      "line": 74,
+      "end_line": 79,
+      "exported": true,
+      "signature": "async def update_title(session_id: str, request: SessionTitleUpdate):"
+    },
+    {
+      "id": "session:delete_session",
+      "type": "Function",
+      "file": "app/api/v1/routes/session.py",
+      "line": 83,
+      "end_line": 88,
+      "exported": true,
+      "signature": "async def delete_session(session_id: str):"
+    },
+    {
+      "id": "session:get_history",
+      "type": "Function",
+      "file": "app/api/v1/routes/session.py",
+      "line": 92,
+      "end_line": 110,
+      "exported": true,
+      "signature": "async def get_history(session_id: str):"
+    },
+    {
+      "id": "session:clear_history",
+      "type": "Function",
+      "file": "app/api/v1/routes/session.py",
+      "line": 114,
+      "end_line": 121,
+      "exported": true,
+      "signature": "async def clear_history(session_id: str):"
+    },
+    {
+      "id": "embedding_client:EmbeddingClient",
+      "type": "Class",
+      "file": "app/clients/embedding_client.py",
+      "line": 13,
+      "end_line": 119,
+      "exported": true,
+      "signature": "class EmbeddingClient(EmbeddingClientBase):"
+    },
+    {
+      "id": "embedding_client:__init__",
+      "type": "Method",
+      "file": "app/clients/embedding_client.py",
+      "line": 20,
+      "end_line": 27,
+      "exported": false,
+      "signature": "def __init__(self):"
+    },
+    {
+      "id": "embedding_client:embed",
+      "type": "Method",
+      "file": "app/clients/embedding_client.py",
+      "line": 30,
+      "end_line": 51,
+      "exported": true,
+      "signature": "async def embed("
+    },
+    {
+      "id": "embedding_client:embed_single",
+      "type": "Method",
+      "file": "app/clients/embedding_client.py",
+      "line": 53,
+      "end_line": 66,
+      "exported": true,
+      "signature": "async def embed_single("
+    },
+    {
+      "id": "embedding_client:dimensions",
+      "type": "Method",
+      "file": "app/clients/embedding_client.py",
+      "line": 69,
+      "end_line": 71,
+      "exported": true,
+      "signature": "def dimensions(self) -> int:"
+    },
+    {
+      "id": "embedding_client:model_name",
+      "type": "Method",
+      "file": "app/clients/embedding_client.py",
+      "line": 74,
+      "end_line": 76,
+      "exported": true,
+      "signature": "def model_name(self) -> str:"
+    },
+    {
+      "id": "embedding_client:_embed_batch_raw",
+      "type": "Method",
+      "file": "app/clients/embedding_client.py",
+      "line": 78,
+      "end_line": 119,
+      "exported": false,
+      "signature": "async def _embed_batch_raw(self, texts: list[str]) -> list[list[float]]:"
+    },
+    {
+      "id": "kimi_client:Message",
+      "type": "Class",
+      "file": "app/clients/kimi_client.py",
+      "line": 108,
+      "end_line": 112,
+      "exported": true,
+      "signature": "class Message(BaseModel):"
+    },
+    {
+      "id": "kimi_client:VLMRequest",
+      "type": "Class",
+      "file": "app/clients/kimi_client.py",
+      "line": 115,
+      "end_line": 121,
+      "exported": true,
+      "signature": "class VLMRequest(BaseModel):"
+    },
+    {
+      "id": "kimi_client:ChatRequest",
+      "type": "Class",
+      "file": "app/clients/kimi_client.py",
+      "line": 124,
+      "end_line": 129,
+      "exported": true,
+      "signature": "class ChatRequest(BaseModel):"
+    },
+    {
+      "id": "kimi_client:ChatResponse",
+      "type": "Class",
+      "file": "app/clients/kimi_client.py",
+      "line": 132,
+      "end_line": 135,
+      "exported": true,
+      "signature": "class ChatResponse(BaseModel):"
+    },
+    {
+      "id": "kimi_client:KimiVLMClient",
+      "type": "Class",
+      "file": "app/clients/kimi_client.py",
+      "line": 138,
+      "end_line": 175,
+      "exported": true,
+      "signature": "class KimiVLMClient(VLMClient):"
+    },
+    {
+      "id": "kimi_client:describe_image",
+      "type": "Method",
+      "file": "app/clients/kimi_client.py",
+      "line": 141,
+      "end_line": 157,
+      "exported": true,
+      "signature": "async def describe_image("
+    },
+    {
+      "id": "kimi_client:describe_image_sync",
+      "type": "Method",
+      "file": "app/clients/kimi_client.py",
+      "line": 159,
+      "end_line": 175,
+      "exported": true,
+      "signature": "def describe_image_sync("
+    },
+    {
+      "id": "kimi_client:KimiLLMClient",
+      "type": "Class",
+      "file": "app/clients/kimi_client.py",
+      "line": 178,
+      "end_line": 246,
+      "exported": true,
+      "signature": "class KimiLLMClient(LLMClient):"
+    },
+    {
+      "id": "kimi_client:chat",
+      "type": "Method",
+      "file": "app/clients/kimi_client.py",
+      "line": 181,
+      "end_line": 201,
+      "exported": true,
+      "signature": "async def chat("
+    },
+    {
+      "id": "kimi_client:chat_stream",
+      "type": "Method",
+      "file": "app/clients/kimi_client.py",
+      "line": 203,
+      "end_line": 224,
+      "exported": true,
+      "signature": "async def chat_stream("
+    },
+    {
+      "id": "kimi_client:chat_sync",
+      "type": "Method",
+      "file": "app/clients/kimi_client.py",
+      "line": 226,
+      "end_line": 246,
+      "exported": true,
+      "signature": "def chat_sync("
+    },
+    {
+      "id": "kimi_client:describe_image_async",
+      "type": "Function",
+      "file": "app/clients/kimi_client.py",
+      "line": 250,
+      "end_line": 304,
+      "exported": true,
+      "signature": "async def describe_image_async("
+    },
+    {
+      "id": "kimi_client:describe_image",
+      "type": "Function",
+      "file": "app/clients/kimi_client.py",
+      "line": 307,
+      "end_line": 324,
+      "exported": true,
+      "signature": "def describe_image("
+    },
+    {
+      "id": "kimi_client:chat_async",
+      "type": "Function",
+      "file": "app/clients/kimi_client.py",
+      "line": 327,
+      "end_line": 358,
+      "exported": true,
+      "signature": "async def chat_async("
+    },
+    {
+      "id": "kimi_client:chat",
+      "type": "Function",
+      "file": "app/clients/kimi_client.py",
+      "line": 361,
+      "end_line": 380,
+      "exported": true,
+      "signature": "def chat("
+    },
+    {
+      "id": "llm_client:LLMClient",
+      "type": "Class",
+      "file": "app/clients/llm_client.py",
+      "line": 8,
+      "end_line": 60,
+      "exported": true,
+      "signature": "class LLMClient:"
+    },
+    {
+      "id": "llm_client:__init__",
+      "type": "Method",
+      "file": "app/clients/llm_client.py",
+      "line": 11,
+      "end_line": 19,
+      "exported": false,
+      "signature": "def __init__(self):"
+    },
+    {
+      "id": "llm_client:chat",
+      "type": "Method",
+      "file": "app/clients/llm_client.py",
+      "line": 21,
+      "end_line": 38,
+      "exported": true,
+      "signature": "async def chat(self, messages: list[dict]) -> str:"
+    },
+    {
+      "id": "llm_client:chat_stream",
+      "type": "Method",
+      "file": "app/clients/llm_client.py",
+      "line": 40,
+      "end_line": 60,
+      "exported": true,
+      "signature": "async def chat_stream(self, messages: list[dict]) -> AsyncGenerator[str, None]:"
+    },
+    {
+      "id": "mineru_client:MinerUTask",
+      "type": "Class",
+      "file": "app/clients/mineru_client.py",
+      "line": 20,
+      "end_line": 52,
+      "exported": true,
+      "signature": "class MinerUTask:"
+    },
+    {
+      "id": "mineru_client:__init__",
+      "type": "Method",
+      "file": "app/clients/mineru_client.py",
+      "line": 23,
+      "end_line": 27,
+      "exported": false,
+      "signature": "def __init__(self, task_id: str, base_url: str = _API_BASE):"
+    },
+    {
+      "id": "mineru_client:poll",
+      "type": "Method",
+      "file": "app/clients/mineru_client.py",
+      "line": 29,
+      "end_line": 52,
+      "exported": true,
+      "signature": "def poll(self) -> dict:"
+    },
+    {
+      "id": "mineru_client:MinerUClient",
+      "type": "Class",
+      "file": "app/clients/mineru_client.py",
+      "line": 55,
+      "end_line": 163,
+      "exported": true,
+      "signature": "class MinerUClient:"
+    },
+    {
+      "id": "mineru_client:__init__",
+      "type": "Method",
+      "file": "app/clients/mineru_client.py",
+      "line": 58,
+      "end_line": 69,
+      "exported": false,
+      "signature": "def __init__("
+    },
+    {
+      "id": "mineru_client:submit_pdf",
+      "type": "Method",
+      "file": "app/clients/mineru_client.py",
+      "line": 71,
+      "end_line": 117,
+      "exported": true,
+      "signature": "def submit_pdf("
+    },
+    {
+      "id": "mineru_client:parse_pdf",
+      "type": "Method",
+      "file": "app/clients/mineru_client.py",
+      "line": 119,
+      "end_line": 163,
+      "exported": true,
+      "signature": "def parse_pdf("
+    },
+    {
+      "id": "mineru_client:parse_pdf",
+      "type": "Function",
+      "file": "app/clients/mineru_client.py",
+      "line": 167,
+      "end_line": 187,
+      "exported": true,
+      "signature": "def parse_pdf("
+    },
+    {
+      "id": "rerank_client:RerankClient",
+      "type": "Class",
+      "file": "app/clients/rerank_client.py",
+      "line": 12,
+      "end_line": 69,
+      "exported": true,
+      "signature": "class RerankClient(RerankClientBase):"
+    },
+    {
+      "id": "rerank_client:__init__",
+      "type": "Method",
+      "file": "app/clients/rerank_client.py",
+      "line": 19,
+      "end_line": 24,
+      "exported": false,
+      "signature": "def __init__(self):"
+    },
+    {
+      "id": "rerank_client:rerank",
+      "type": "Method",
+      "file": "app/clients/rerank_client.py",
+      "line": 27,
+      "end_line": 69,
+      "exported": true,
+      "signature": "async def rerank("
+    },
+    {
+      "id": "vlm_client:VLMClient",
+      "type": "Class",
+      "file": "app/clients/vlm_client.py",
+      "line": 14,
+      "end_line": 53,
+      "exported": true,
+      "signature": "class VLMClient(ABC):"
+    },
+    {
+      "id": "vlm_client:describe_image",
+      "type": "Method",
+      "file": "app/clients/vlm_client.py",
+      "line": 18,
+      "end_line": 34,
+      "exported": true,
+      "signature": "async def describe_image("
+    },
+    {
+      "id": "vlm_client:describe_image_sync",
+      "type": "Method",
+      "file": "app/clients/vlm_client.py",
+      "line": 37,
+      "end_line": 53,
+      "exported": true,
+      "signature": "def describe_image_sync("
+    },
+    {
+      "id": "vlm_client:LLMClient",
+      "type": "Class",
+      "file": "app/clients/vlm_client.py",
+      "line": 56,
+      "end_line": 114,
+      "exported": true,
+      "signature": "class LLMClient(ABC):"
+    },
+    {
+      "id": "vlm_client:chat",
+      "type": "Method",
+      "file": "app/clients/vlm_client.py",
+      "line": 60,
+      "end_line": 76,
+      "exported": true,
+      "signature": "async def chat("
+    },
+    {
+      "id": "vlm_client:chat_stream",
+      "type": "Method",
+      "file": "app/clients/vlm_client.py",
+      "line": 79,
+      "end_line": 95,
+      "exported": true,
+      "signature": "async def chat_stream("
+    },
+    {
+      "id": "vlm_client:chat_sync",
+      "type": "Method",
+      "file": "app/clients/vlm_client.py",
+      "line": 98,
+      "end_line": 114,
+      "exported": true,
+      "signature": "def chat_sync("
+    },
+    {
+      "id": "vlm_client:EmbeddingClient",
+      "type": "Class",
+      "file": "app/clients/vlm_client.py",
+      "line": 117,
+      "end_line": 160,
+      "exported": true,
+      "signature": "class EmbeddingClient(ABC):"
+    },
+    {
+      "id": "vlm_client:embed",
+      "type": "Method",
+      "file": "app/clients/vlm_client.py",
+      "line": 121,
+      "end_line": 133,
+      "exported": true,
+      "signature": "async def embed("
+    },
+    {
+      "id": "vlm_client:embed_single",
+      "type": "Method",
+      "file": "app/clients/vlm_client.py",
+      "line": 136,
+      "end_line": 148,
+      "exported": true,
+      "signature": "async def embed_single("
+    },
+    {
+      "id": "vlm_client:dimensions",
+      "type": "Method",
+      "file": "app/clients/vlm_client.py",
+      "line": 152,
+      "end_line": 154,
+      "exported": true,
+      "signature": "def dimensions(self) -> int:"
+    },
+    {
+      "id": "vlm_client:model_name",
+      "type": "Method",
+      "file": "app/clients/vlm_client.py",
+      "line": 158,
+      "end_line": 160,
+      "exported": true,
+      "signature": "def model_name(self) -> str:"
+    },
+    {
+      "id": "vlm_client:RerankClient",
+      "type": "Class",
+      "file": "app/clients/vlm_client.py",
+      "line": 163,
+      "end_line": 183,
+      "exported": true,
+      "signature": "class RerankClient(ABC):"
+    },
+    {
+      "id": "vlm_client:rerank",
+      "type": "Method",
+      "file": "app/clients/vlm_client.py",
+      "line": 167,
+      "end_line": 183,
+      "exported": true,
+      "signature": "async def rerank("
+    },
+    {
+      "id": "config:Settings",
+      "type": "Class",
+      "file": "app/core/config.py",
+      "line": 15,
+      "end_line": 340,
+      "exported": true,
+      "signature": "class Settings(BaseSettings):"
+    },
+    {
+      "id": "config:is_development",
+      "type": "Method",
+      "file": "app/core/config.py",
+      "line": 257,
+      "end_line": 259,
+      "exported": true,
+      "signature": "def is_development(self) -> bool:"
+    },
+    {
+      "id": "config:is_production",
+      "type": "Method",
+      "file": "app/core/config.py",
+      "line": 262,
+      "end_line": 264,
+      "exported": true,
+      "signature": "def is_production(self) -> bool:"
+    },
+    {
+      "id": "config:is_staging",
+      "type": "Method",
+      "file": "app/core/config.py",
+      "line": 267,
+      "end_line": 269,
+      "exported": true,
+      "signature": "def is_staging(self) -> bool:"
+    },
+    {
+      "id": "config:effective_debug",
+      "type": "Method",
+      "file": "app/core/config.py",
+      "line": 272,
+      "end_line": 274,
+      "exported": true,
+      "signature": "def effective_debug(self) -> bool:"
+    },
+    {
+      "id": "config:validate_pinned_model_contract",
+      "type": "Method",
+      "file": "app/core/config.py",
+      "line": 287,
+      "end_line": 298,
+      "exported": true,
+      "signature": "def validate_pinned_model_contract(self) -> \"Settings\":"
+    },
+    {
+      "id": "config:llm_api_key",
+      "type": "Method",
+      "file": "app/core/config.py",
+      "line": 303,
+      "end_line": 305,
+      "exported": true,
+      "signature": "def llm_api_key(self) -> str:"
+    },
+    {
+      "id": "config:llm_base_url",
+      "type": "Method",
+      "file": "app/core/config.py",
+      "line": 308,
+      "end_line": 310,
+      "exported": true,
+      "signature": "def llm_base_url(self) -> str:"
+    },
+    {
+      "id": "config:llm_model",
+      "type": "Method",
+      "file": "app/core/config.py",
+      "line": 313,
+      "end_line": 315,
+      "exported": true,
+      "signature": "def llm_model(self) -> str:"
+    },
+    {
+      "id": "config:embedding_api_key",
+      "type": "Method",
+      "file": "app/core/config.py",
+      "line": 318,
+      "end_line": 320,
+      "exported": true,
+      "signature": "def embedding_api_key(self) -> str:"
+    },
+    {
+      "id": "config:embedding_base_url",
+      "type": "Method",
+      "file": "app/core/config.py",
+      "line": 323,
+      "end_line": 325,
+      "exported": true,
+      "signature": "def embedding_base_url(self) -> str:"
+    },
+    {
+      "id": "config:embedding_dimension",
+      "type": "Method",
+      "file": "app/core/config.py",
+      "line": 328,
+      "end_line": 330,
+      "exported": true,
+      "signature": "def embedding_dimension(self) -> int:"
+    },
+    {
+      "id": "config:rerank_api_key",
+      "type": "Method",
+      "file": "app/core/config.py",
+      "line": 333,
+      "end_line": 335,
+      "exported": true,
+      "signature": "def rerank_api_key(self) -> str:"
+    },
+    {
+      "id": "config:rerank_base_url",
+      "type": "Method",
+      "file": "app/core/config.py",
+      "line": 338,
+      "end_line": 340,
+      "exported": true,
+      "signature": "def rerank_base_url(self) -> str:"
+    },
+    {
+      "id": "config:get_settings",
+      "type": "Function",
+      "file": "app/core/config.py",
+      "line": 344,
+      "end_line": 346,
+      "exported": true,
+      "signature": "def get_settings() -> Settings:"
+    },
+    {
+      "id": "config:clear_settings_cache",
+      "type": "Function",
+      "file": "app/core/config.py",
+      "line": 349,
+      "end_line": 357,
+      "exported": true,
+      "signature": "def clear_settings_cache() -> None:"
+    },
+    {
+      "id": "config:reload_settings",
+      "type": "Function",
+      "file": "app/core/config.py",
+      "line": 360,
+      "end_line": 367,
+      "exported": true,
+      "signature": "def reload_settings() -> Settings:"
+    },
+    {
+      "id": "error_messages:get_error_message",
+      "type": "Function",
+      "file": "app/core/error_messages.py",
+      "line": 106,
+      "end_line": 115,
+      "exported": true,
+      "signature": "def get_error_message(error_code: str) -> dict[str, str] | None:"
+    },
+    {
+      "id": "error_messages:format_user_error",
+      "type": "Function",
+      "file": "app/core/error_messages.py",
+      "line": 118,
+      "end_line": 145,
+      "exported": true,
+      "signature": "def format_user_error("
+    },
+    {
+      "id": "error_messages:get_http_status_code",
+      "type": "Function",
+      "file": "app/core/error_messages.py",
+      "line": 148,
+      "end_line": 163,
+      "exported": true,
+      "signature": "def get_http_status_code(severity: str) -> int:"
+    },
+    {
+      "id": "errors:_restore_domain_error",
+      "type": "Function",
+      "file": "app/core/errors.py",
+      "line": 9,
+      "end_line": 30,
+      "exported": false,
+      "signature": "def _restore_domain_error("
+    },
+    {
+      "id": "errors:DomainError",
+      "type": "Class",
+      "file": "app/core/errors.py",
+      "line": 34,
+      "end_line": 90,
+      "exported": true,
+      "signature": "class DomainError(Exception):"
+    },
+    {
+      "id": "errors:__post_init__",
+      "type": "Method",
+      "file": "app/core/errors.py",
+      "line": 48,
+      "end_line": 65,
+      "exported": false,
+      "signature": "def __post_init__(self) -> None:"
+    },
+    {
+      "id": "errors:__reduce__",
+      "type": "Method",
+      "file": "app/core/errors.py",
+      "line": 67,
+      "end_line": 81,
+      "exported": false,
+      "signature": "def __reduce__(self) -> tuple[Any, tuple[type[DomainError], str, str, str, Any]]:"
+    },
+    {
+      "id": "errors:__reduce_ex__",
+      "type": "Method",
+      "file": "app/core/errors.py",
+      "line": 83,
+      "end_line": 90,
+      "exported": false,
+      "signature": "def __reduce_ex__("
+    },
+    {
+      "id": "errors:ConfigError",
+      "type": "Class",
+      "file": "app/core/errors.py",
+      "line": 93,
+      "end_line": 97,
+      "exported": true,
+      "signature": "class ConfigError(DomainError):"
+    },
+    {
+      "id": "errors:__init__",
+      "type": "Method",
+      "file": "app/core/errors.py",
+      "line": 96,
+      "end_line": 97,
+      "exported": false,
+      "signature": "def __init__(self, code: str, message: str, detail: Any = None) -> None:"
+    },
+    {
+      "id": "errors:IngestionError",
+      "type": "Class",
+      "file": "app/core/errors.py",
+      "line": 100,
+      "end_line": 104,
+      "exported": true,
+      "signature": "class IngestionError(DomainError):"
+    },
+    {
+      "id": "errors:__init__",
+      "type": "Method",
+      "file": "app/core/errors.py",
+      "line": 103,
+      "end_line": 104,
+      "exported": false,
+      "signature": "def __init__(self, code: str, message: str, detail: Any = None) -> None:"
+    },
+    {
+      "id": "errors:IndexingError",
+      "type": "Class",
+      "file": "app/core/errors.py",
+      "line": 107,
+      "end_line": 111,
+      "exported": true,
+      "signature": "class IndexingError(DomainError):"
+    },
+    {
+      "id": "errors:__init__",
+      "type": "Method",
+      "file": "app/core/errors.py",
+      "line": 110,
+      "end_line": 111,
+      "exported": false,
+      "signature": "def __init__(self, code: str, message: str, detail: Any = None) -> None:"
+    },
+    {
+      "id": "errors:RetrievalError",
+      "type": "Class",
+      "file": "app/core/errors.py",
+      "line": 114,
+      "end_line": 118,
+      "exported": true,
+      "signature": "class RetrievalError(DomainError):"
+    },
+    {
+      "id": "errors:__init__",
+      "type": "Method",
+      "file": "app/core/errors.py",
+      "line": 117,
+      "end_line": 118,
+      "exported": false,
+      "signature": "def __init__(self, code: str, message: str, detail: Any = None) -> None:"
+    },
+    {
+      "id": "errors:QAError",
+      "type": "Class",
+      "file": "app/core/errors.py",
+      "line": 121,
+      "end_line": 125,
+      "exported": true,
+      "signature": "class QAError(DomainError):"
+    },
+    {
+      "id": "errors:__init__",
+      "type": "Method",
+      "file": "app/core/errors.py",
+      "line": 124,
+      "end_line": 125,
+      "exported": false,
+      "signature": "def __init__(self, code: str, message: str, detail: Any = None) -> None:"
+    },
+    {
+      "id": "logging_config:DesktopFileHandler",
+      "type": "Class",
+      "file": "app/core/logging_config.py",
+      "line": 21,
+      "end_line": 68,
+      "exported": true,
+      "signature": "class DesktopFileHandler(logging.FileHandler):"
+    },
+    {
+      "id": "logging_config:__init__",
+      "type": "Method",
+      "file": "app/core/logging_config.py",
+      "line": 24,
+      "end_line": 43,
+      "exported": false,
+      "signature": "def __init__("
+    },
+    {
+      "id": "logging_config:_get_desktop_path",
+      "type": "Method",
+      "file": "app/core/logging_config.py",
+      "line": 45,
+      "end_line": 68,
+      "exported": false,
+      "signature": "def _get_desktop_path(self) -> Path | None:"
+    },
+    {
+      "id": "logging_config:DateRotatingFileHandler",
+      "type": "Class",
+      "file": "app/core/logging_config.py",
+      "line": 71,
+      "end_line": 111,
+      "exported": true,
+      "signature": "class DateRotatingFileHandler(DesktopFileHandler):"
+    },
+    {
+      "id": "logging_config:__init__",
+      "type": "Method",
+      "file": "app/core/logging_config.py",
+      "line": 74,
+      "end_line": 85,
+      "exported": false,
+      "signature": "def __init__("
+    },
+    {
+      "id": "logging_config:emit",
+      "type": "Method",
+      "file": "app/core/logging_config.py",
+      "line": 87,
+      "end_line": 103,
+      "exported": true,
+      "signature": "def emit(self, record: logging.LogRecord) -> None:"
+    },
+    {
+      "id": "logging_config:_get_log_dir",
+      "type": "Method",
+      "file": "app/core/logging_config.py",
+      "line": 105,
+      "end_line": 111,
+      "exported": false,
+      "signature": "def _get_log_dir(self) -> Path:"
+    },
+    {
+      "id": "logging_config:setup_logging",
+      "type": "Function",
+      "file": "app/core/logging_config.py",
+      "line": 114,
+      "end_line": 173,
+      "exported": true,
+      "signature": "def setup_logging("
+    },
+    {
+      "id": "logging_config:get_logger",
+      "type": "Function",
+      "file": "app/core/logging_config.py",
+      "line": 176,
+      "end_line": 189,
+      "exported": true,
+      "signature": "def get_logger(name: str = \"paper_assistant\") -> logging.Logger:"
+    },
+    {
+      "id": "logging_config:export_logs_to_desktop",
+      "type": "Function",
+      "file": "app/core/logging_config.py",
+      "line": 192,
+      "end_line": 234,
+      "exported": true,
+      "signature": "def export_logs_to_desktop("
+    },
+    {
+      "id": "retry:should_retry",
+      "type": "Function",
+      "file": "app/core/retry.py",
+      "line": 21,
+      "end_line": 51,
+      "exported": true,
+      "signature": "def should_retry(error: Exception) -> bool:"
+    },
+    {
+      "id": "retry:async_retry",
+      "type": "Function",
+      "file": "app/core/retry.py",
+      "line": 54,
+      "end_line": 107,
+      "exported": true,
+      "signature": "async def async_retry("
+    },
+    {
+      "id": "retry:retry_async",
+      "type": "Function",
+      "file": "app/core/retry.py",
+      "line": 110,
+      "end_line": 145,
+      "exported": true,
+      "signature": "def retry_async("
+    },
+    {
+      "id": "retry:decorator",
+      "type": "Function",
+      "file": "app/core/retry.py",
+      "line": 131,
+      "end_line": 143,
+      "exported": true,
+      "signature": "def decorator(func: Callable[..., Awaitable[T]]) -> Callable[..., Awaitable[T]]:"
+    },
+    {
+      "id": "retry:wrapper",
+      "type": "Function",
+      "file": "app/core/retry.py",
+      "line": 133,
+      "end_line": 141,
+      "exported": true,
+      "signature": "async def wrapper(*args, **kwargs) -> T:"
+    },
+    {
+      "id": "retry:retry_sync",
+      "type": "Function",
+      "file": "app/core/retry.py",
+      "line": 148,
+      "end_line": 207,
+      "exported": true,
+      "signature": "def retry_sync("
+    },
+    {
+      "id": "retry:decorator",
+      "type": "Function",
+      "file": "app/core/retry.py",
+      "line": 169,
+      "end_line": 205,
+      "exported": true,
+      "signature": "def decorator(func: Callable[..., T]) -> Callable[..., T]:"
+    },
+    {
+      "id": "retry:wrapper",
+      "type": "Function",
+      "file": "app/core/retry.py",
+      "line": 171,
+      "end_line": 203,
+      "exported": true,
+      "signature": "def wrapper(*args, **kwargs) -> T:"
+    },
+    {
+      "id": "main:general_exception_handler",
+      "type": "Function",
+      "file": "app/main.py",
+      "line": 35,
+      "end_line": 43,
+      "exported": true,
+      "signature": "async def general_exception_handler(request: Request, exc: Exception):"
+    },
+    {
+      "id": "main:startup",
+      "type": "Function",
+      "file": "app/main.py",
+      "line": 48,
+      "end_line": 52,
+      "exported": true,
+      "signature": "async def startup():"
+    },
+    {
+      "id": "base:Chunk",
+      "type": "Class",
+      "file": "app/models/base.py",
+      "line": 10,
+      "end_line": 19,
+      "exported": true,
+      "signature": "class Chunk:"
+    },
+    {
+      "id": "base:ApiResponse",
+      "type": "Class",
+      "file": "app/models/base.py",
+      "line": 22,
+      "end_line": 26,
+      "exported": true,
+      "signature": "class ApiResponse(BaseModel, Generic[T]):"
+    },
+    {
+      "id": "base:PaginatedData",
+      "type": "Class",
+      "file": "app/models/base.py",
+      "line": 29,
+      "end_line": 34,
+      "exported": true,
+      "signature": "class PaginatedData(BaseModel, Generic[T]):"
+    },
+    {
+      "id": "base:ErrorCode",
+      "type": "Class",
+      "file": "app/models/base.py",
+      "line": 37,
+      "end_line": 63,
+      "exported": true,
+      "signature": "class ErrorCode:"
+    },
+    {
+      "id": "query:QueryContext",
+      "type": "Class",
+      "file": "app/models/query.py",
+      "line": 6,
+      "end_line": 10,
+      "exported": true,
+      "signature": "class QueryContext(BaseModel):"
+    },
+    {
+      "id": "query:AskRequest",
+      "type": "Class",
+      "file": "app/models/query.py",
+      "line": 13,
+      "end_line": 49,
+      "exported": true,
+      "signature": "class AskRequest(BaseModel):"
+    },
+    {
+      "id": "query:SourceItem",
+      "type": "Class",
+      "file": "app/models/query.py",
+      "line": 52,
+      "end_line": 58,
+      "exported": true,
+      "signature": "class SourceItem(BaseModel):"
+    },
+    {
+      "id": "query:StreamChunk",
+      "type": "Class",
+      "file": "app/models/query.py",
+      "line": 61,
+      "end_line": 64,
+      "exported": true,
+      "signature": "class StreamChunk(BaseModel):"
+    },
+    {
+      "id": "query:StreamSources",
+      "type": "Class",
+      "file": "app/models/query.py",
+      "line": 67,
+      "end_line": 69,
+      "exported": true,
+      "signature": "class StreamSources(BaseModel):"
+    },
+    {
+      "id": "query:StreamDone",
+      "type": "Class",
+      "file": "app/models/query.py",
+      "line": 72,
+      "end_line": 74,
+      "exported": true,
+      "signature": "class StreamDone(BaseModel):"
+    },
+    {
+      "id": "query:StreamError",
+      "type": "Class",
+      "file": "app/models/query.py",
+      "line": 77,
+      "end_line": 80,
+      "exported": true,
+      "signature": "class StreamError(BaseModel):"
+    },
+    {
+      "id": "query:RetrieveRequest",
+      "type": "Class",
+      "file": "app/models/query.py",
+      "line": 83,
+      "end_line": 99,
+      "exported": true,
+      "signature": "class RetrieveRequest(BaseModel):"
+    },
+    {
+      "id": "query:RetrieveResult",
+      "type": "Class",
+      "file": "app/models/query.py",
+      "line": 102,
+      "end_line": 109,
+      "exported": true,
+      "signature": "class RetrieveResult(BaseModel):"
+    },
+    {
+      "id": "query:RetrieveResponse",
+      "type": "Class",
+      "file": "app/models/query.py",
+      "line": 112,
+      "end_line": 116,
+      "exported": true,
+      "signature": "class RetrieveResponse(BaseModel):"
+    },
+    {
+      "id": "session:Base",
+      "type": "Class",
+      "file": "app/models/session.py",
+      "line": 12,
+      "end_line": 13,
+      "exported": true,
+      "signature": "class Base(DeclarativeBase):"
+    },
+    {
+      "id": "session:SessionORM",
+      "type": "Class",
+      "file": "app/models/session.py",
+      "line": 16,
+      "end_line": 26,
+      "exported": true,
+      "signature": "class SessionORM(Base):"
+    },
+    {
+      "id": "session:MessageORM",
+      "type": "Class",
+      "file": "app/models/session.py",
+      "line": 29,
+      "end_line": 40,
+      "exported": true,
+      "signature": "class MessageORM(Base):"
+    },
+    {
+      "id": "session:IngestTaskORM",
+      "type": "Class",
+      "file": "app/models/session.py",
+      "line": 43,
+      "end_line": 55,
+      "exported": true,
+      "signature": "class IngestTaskORM(Base):"
+    },
+    {
+      "id": "session:SessionCreate",
+      "type": "Class",
+      "file": "app/models/session.py",
+      "line": 60,
+      "end_line": 61,
+      "exported": true,
+      "signature": "class SessionCreate(BaseModel):"
+    },
+    {
+      "id": "session:SessionResponse",
+      "type": "Class",
+      "file": "app/models/session.py",
+      "line": 64,
+      "end_line": 71,
+      "exported": true,
+      "signature": "class SessionResponse(BaseModel):"
+    },
+    {
+      "id": "session:SessionTitleUpdate",
+      "type": "Class",
+      "file": "app/models/session.py",
+      "line": 74,
+      "end_line": 75,
+      "exported": true,
+      "signature": "class SessionTitleUpdate(BaseModel):"
+    },
+    {
+      "id": "session:MessageResponse",
+      "type": "Class",
+      "file": "app/models/session.py",
+      "line": 78,
+      "end_line": 86,
+      "exported": true,
+      "signature": "class MessageResponse(BaseModel):"
+    },
+    {
+      "id": "session:HistoryResponse",
+      "type": "Class",
+      "file": "app/models/session.py",
+      "line": 89,
+      "end_line": 91,
+      "exported": true,
+      "signature": "class HistoryResponse(BaseModel):"
+    },
+    {
+      "id": "cleaning:clean_mineru_payload",
+      "type": "Function",
+      "file": "app/modules/ingestion/cleaning.py",
+      "line": 38,
+      "end_line": 108,
+      "exported": true,
+      "signature": "async def clean_mineru_payload("
+    },
+    {
+      "id": "cleaning:_extract_raw_blocks",
+      "type": "Function",
+      "file": "app/modules/ingestion/cleaning.py",
+      "line": 111,
+      "end_line": 136,
+      "exported": false,
+      "signature": "def _extract_raw_blocks(payload: dict[str, Any]) -> list[dict[str, Any]]:"
+    },
+    {
+      "id": "cleaning:_extract_block_info",
+      "type": "Function",
+      "file": "app/modules/ingestion/cleaning.py",
+      "line": 139,
+      "end_line": 171,
+      "exported": false,
+      "signature": "def _extract_block_info(page: int, block: dict[str, Any]) -> dict[str, Any] | None:"
+    },
+    {
+      "id": "cleaning:_read_block_text_nested",
+      "type": "Function",
+      "file": "app/modules/ingestion/cleaning.py",
+      "line": 174,
+      "end_line": 202,
+      "exported": false,
+      "signature": "def _read_block_text_nested(block: dict[str, Any]) -> str:"
+    },
+    {
+      "id": "cleaning:_read_block_text",
+      "type": "Function",
+      "file": "app/modules/ingestion/cleaning.py",
+      "line": 205,
+      "end_line": 214,
+      "exported": false,
+      "signature": "def _read_block_text(block: Any) -> str:"
+    },
+    {
+      "id": "cleaning:_extract_image_path",
+      "type": "Function",
+      "file": "app/modules/ingestion/cleaning.py",
+      "line": 217,
+      "end_line": 242,
+      "exported": false,
+      "signature": "def _extract_image_path(block: dict[str, Any]) -> str | None:"
+    },
+    {
+      "id": "cleaning:_read_block_text",
+      "type": "Function",
+      "file": "app/modules/ingestion/cleaning.py",
+      "line": 245,
+      "end_line": 254,
+      "exported": false,
+      "signature": "def _read_block_text(block: Any) -> str:"
+    },
+    {
+      "id": "cleaning:_normalize_text",
+      "type": "Function",
+      "file": "app/modules/ingestion/cleaning.py",
+      "line": 257,
+      "end_line": 259,
+      "exported": false,
+      "signature": "def _normalize_text(text: str) -> str:"
+    },
+    {
+      "id": "cleaning:_count_distinct_pages_by_text",
+      "type": "Function",
+      "file": "app/modules/ingestion/cleaning.py",
+      "line": 262,
+      "end_line": 270,
+      "exported": false,
+      "signature": "def _count_distinct_pages_by_text(raw_blocks: list[dict[str, Any]]) -> dict[str, int]:"
+    },
+    {
+      "id": "cleaning:_is_header_or_footer",
+      "type": "Function",
+      "file": "app/modules/ingestion/cleaning.py",
+      "line": 273,
+      "end_line": 284,
+      "exported": false,
+      "signature": "def _is_header_or_footer(text: str, text_page_counts: dict[str, int]) -> bool:"
+    },
+    {
+      "id": "cleaning:_is_page_number",
+      "type": "Function",
+      "file": "app/modules/ingestion/cleaning.py",
+      "line": 287,
+      "end_line": 290,
+      "exported": false,
+      "signature": "def _is_page_number(text: str) -> bool:"
+    },
+    {
+      "id": "cleaning:_is_short_noise",
+      "type": "Function",
+      "file": "app/modules/ingestion/cleaning.py",
+      "line": 293,
+      "end_line": 298,
+      "exported": false,
+      "signature": "def _is_short_noise(block: dict[str, Any]) -> bool:"
+    },
+    {
+      "id": "cleaning:_describe_images",
+      "type": "Function",
+      "file": "app/modules/ingestion/cleaning.py",
+      "line": 301,
+      "end_line": 395,
+      "exported": false,
+      "signature": "async def _describe_images("
+    },
+    {
+      "id": "dto:CleanedBlock",
+      "type": "Class",
+      "file": "app/modules/ingestion/dto.py",
+      "line": 14,
+      "end_line": 31,
+      "exported": true,
+      "signature": "class CleanedBlock(BaseModel):"
+    },
+    {
+      "id": "dto:CleanedDocument",
+      "type": "Class",
+      "file": "app/modules/ingestion/dto.py",
+      "line": 34,
+      "end_line": 46,
+      "exported": true,
+      "signature": "class CleanedDocument(BaseModel):"
+    },
+    {
+      "id": "dto:MineruTaskSubmission",
+      "type": "Class",
+      "file": "app/modules/ingestion/dto.py",
+      "line": 49,
+      "end_line": 54,
+      "exported": true,
+      "signature": "class MineruTaskSubmission(BaseModel):"
+    },
+    {
+      "id": "dto:MineruTaskState",
+      "type": "Class",
+      "file": "app/modules/ingestion/dto.py",
+      "line": 57,
+      "end_line": 65,
+      "exported": true,
+      "signature": "class MineruTaskState(BaseModel):"
+    },
+    {
+      "id": "mineru_client:MineruClient",
+      "type": "Class",
+      "file": "app/modules/ingestion/mineru_client.py",
+      "line": 23,
+      "end_line": 518,
+      "exported": true,
+      "signature": "class MineruClient:"
+    },
+    {
+      "id": "mineru_client:__init__",
+      "type": "Method",
+      "file": "app/modules/ingestion/mineru_client.py",
+      "line": 26,
+      "end_line": 44,
+      "exported": false,
+      "signature": "def __init__("
+    },
+    {
+      "id": "mineru_client:run_pdf_task",
+      "type": "Method",
+      "file": "app/modules/ingestion/mineru_client.py",
+      "line": 46,
+      "end_line": 65,
+      "exported": true,
+      "signature": "def run_pdf_task(self, file_path: str) -> dict[str, Any]:"
+    },
+    {
+      "id": "mineru_client:submit_task",
+      "type": "Method",
+      "file": "app/modules/ingestion/mineru_client.py",
+      "line": 67,
+      "end_line": 132,
+      "exported": true,
+      "signature": "def submit_task(self, file_path: str) -> MineruTaskSubmission:"
+    },
+    {
+      "id": "mineru_client:poll_task",
+      "type": "Method",
+      "file": "app/modules/ingestion/mineru_client.py",
+      "line": 134,
+      "end_line": 193,
+      "exported": true,
+      "signature": "def poll_task(self, task_id: str) -> MineruTaskState:"
+    },
+    {
+      "id": "mineru_client:fetch_result_json",
+      "type": "Method",
+      "file": "app/modules/ingestion/mineru_client.py",
+      "line": 195,
+      "end_line": 357,
+      "exported": true,
+      "signature": "def fetch_result_json(self, result_url: str, task_id: str) -> dict[str, Any]:"
+    },
+    {
+      "id": "mineru_client:_request_json",
+      "type": "Method",
+      "file": "app/modules/ingestion/mineru_client.py",
+      "line": 359,
+      "end_line": 389,
+      "exported": false,
+      "signature": "def _request_json("
+    },
+    {
+      "id": "mineru_client:_build_headers",
+      "type": "Method",
+      "file": "app/modules/ingestion/mineru_client.py",
+      "line": 391,
+      "end_line": 396,
+      "exported": false,
+      "signature": "def _build_headers(self, *, include_authorization: bool = True) -> dict[str, str]:"
+    },
+    {
+      "id": "mineru_client:_unwrap_payload",
+      "type": "Method",
+      "file": "app/modules/ingestion/mineru_client.py",
+      "line": 398,
+      "end_line": 403,
+      "exported": false,
+      "signature": "def _unwrap_payload(self, payload: dict[str, Any]) -> dict[str, Any]:"
+    },
+    {
+      "id": "mineru_client:_validate_result_url",
+      "type": "Method",
+      "file": "app/modules/ingestion/mineru_client.py",
+      "line": 405,
+      "end_line": 441,
+      "exported": false,
+      "signature": "def _validate_result_url(self, result_url: str) -> tuple[str, bool]:"
+    },
+    {
+      "id": "mineru_client:_build_origin",
+      "type": "Method",
+      "file": "app/modules/ingestion/mineru_client.py",
+      "line": 443,
+      "end_line": 454,
+      "exported": false,
+      "signature": "def _build_origin(self, url: str) -> str:"
+    },
+    {
+      "id": "mineru_client:_normalize_origin_port",
+      "type": "Method",
+      "file": "app/modules/ingestion/mineru_client.py",
+      "line": 456,
+      "end_line": 462,
+      "exported": false,
+      "signature": "def _normalize_origin_port(self, scheme: str, port: int | None) -> int | None:"
+    },
+    {
+      "id": "mineru_client:_parse_task_state",
+      "type": "Method",
+      "file": "app/modules/ingestion/mineru_client.py",
+      "line": 464,
+      "end_line": 498,
+      "exported": false,
+      "signature": "def _parse_task_state(self, payload: dict[str, Any]) -> MineruTaskState:"
+    },
+    {
+      "id": "mineru_client:_read_optional_string_field",
+      "type": "Method",
+      "file": "app/modules/ingestion/mineru_client.py",
+      "line": 500,
+      "end_line": 518,
+      "exported": false,
+      "signature": "def _read_optional_string_field(self, data: dict[str, Any] | None, field_name: str) -> str | None:"
+    },
+    {
+      "id": "service:IngestionService",
+      "type": "Class",
+      "file": "app/modules/ingestion/service.py",
+      "line": 32,
+      "end_line": 345,
+      "exported": true,
+      "signature": "class IngestionService:"
+    },
+    {
+      "id": "service:__init__",
+      "type": "Method",
+      "file": "app/modules/ingestion/service.py",
+      "line": 35,
+      "end_line": 48,
+      "exported": false,
+      "signature": "def __init__("
+    },
+    {
+      "id": "service:ingest_document",
+      "type": "Method",
+      "file": "app/modules/ingestion/service.py",
+      "line": 50,
+      "end_line": 124,
+      "exported": true,
+      "signature": "async def ingest_document(self, record: DocumentRecord) -> DocumentRecord:"
+    },
+    {
+      "id": "service:_clean_document",
+      "type": "Method",
+      "file": "app/modules/ingestion/service.py",
+      "line": 126,
+      "end_line": 134,
+      "exported": false,
+      "signature": "async def _clean_document(self, record: DocumentRecord, mineru_payload: dict) -> CleanedDocument:"
+    },
+    {
+      "id": "service:_count_images",
+      "type": "Method",
+      "file": "app/modules/ingestion/service.py",
+      "line": 136,
+      "end_line": 151,
+      "exported": false,
+      "signature": "def _count_images(self, mineru_payload: dict) -> int:"
+    },
+    {
+      "id": "service:_blocks_to_chunks",
+      "type": "Method",
+      "file": "app/modules/ingestion/service.py",
+      "line": 153,
+      "end_line": 173,
+      "exported": false,
+      "signature": "def _blocks_to_chunks("
+    },
+    {
+      "id": "service:_describe_images",
+      "type": "Method",
+      "file": "app/modules/ingestion/service.py",
+      "line": 176,
+      "end_line": 195,
+      "exported": false,
+      "signature": "async def _describe_images("
+    },
+    {
+      "id": "service:_mineru_to_chunks",
+      "type": "Method",
+      "file": "app/modules/ingestion/service.py",
+      "line": 197,
+      "end_line": 247,
+      "exported": false,
+      "signature": "def _mineru_to_chunks("
+    },
+    {
+      "id": "service:_chunk_chunks",
+      "type": "Method",
+      "file": "app/modules/ingestion/service.py",
+      "line": 249,
+      "end_line": 276,
+      "exported": false,
+      "signature": "def _chunk_chunks(self, record: DocumentRecord, chunks: list[Chunk]) -> list[dict]:"
+    },
+    {
+      "id": "service:_embed_chunks",
+      "type": "Method",
+      "file": "app/modules/ingestion/service.py",
+      "line": 279,
+      "end_line": 282,
+      "exported": false,
+      "signature": "async def _embed_chunks(self, chunks: list[dict]) -> list[list[float]]:"
+    },
+    {
+      "id": "service:_convert_to_final_chunks",
+      "type": "Method",
+      "file": "app/modules/ingestion/service.py",
+      "line": 284,
+      "end_line": 304,
+      "exported": false,
+      "signature": "def _convert_to_final_chunks("
+    },
+    {
+      "id": "service:_validate_success_payload_shape",
+      "type": "Method",
+      "file": "app/modules/ingestion/service.py",
+      "line": 306,
+      "end_line": 335,
+      "exported": false,
+      "signature": "def _validate_success_payload_shape(self, mineru_payload: dict) -> None:"
+    },
+    {
+      "id": "service:_mark_failed",
+      "type": "Method",
+      "file": "app/modules/ingestion/service.py",
+      "line": 337,
+      "end_line": 345,
+      "exported": false,
+      "signature": "def _mark_failed(self, record: DocumentRecord, error: IngestionError) -> DocumentRecord:"
+    },
+    {
+      "id": "models:normalize_document_file_path",
+      "type": "Function",
+      "file": "app/modules/library/models.py",
+      "line": 42,
+      "end_line": 51,
+      "exported": true,
+      "signature": "def normalize_document_file_path(value: str) -> str:"
+    },
+    {
+      "id": "models:validate_document_index_mode",
+      "type": "Function",
+      "file": "app/modules/library/models.py",
+      "line": 54,
+      "end_line": 58,
+      "exported": true,
+      "signature": "def validate_document_index_mode(value: str) -> str:"
+    },
+    {
+      "id": "models:DocumentORM",
+      "type": "Class",
+      "file": "app/modules/library/models.py",
+      "line": 74,
+      "end_line": 92,
+      "exported": true,
+      "signature": "class DocumentORM(Base):"
+    },
+    {
+      "id": "models:DocumentRecord",
+      "type": "Class",
+      "file": "app/modules/library/models.py",
+      "line": 95,
+      "end_line": 165,
+      "exported": true,
+      "signature": "class DocumentRecord(BaseModel):"
+    },
+    {
+      "id": "models:validate_file_path",
+      "type": "Method",
+      "file": "app/modules/library/models.py",
+      "line": 115,
+      "end_line": 121,
+      "exported": true,
+      "signature": "def validate_file_path(cls, value: str) -> str:"
+    },
+    {
+      "id": "models:validate_index_mode",
+      "type": "Method",
+      "file": "app/modules/library/models.py",
+      "line": 125,
+      "end_line": 127,
+      "exported": true,
+      "signature": "def validate_index_mode(cls, value: str) -> str:"
+    },
+    {
+      "id": "models:validate_status",
+      "type": "Method",
+      "file": "app/modules/library/models.py",
+      "line": 130,
+      "end_line": 134,
+      "exported": true,
+      "signature": "def validate_status(self) -> \"DocumentRecord\":"
+    },
+    {
+      "id": "models:transition",
+      "type": "Method",
+      "file": "app/modules/library/models.py",
+      "line": 136,
+      "end_line": 145,
+      "exported": true,
+      "signature": "def transition(self, new_status: str) -> \"DocumentRecord\":"
+    },
+    {
+      "id": "models:from_orm_model",
+      "type": "Method",
+      "file": "app/modules/library/models.py",
+      "line": 148,
+      "end_line": 165,
+      "exported": true,
+      "signature": "def from_orm_model(cls, orm_model: DocumentORM) -> \"DocumentRecord\":"
+    },
+    {
+      "id": "models:DocumentImportRequest",
+      "type": "Class",
+      "file": "app/modules/library/models.py",
+      "line": 168,
+      "end_line": 186,
+      "exported": true,
+      "signature": "class DocumentImportRequest(BaseModel):"
+    },
+    {
+      "id": "models:validate_file_path",
+      "type": "Method",
+      "file": "app/modules/library/models.py",
+      "line": 178,
+      "end_line": 180,
+      "exported": true,
+      "signature": "def validate_file_path(cls, value: str) -> str:"
+    },
+    {
+      "id": "models:validate_index_mode",
+      "type": "Method",
+      "file": "app/modules/library/models.py",
+      "line": 184,
+      "end_line": 186,
+      "exported": true,
+      "signature": "def validate_index_mode(cls, value: str) -> str:"
+    },
+    {
+      "id": "models:DocumentReindexRequest",
+      "type": "Class",
+      "file": "app/modules/library/models.py",
+      "line": 189,
+      "end_line": 196,
+      "exported": true,
+      "signature": "class DocumentReindexRequest(BaseModel):"
+    },
+    {
+      "id": "repository:LibraryRepository",
+      "type": "Class",
+      "file": "app/modules/library/repository.py",
+      "line": 16,
+      "end_line": 69,
+      "exported": true,
+      "signature": "class LibraryRepository:"
+    },
+    {
+      "id": "repository:__init__",
+      "type": "Method",
+      "file": "app/modules/library/repository.py",
+      "line": 19,
+      "end_line": 22,
+      "exported": false,
+      "signature": "def __init__(self) -> None:"
+    },
+    {
+      "id": "repository:save_document",
+      "type": "Method",
+      "file": "app/modules/library/repository.py",
+      "line": 24,
+      "end_line": 44,
+      "exported": true,
+      "signature": "def save_document(self, record: DocumentRecord) -> DocumentRecord:"
+    },
+    {
+      "id": "repository:get_document",
+      "type": "Method",
+      "file": "app/modules/library/repository.py",
+      "line": 46,
+      "end_line": 53,
+      "exported": true,
+      "signature": "def get_document(self, document_id: str) -> Optional[DocumentRecord]:"
+    },
+    {
+      "id": "repository:list_documents",
+      "type": "Method",
+      "file": "app/modules/library/repository.py",
+      "line": 55,
+      "end_line": 69,
+      "exported": true,
+      "signature": "def list_documents(self, include_deleted: bool = False) -> list[DocumentRecord]:"
+    },
+    {
+      "id": "service:LibraryService",
+      "type": "Class",
+      "file": "app/modules/library/service.py",
+      "line": 21,
+      "end_line": 232,
+      "exported": true,
+      "signature": "class LibraryService:"
+    },
+    {
+      "id": "service:__init__",
+      "type": "Method",
+      "file": "app/modules/library/service.py",
+      "line": 24,
+      "end_line": 30,
+      "exported": false,
+      "signature": "def __init__("
+    },
+    {
+      "id": "service:import_document",
+      "type": "Method",
+      "file": "app/modules/library/service.py",
+      "line": 32,
+      "end_line": 61,
+      "exported": true,
+      "signature": "def import_document("
+    },
+    {
+      "id": "service:import_pdf",
+      "type": "Method",
+      "file": "app/modules/library/service.py",
+      "line": 63,
+      "end_line": 90,
+      "exported": true,
+      "signature": "async def import_pdf("
+    },
+    {
+      "id": "service:resume_import",
+      "type": "Method",
+      "file": "app/modules/library/service.py",
+      "line": 92,
+      "end_line": 128,
+      "exported": true,
+      "signature": "async def resume_import("
+    },
+    {
+      "id": "service:_get_ingestion_service",
+      "type": "Method",
+      "file": "app/modules/library/service.py",
+      "line": 130,
+      "end_line": 136,
+      "exported": false,
+      "signature": "def _get_ingestion_service(self) -> \"IngestionService\":"
+    },
+    {
+      "id": "service:_validate_import_pdf_path",
+      "type": "Method",
+      "file": "app/modules/library/service.py",
+      "line": 138,
+      "end_line": 173,
+      "exported": false,
+      "signature": "def _validate_import_pdf_path(self, file_path: str) -> str:"
+    },
+    {
+      "id": "service:list_documents",
+      "type": "Method",
+      "file": "app/modules/library/service.py",
+      "line": 175,
+      "end_line": 177,
+      "exported": true,
+      "signature": "def list_documents(self) -> list[DocumentRecord]:"
+    },
+    {
+      "id": "service:get_document",
+      "type": "Method",
+      "file": "app/modules/library/service.py",
+      "line": 179,
+      "end_line": 184,
+      "exported": true,
+      "signature": "def get_document(self, document_id: str) -> DocumentRecord:"
+    },
+    {
+      "id": "service:transition_document",
+      "type": "Method",
+      "file": "app/modules/library/service.py",
+      "line": 186,
+      "end_line": 190,
+      "exported": true,
+      "signature": "def transition_document(self, document_id: str, new_status: str) -> DocumentRecord:"
+    },
+    {
+      "id": "service:delete_document",
+      "type": "Method",
+      "file": "app/modules/library/service.py",
+      "line": 192,
+      "end_line": 200,
+      "exported": true,
+      "signature": "def delete_document(self, document_id: str) -> DocumentRecord:"
+    },
+    {
+      "id": "service:reindex_document",
+      "type": "Method",
+      "file": "app/modules/library/service.py",
+      "line": 202,
+      "end_line": 232,
+      "exported": true,
+      "signature": "def reindex_document(self, document_id: str, index_mode: Optional[str] = None) -> DocumentRecord:"
+    },
+    {
+      "id": "service:_build_messages",
+      "type": "Function",
+      "file": "app/modules/qa/service.py",
+      "line": 29,
+      "end_line": 62,
+      "exported": false,
+      "signature": "def _build_messages("
+    },
+    {
+      "id": "service:QAService",
+      "type": "Class",
+      "file": "app/modules/qa/service.py",
+      "line": 65,
+      "end_line": 187,
+      "exported": true,
+      "signature": "class QAService:"
+    },
+    {
+      "id": "service:__init__",
+      "type": "Method",
+      "file": "app/modules/qa/service.py",
+      "line": 68,
+      "end_line": 77,
+      "exported": false,
+      "signature": "def __init__("
+    },
+    {
+      "id": "service:ask_stream_with_rag",
+      "type": "Method",
+      "file": "app/modules/qa/service.py",
+      "line": 79,
+      "end_line": 187,
+      "exported": true,
+      "signature": "async def ask_stream_with_rag("
+    },
+    {
+      "id": "service:RetrievalService",
+      "type": "Class",
+      "file": "app/modules/retrieval/service.py",
+      "line": 13,
+      "end_line": 106,
+      "exported": true,
+      "signature": "class RetrievalService:"
+    },
+    {
+      "id": "service:__init__",
+      "type": "Method",
+      "file": "app/modules/retrieval/service.py",
+      "line": 16,
+      "end_line": 25,
+      "exported": false,
+      "signature": "def __init__("
+    },
+    {
+      "id": "service:retrieve",
+      "type": "Method",
+      "file": "app/modules/retrieval/service.py",
+      "line": 27,
+      "end_line": 82,
+      "exported": true,
+      "signature": "async def retrieve("
+    },
+    {
+      "id": "service:search_single_collection",
+      "type": "Method",
+      "file": "app/modules/retrieval/service.py",
+      "line": 84,
+      "end_line": 106,
+      "exported": true,
+      "signature": "async def search_single_collection("
+    },
+    {
+      "id": "service:SessionService",
+      "type": "Class",
+      "file": "app/modules/session/service.py",
+      "line": 16,
+      "end_line": 54,
+      "exported": true,
+      "signature": "class SessionService:"
+    },
+    {
+      "id": "service:__init__",
+      "type": "Method",
+      "file": "app/modules/session/service.py",
+      "line": 19,
+      "end_line": 21,
+      "exported": false,
+      "signature": "def __init__(self) -> None:"
+    },
+    {
+      "id": "service:get_history",
+      "type": "Method",
+      "file": "app/modules/session/service.py",
+      "line": 23,
+      "end_line": 43,
+      "exported": true,
+      "signature": "def get_history(self, session_id: str) -> list[dict]:"
+    },
+    {
+      "id": "service:clear_history",
+      "type": "Method",
+      "file": "app/modules/session/service.py",
+      "line": 45,
+      "end_line": 54,
+      "exported": true,
+      "signature": "def clear_history(self, session_id: str) -> int:"
+    },
+    {
+      "id": "chunker:TokenCounter",
+      "type": "Class",
+      "file": "app/processing/chunker.py",
+      "line": 20,
+      "end_line": 25,
+      "exported": true,
+      "signature": "class TokenCounter(Protocol):"
+    },
+    {
+      "id": "chunker:__call__",
+      "type": "Method",
+      "file": "app/processing/chunker.py",
+      "line": 23,
+      "end_line": 25,
+      "exported": false,
+      "signature": "def __call__(self, text: str) -> int:"
+    },
+    {
+      "id": "chunker:default_token_counter",
+      "type": "Function",
+      "file": "app/processing/chunker.py",
+      "line": 28,
+      "end_line": 37,
+      "exported": true,
+      "signature": "def default_token_counter(text: str) -> int:"
+    },
+    {
+      "id": "chunker:SemanticChunk",
+      "type": "Class",
+      "file": "app/processing/chunker.py",
+      "line": 41,
+      "end_line": 57,
+      "exported": true,
+      "signature": "class SemanticChunk:"
+    },
+    {
+      "id": "chunker:token_count",
+      "type": "Method",
+      "file": "app/processing/chunker.py",
+      "line": 55,
+      "end_line": 57,
+      "exported": true,
+      "signature": "def token_count(self) -> int:"
+    },
+    {
+      "id": "chunker:TextChunk",
+      "type": "Class",
+      "file": "app/processing/chunker.py",
+      "line": 61,
+      "end_line": 81,
+      "exported": true,
+      "signature": "class TextChunk:"
+    },
+    {
+      "id": "chunker:token_count",
+      "type": "Method",
+      "file": "app/processing/chunker.py",
+      "line": 79,
+      "end_line": 81,
+      "exported": true,
+      "signature": "def token_count(self) -> int:"
+    },
+    {
+      "id": "chunker:pack_chunks_if_fit",
+      "type": "Function",
+      "file": "app/processing/chunker.py",
+      "line": 84,
+      "end_line": 135,
+      "exported": true,
+      "signature": "def pack_chunks_if_fit("
+    },
+    {
+      "id": "chunker:split_long_chunk",
+      "type": "Function",
+      "file": "app/processing/chunker.py",
+      "line": 138,
+      "end_line": 202,
+      "exported": true,
+      "signature": "def split_long_chunk("
+    },
+    {
+      "id": "chunker:chunk_by_semantic_units",
+      "type": "Function",
+      "file": "app/processing/chunker.py",
+      "line": 205,
+      "end_line": 310,
+      "exported": true,
+      "signature": "def chunk_by_semantic_units("
+    },
+    {
+      "id": "chunker:chunk_text",
+      "type": "Function",
+      "file": "app/processing/chunker.py",
+      "line": 314,
+      "end_line": 330,
+      "exported": true,
+      "signature": "def chunk_text("
+    },
+    {
+      "id": "cleaner:_is_noise",
+      "type": "Function",
+      "file": "app/processing/cleaner.py",
+      "line": 58,
+      "end_line": 71,
+      "exported": false,
+      "signature": "def _is_noise(text: str) -> bool:"
+    },
+    {
+      "id": "cleaner:_strip_latex_wrappers",
+      "type": "Function",
+      "file": "app/processing/cleaner.py",
+      "line": 87,
+      "end_line": 98,
+      "exported": false,
+      "signature": "def _strip_latex_wrappers(text: str) -> str:"
+    },
+    {
+      "id": "cleaner:clean_text",
+      "type": "Function",
+      "file": "app/processing/cleaner.py",
+      "line": 101,
+      "end_line": 109,
+      "exported": true,
+      "signature": "def clean_text(text: str) -> str:"
+    },
+    {
+      "id": "cleaner:_extract_from_content_list",
+      "type": "Function",
+      "file": "app/processing/cleaner.py",
+      "line": 116,
+      "end_line": 129,
+      "exported": false,
+      "signature": "def _extract_from_content_list(content_list: list[dict]) -> str:"
+    },
+    {
+      "id": "cleaner:_extract_element_text",
+      "type": "Function",
+      "file": "app/processing/cleaner.py",
+      "line": 132,
+      "end_line": 186,
+      "exported": false,
+      "signature": "def _extract_element_text(elem_type: str, content: dict) -> tuple[str, str | None]:"
+    },
+    {
+      "id": "cleaner:clean_paper",
+      "type": "Function",
+      "file": "app/processing/cleaner.py",
+      "line": 203,
+      "end_line": 269,
+      "exported": true,
+      "signature": "def clean_paper(paper_dir: Path, paper_id: str | None = None) -> list[Chunk]:"
+    },
+    {
+      "id": "describer:_load_cache",
+      "type": "Function",
+      "file": "app/processing/describer.py",
+      "line": 24,
+      "end_line": 32,
+      "exported": false,
+      "signature": "def _load_cache(paper_dir: Path) -> dict[str, str]:"
+    },
+    {
+      "id": "describer:_save_cache",
+      "type": "Function",
+      "file": "app/processing/describer.py",
+      "line": 35,
+      "end_line": 42,
+      "exported": false,
+      "signature": "def _save_cache(paper_dir: Path, cache: dict[str, str]) -> None:"
+    },
+    {
+      "id": "describer:describe_chunks_async",
+      "type": "Function",
+      "file": "app/processing/describer.py",
+      "line": 45,
+      "end_line": 138,
+      "exported": true,
+      "signature": "async def describe_chunks_async("
+    },
+    {
+      "id": "describer:_describe_one",
+      "type": "Function",
+      "file": "app/processing/describer.py",
+      "line": 81,
+      "end_line": 88,
+      "exported": false,
+      "signature": "async def _describe_one(index: int, chunk: Chunk) -> tuple[int, str, str]:"
+    },
+    {
+      "id": "describer:_run_batch",
+      "type": "Function",
+      "file": "app/processing/describer.py",
+      "line": 90,
+      "end_line": 99,
+      "exported": false,
+      "signature": "async def _run_batch():"
+    },
+    {
+      "id": "describer:describe_chunks",
+      "type": "Function",
+      "file": "app/processing/describer.py",
+      "line": 141,
+      "end_line": 156,
+      "exported": true,
+      "signature": "def describe_chunks("
+    },
+    {
+      "id": "bm25_repo:BM25Repo",
+      "type": "Class",
+      "file": "app/repositories/bm25_repo.py",
+      "line": 12,
+      "end_line": 112,
+      "exported": true,
+      "signature": "class BM25Repo:"
+    },
+    {
+      "id": "bm25_repo:__init__",
+      "type": "Method",
+      "file": "app/repositories/bm25_repo.py",
+      "line": 15,
+      "end_line": 25,
+      "exported": false,
+      "signature": "def __init__(self):"
+    },
+    {
+      "id": "bm25_repo:add",
+      "type": "Method",
+      "file": "app/repositories/bm25_repo.py",
+      "line": 27,
+      "end_line": 34,
+      "exported": true,
+      "signature": "def add(self, doc_id: str, document: str):"
+    },
+    {
+      "id": "bm25_repo:add_batch",
+      "type": "Method",
+      "file": "app/repositories/bm25_repo.py",
+      "line": 36,
+      "end_line": 44,
+      "exported": true,
+      "signature": "def add_batch(self, doc_ids: list[str], documents: list[str]):"
+    },
+    {
+      "id": "bm25_repo:query",
+      "type": "Method",
+      "file": "app/repositories/bm25_repo.py",
+      "line": 46,
+      "end_line": 67,
+      "exported": true,
+      "signature": "def query(self, query_text: str, top_k: int = 30) -> list[tuple[str, float]]:"
+    },
+    {
+      "id": "bm25_repo:delete_by_id",
+      "type": "Method",
+      "file": "app/repositories/bm25_repo.py",
+      "line": 69,
+      "end_line": 81,
+      "exported": true,
+      "signature": "def delete_by_id(self, doc_id: str):"
+    },
+    {
+      "id": "bm25_repo:clear",
+      "type": "Method",
+      "file": "app/repositories/bm25_repo.py",
+      "line": 83,
+      "end_line": 88,
+      "exported": true,
+      "signature": "def clear(self):"
+    },
+    {
+      "id": "bm25_repo:save",
+      "type": "Method",
+      "file": "app/repositories/bm25_repo.py",
+      "line": 90,
+      "end_line": 98,
+      "exported": true,
+      "signature": "def save(self):"
+    },
+    {
+      "id": "bm25_repo:load",
+      "type": "Method",
+      "file": "app/repositories/bm25_repo.py",
+      "line": 100,
+      "end_line": 108,
+      "exported": true,
+      "signature": "def load(self):"
+    },
+    {
+      "id": "bm25_repo:count",
+      "type": "Method",
+      "file": "app/repositories/bm25_repo.py",
+      "line": 110,
+      "end_line": 112,
+      "exported": true,
+      "signature": "def count(self) -> int:"
+    },
+    {
+      "id": "sqlite_repo:_get_engine",
+      "type": "Function",
+      "file": "app/repositories/sqlite_repo.py",
+      "line": 12,
+      "end_line": 19,
+      "exported": false,
+      "signature": "def _get_engine():"
+    },
+    {
+      "id": "sqlite_repo:get_engine",
+      "type": "Function",
+      "file": "app/repositories/sqlite_repo.py",
+      "line": 26,
+      "end_line": 32,
+      "exported": true,
+      "signature": "def get_engine():"
+    },
+    {
+      "id": "sqlite_repo:ensure_all_tables_created",
+      "type": "Function",
+      "file": "app/repositories/sqlite_repo.py",
+      "line": 35,
+      "end_line": 43,
+      "exported": true,
+      "signature": "def ensure_all_tables_created():"
+    },
+    {
+      "id": "sqlite_repo:create_session",
+      "type": "Function",
+      "file": "app/repositories/sqlite_repo.py",
+      "line": 48,
+      "end_line": 57,
+      "exported": true,
+      "signature": "def create_session(title: str = \"新会话\") -> SessionORM:"
+    },
+    {
+      "id": "sqlite_repo:get_session",
+      "type": "Function",
+      "file": "app/repositories/sqlite_repo.py",
+      "line": 60,
+      "end_line": 66,
+      "exported": true,
+      "signature": "def get_session(session_id: str) -> Optional[SessionORM]:"
+    },
+    {
+      "id": "sqlite_repo:list_sessions",
+      "type": "Function",
+      "file": "app/repositories/sqlite_repo.py",
+      "line": 69,
+      "end_line": 82,
+      "exported": true,
+      "signature": "def list_sessions(page: int = 1, page_size: int = 20) -> tuple[list[SessionORM], int]:"
+    },
+    {
+      "id": "sqlite_repo:update_session_title",
+      "type": "Function",
+      "file": "app/repositories/sqlite_repo.py",
+      "line": 85,
+      "end_line": 96,
+      "exported": true,
+      "signature": "def update_session_title(session_id: str, title: str) -> Optional[SessionORM]:"
+    },
+    {
+      "id": "sqlite_repo:delete_session",
+      "type": "Function",
+      "file": "app/repositories/sqlite_repo.py",
+      "line": 99,
+      "end_line": 107,
+      "exported": true,
+      "signature": "def delete_session(session_id: str) -> bool:"
+    },
+    {
+      "id": "sqlite_repo:add_message",
+      "type": "Function",
+      "file": "app/repositories/sqlite_repo.py",
+      "line": 112,
+      "end_line": 134,
+      "exported": true,
+      "signature": "def add_message("
+    },
+    {
+      "id": "sqlite_repo:get_messages",
+      "type": "Function",
+      "file": "app/repositories/sqlite_repo.py",
+      "line": 137,
+      "end_line": 147,
+      "exported": true,
+      "signature": "def get_messages(session_id: str) -> list[MessageORM]:"
+    },
+    {
+      "id": "sqlite_repo:get_message_count",
+      "type": "Function",
+      "file": "app/repositories/sqlite_repo.py",
+      "line": 150,
+      "end_line": 157,
+      "exported": true,
+      "signature": "def get_message_count(session_id: str) -> int:"
+    },
+    {
+      "id": "sqlite_repo:clear_messages",
+      "type": "Function",
+      "file": "app/repositories/sqlite_repo.py",
+      "line": 160,
+      "end_line": 170,
+      "exported": true,
+      "signature": "def clear_messages(session_id: str) -> int:"
+    },
+    {
+      "id": "sqlite_repo:create_ingest_task",
+      "type": "Function",
+      "file": "app/repositories/sqlite_repo.py",
+      "line": 175,
+      "end_line": 183,
+      "exported": true,
+      "signature": "def create_ingest_task(file_path: str, document_id: Optional[str] = None) -> IngestTaskORM:"
+    },
+    {
+      "id": "sqlite_repo:get_ingest_task",
+      "type": "Function",
+      "file": "app/repositories/sqlite_repo.py",
+      "line": 186,
+      "end_line": 192,
+      "exported": true,
+      "signature": "def get_ingest_task(task_id: str) -> Optional[IngestTaskORM]:"
+    },
+    {
+      "id": "sqlite_repo:update_ingest_task",
+      "type": "Function",
+      "file": "app/repositories/sqlite_repo.py",
+      "line": 195,
+      "end_line": 219,
+      "exported": true,
+      "signature": "def update_ingest_task("
+    },
+    {
+      "id": "sqlite_repo:list_ingest_tasks",
+      "type": "Function",
+      "file": "app/repositories/sqlite_repo.py",
+      "line": 222,
+      "end_line": 243,
+      "exported": true,
+      "signature": "def list_ingest_tasks("
+    },
+    {
+      "id": "query_rewrite_service:QueryRewriteService",
+      "type": "Class",
+      "file": "app/services/query_rewrite_service.py",
+      "line": 91,
+      "end_line": 229,
+      "exported": true,
+      "signature": "class QueryRewriteService:"
+    },
+    {
+      "id": "query_rewrite_service:__init__",
+      "type": "Method",
+      "file": "app/services/query_rewrite_service.py",
+      "line": 94,
+      "end_line": 95,
+      "exported": false,
+      "signature": "def __init__(self):"
+    },
+    {
+      "id": "query_rewrite_service:rewrite",
+      "type": "Method",
+      "file": "app/services/query_rewrite_service.py",
+      "line": 97,
+      "end_line": 128,
+      "exported": true,
+      "signature": "async def rewrite("
+    },
+    {
+      "id": "query_rewrite_service:_select_prompt",
+      "type": "Method",
+      "file": "app/services/query_rewrite_service.py",
+      "line": 130,
+      "end_line": 177,
+      "exported": false,
+      "signature": "def _select_prompt("
+    },
+    {
+      "id": "query_rewrite_service:_parse_queries",
+      "type": "Method",
+      "file": "app/services/query_rewrite_service.py",
+      "line": 179,
+      "end_line": 222,
+      "exported": false,
+      "signature": "def _parse_queries(self, raw_output: str, fallback: str) -> list[str]:"
+    },
+    {
+      "id": "query_rewrite_service:_truncate",
+      "type": "Method",
+      "file": "app/services/query_rewrite_service.py",
+      "line": 225,
+      "end_line": 229,
+      "exported": false,
+      "signature": "def _truncate(text: str, max_len: int) -> str:"
+    },
+    {
+      "id": "embedding_service:EmbeddingService",
+      "type": "Class",
+      "file": "app/services_archive/embedding_service.py",
+      "line": 8,
+      "end_line": 86,
+      "exported": true,
+      "signature": "class EmbeddingService:"
+    },
+    {
+      "id": "embedding_service:__init__",
+      "type": "Method",
+      "file": "app/services_archive/embedding_service.py",
+      "line": 11,
+      "end_line": 13,
+      "exported": false,
+      "signature": "def __init__(self, cleaning_service: CleaningService):"
+    },
+    {
+      "id": "embedding_service:generate_embeddings",
+      "type": "Method",
+      "file": "app/services_archive/embedding_service.py",
+      "line": 15,
+      "end_line": 59,
+      "exported": true,
+      "signature": "async def generate_embeddings(self, document_id: str) -> Dict:"
+    },
+    {
+      "id": "embedding_service:batch_generate_embeddings",
+      "type": "Method",
+      "file": "app/services_archive/embedding_service.py",
+      "line": 61,
+      "end_line": 86,
+      "exported": true,
+      "signature": "async def batch_generate_embeddings(self, document_ids: List[str]) -> Dict:"
+    },
+    {
+      "id": "ingest_service:IngestWorkflow",
+      "type": "Class",
+      "file": "app/services_archive/ingest_service.py",
+      "line": 24,
+      "end_line": 182,
+      "exported": true,
+      "signature": "class IngestWorkflow:"
+    },
+    {
+      "id": "ingest_service:__init__",
+      "type": "Method",
+      "file": "app/services_archive/ingest_service.py",
+      "line": 27,
+      "end_line": 42,
+      "exported": false,
+      "signature": "def __init__("
+    },
+    {
+      "id": "ingest_service:ingest_pdf",
+      "type": "Method",
+      "file": "app/services_archive/ingest_service.py",
+      "line": 44,
+      "end_line": 127,
+      "exported": true,
+      "signature": "async def ingest_pdf("
+    },
+    {
+      "id": "ingest_service:batch_ingest",
+      "type": "Method",
+      "file": "app/services_archive/ingest_service.py",
+      "line": 129,
+      "end_line": 173,
+      "exported": true,
+      "signature": "async def batch_ingest("
+    },
+    {
+      "id": "ingest_service:get_status",
+      "type": "Method",
+      "file": "app/services_archive/ingest_service.py",
+      "line": 175,
+      "end_line": 182,
+      "exported": true,
+      "signature": "def get_status(self) -> dict[str, Any]:"
+    },
+    {
+      "id": "qa_service:_build_prompt",
+      "type": "Function",
+      "file": "app/services_archive/qa_service.py",
+      "line": 65,
+      "end_line": 95,
+      "exported": false,
+      "signature": "def _build_prompt(query: str, context: Optional[QueryContext], sources: list[SourceItem]) -> str:"
+    },
+    {
+      "id": "qa_service:_build_messages",
+      "type": "Function",
+      "file": "app/services_archive/qa_service.py",
+      "line": 98,
+      "end_line": 120,
+      "exported": false,
+      "signature": "def _build_messages(session_id: str, query: str, context: Optional[QueryContext], sources: list[SourceItem]) -> list[dict]:"
+    },
+    {
+      "id": "qa_service:ask_stream",
+      "type": "Function",
+      "file": "app/services_archive/qa_service.py",
+      "line": 123,
+      "end_line": 167,
+      "exported": true,
+      "signature": "async def ask_stream("
+    },
+    {
+      "id": "qa_service:get_history",
+      "type": "Function",
+      "file": "app/services_archive/qa_service.py",
+      "line": 170,
+      "end_line": 183,
+      "exported": true,
+      "signature": "def get_history(session_id: str) -> list[dict]:"
+    },
+    {
+      "id": "qa_service:clear_history",
+      "type": "Function",
+      "file": "app/services_archive/qa_service.py",
+      "line": 186,
+      "end_line": 188,
+      "exported": true,
+      "signature": "def clear_history(session_id: str) -> int:"
+    },
+    {
+      "id": "qa_service_rag:_build_messages",
+      "type": "Function",
+      "file": "app/services_archive/qa_service_rag.py",
+      "line": 36,
+      "end_line": 69,
+      "exported": false,
+      "signature": "def _build_messages("
+    },
+    {
+      "id": "qa_service_rag:ask_stream_with_rag",
+      "type": "Function",
+      "file": "app/services_archive/qa_service_rag.py",
+      "line": 72,
+      "end_line": 191,
+      "exported": true,
+      "signature": "async def ask_stream_with_rag("
+    },
+    {
+      "id": "retrieval_service:_reciprocal_rank_fusion",
+      "type": "Function",
+      "file": "app/services_archive/retrieval_service.py",
+      "line": 24,
+      "end_line": 61,
+      "exported": false,
+      "signature": "def _reciprocal_rank_fusion("
+    },
+    {
+      "id": "retrieval_service:RetrievalService",
+      "type": "Class",
+      "file": "app/services_archive/retrieval_service.py",
+      "line": 64,
+      "end_line": 380,
+      "exported": true,
+      "signature": "class RetrievalService:"
+    },
+    {
+      "id": "retrieval_service:__init__",
+      "type": "Method",
+      "file": "app/services_archive/retrieval_service.py",
+      "line": 67,
+      "end_line": 82,
+      "exported": false,
+      "signature": "def __init__("
+    },
+    {
+      "id": "retrieval_service:_search_single_collection",
+      "type": "Method",
+      "file": "app/services_archive/retrieval_service.py",
+      "line": 84,
+      "end_line": 119,
+      "exported": false,
+      "signature": "async def _search_single_collection("
+    },
+    {
+      "id": "retrieval_service:_parallel_search_all_collections",
+      "type": "Method",
+      "file": "app/services_archive/retrieval_service.py",
+      "line": 121,
+      "end_line": 163,
+      "exported": false,
+      "signature": "async def _parallel_search_all_collections("
+    },
+    {
+      "id": "retrieval_service:retrieve",
+      "type": "Method",
+      "file": "app/services_archive/retrieval_service.py",
+      "line": 165,
+      "end_line": 380,
+      "exported": true,
+      "signature": "async def retrieve("
+    },
+    {
+      "id": "retrieval_service:retrieve",
+      "type": "Function",
+      "file": "app/services_archive/retrieval_service.py",
+      "line": 384,
+      "end_line": 412,
+      "exported": true,
+      "signature": "async def retrieve("
+    },
+    {
+      "id": "qdrant_store:_get_collection_name",
+      "type": "Function",
+      "file": "app/stores/qdrant_store.py",
+      "line": 29,
+      "end_line": 37,
+      "exported": false,
+      "signature": "def _get_collection_name(paper_id: str) -> str:"
+    },
+    {
+      "id": "qdrant_store:QdrantStore",
+      "type": "Class",
+      "file": "app/stores/qdrant_store.py",
+      "line": 40,
+      "end_line": 298,
+      "exported": true,
+      "signature": "class QdrantStore:"
+    },
+    {
+      "id": "qdrant_store:__init__",
+      "type": "Method",
+      "file": "app/stores/qdrant_store.py",
+      "line": 43,
+      "end_line": 64,
+      "exported": false,
+      "signature": "def __init__("
+    },
+    {
+      "id": "qdrant_store:create_paper_collection",
+      "type": "Method",
+      "file": "app/stores/qdrant_store.py",
+      "line": 66,
+      "end_line": 111,
+      "exported": true,
+      "signature": "def create_paper_collection("
+    },
+    {
+      "id": "qdrant_store:add_chunks",
+      "type": "Method",
+      "file": "app/stores/qdrant_store.py",
+      "line": 113,
+      "end_line": 158,
+      "exported": true,
+      "signature": "def add_chunks("
+    },
+    {
+      "id": "qdrant_store:search",
+      "type": "Method",
+      "file": "app/stores/qdrant_store.py",
+      "line": 160,
+      "end_line": 194,
+      "exported": true,
+      "signature": "def search("
+    },
+    {
+      "id": "qdrant_store:search_all",
+      "type": "Method",
+      "file": "app/stores/qdrant_store.py",
+      "line": 196,
+      "end_line": 235,
+      "exported": true,
+      "signature": "def search_all("
+    },
+    {
+      "id": "qdrant_store:delete_paper",
+      "type": "Method",
+      "file": "app/stores/qdrant_store.py",
+      "line": 237,
+      "end_line": 249,
+      "exported": true,
+      "signature": "def delete_paper(self, paper_id: str) -> None:"
+    },
+    {
+      "id": "qdrant_store:get_paper_info",
+      "type": "Method",
+      "file": "app/stores/qdrant_store.py",
+      "line": 251,
+      "end_line": 270,
+      "exported": true,
+      "signature": "def get_paper_info(self, paper_id: str) -> dict[str, Any] | None:"
+    },
+    {
+      "id": "qdrant_store:list_papers",
+      "type": "Method",
+      "file": "app/stores/qdrant_store.py",
+      "line": 272,
+      "end_line": 283,
+      "exported": true,
+      "signature": "def list_papers(self) -> list[str]:"
+    },
+    {
+      "id": "qdrant_store:count",
+      "type": "Method",
+      "file": "app/stores/qdrant_store.py",
+      "line": 286,
+      "end_line": 298,
+      "exported": true,
+      "signature": "def count(self) -> int:"
+    },
+    {
+      "id": "check_env:check_python_version",
+      "type": "Function",
+      "file": "check_env.py",
+      "line": 12,
+      "end_line": 25,
+      "exported": true,
+      "signature": "def check_python_version():"
+    },
+    {
+      "id": "check_env:check_uv",
+      "type": "Function",
+      "file": "check_env.py",
+      "line": 28,
+      "end_line": 44,
+      "exported": true,
+      "signature": "def check_uv():"
+    },
+    {
+      "id": "check_env:check_dependencies",
+      "type": "Function",
+      "file": "check_env.py",
+      "line": 47,
+      "end_line": 55,
+      "exported": true,
+      "signature": "def check_dependencies():"
+    },
+    {
+      "id": "check_env:check_env_file",
+      "type": "Function",
+      "file": "check_env.py",
+      "line": 58,
+      "end_line": 112,
+      "exported": true,
+      "signature": "def check_env_file():"
+    },
+    {
+      "id": "check_env:check_data_directories",
+      "type": "Function",
+      "file": "check_env.py",
+      "line": 115,
+      "end_line": 129,
+      "exported": true,
+      "signature": "def check_data_directories():"
+    },
+    {
+      "id": "check_env:check_port_availability",
+      "type": "Function",
+      "file": "check_env.py",
+      "line": 132,
+      "end_line": 149,
+      "exported": true,
+      "signature": "def check_port_availability():"
+    },
+    {
+      "id": "check_env:main",
+      "type": "Function",
+      "file": "check_env.py",
+      "line": 152,
+      "end_line": 181,
+      "exported": true,
+      "signature": "def main():"
+    },
+    {
+      "id": "test_batch_import:import_pdf",
+      "type": "Function",
+      "file": "test_batch_import.py",
+      "line": 30,
+      "end_line": 69,
+      "exported": true,
+      "signature": "async def import_pdf(client: httpx.AsyncClient, file_path: str, index: int) -> dict:"
+    },
+    {
+      "id": "test_batch_import:main",
+      "type": "Function",
+      "file": "test_batch_import.py",
+      "line": 72,
+      "end_line": 138,
+      "exported": true,
+      "signature": "async def main():"
+    },
+    {
+      "id": "conftest:pytest_configure",
+      "type": "Function",
+      "file": "tests/conftest.py",
+      "line": 5,
+      "end_line": 18,
+      "exported": true,
+      "signature": "def pytest_configure(config):"
+    },
+    {
+      "id": "test_config_contract:test_embedding_dimension_is_pinned_to_1536",
+      "type": "Function",
+      "file": "tests/core/test_config_contract.py",
+      "line": 11,
+      "end_line": 19,
+      "exported": true,
+      "signature": "def test_embedding_dimension_is_pinned_to_1536():"
+    },
+    {
+      "id": "test_config_contract:test_embedding_model_must_use_qwen3_embedding_8b",
+      "type": "Function",
+      "file": "tests/core/test_config_contract.py",
+      "line": 22,
+      "end_line": 29,
+      "exported": true,
+      "signature": "def test_embedding_model_must_use_qwen3_embedding_8b():"
+    },
+    {
+      "id": "test_config_contract:test_embedding_dimensions_must_stay_1536",
+      "type": "Function",
+      "file": "tests/core/test_config_contract.py",
+      "line": 32,
+      "end_line": 39,
+      "exported": true,
+      "signature": "def test_embedding_dimensions_must_stay_1536():"
+    },
+    {
+      "id": "test_config_contract:test_deepseek_and_siliconflow_fields_have_expected_defaults",
+      "type": "Function",
+      "file": "tests/core/test_config_contract.py",
+      "line": 42,
+      "end_line": 49,
+      "exported": true,
+      "signature": "def test_deepseek_and_siliconflow_fields_have_expected_defaults():"
+    },
+    {
+      "id": "test_config_contract:test_settings_accept_known_legacy_env_fields_without_extra_forbidden",
+      "type": "Function",
+      "file": "tests/core/test_config_contract.py",
+      "line": 53,
+      "end_line": 65,
+      "exported": true,
+      "signature": "def test_settings_accept_known_legacy_env_fields_without_extra_forbidden():"
+    },
+    {
+      "id": "test_config_contract:test_settings_can_load_current_env_file_when_embedding_dimension_is_1536",
+      "type": "Function",
+      "file": "tests/core/test_config_contract.py",
+      "line": 69,
+      "end_line": 75,
+      "exported": true,
+      "signature": "def test_settings_can_load_current_env_file_when_embedding_dimension_is_1536():"
+    },
+    {
+      "id": "test_config_contract:test_local_mvp_defaults_to_loopback_host",
+      "type": "Function",
+      "file": "tests/core/test_config_contract.py",
+      "line": 79,
+      "end_line": 82,
+      "exported": true,
+      "signature": "def test_local_mvp_defaults_to_loopback_host():"
+    },
+    {
+      "id": "test_error_contract:test_domain_error_exposes_stage_and_message",
+      "type": "Function",
+      "file": "tests/core/test_error_contract.py",
+      "line": 8,
+      "end_line": 17,
+      "exported": true,
+      "signature": "def test_domain_error_exposes_stage_and_message():"
+    },
+    {
+      "id": "test_error_contract:test_specialized_errors_bind_expected_stage",
+      "type": "Function",
+      "file": "tests/core/test_error_contract.py",
+      "line": 20,
+      "end_line": 50,
+      "exported": true,
+      "signature": "def test_specialized_errors_bind_expected_stage():"
+    },
+    {
+      "id": "test_error_contract:test_domain_error_and_specialized_errors_support_pickle_and_deepcopy_round_trip",
+      "type": "Function",
+      "file": "tests/core/test_error_contract.py",
+      "line": 53,
+      "end_line": 82,
+      "exported": true,
+      "signature": "def test_domain_error_and_specialized_errors_support_pickle_and_deepcopy_round_trip():"
+    },
+    {
+      "id": "test_error_contract:test_domain_error_and_specialized_errors_expose_standard_exception_text_contract",
+      "type": "Function",
+      "file": "tests/core/test_error_contract.py",
+      "line": 85,
+      "end_line": 112,
+      "exported": true,
+      "signature": "def test_domain_error_and_specialized_errors_expose_standard_exception_text_contract():"
+    },
+    {
+      "id": "test_error_contract:test_modules_package_skeleton_is_importable",
+      "type": "Function",
+      "file": "tests/core/test_error_contract.py",
+      "line": 116,
+      "end_line": 130,
+      "exported": true,
+      "signature": "def test_modules_package_skeleton_is_importable():"
+    },
+    {
+      "id": "test_index_modes:_FakeEmbeddingClient",
+      "type": "Class",
+      "file": "tests/indexing/test_index_modes.py",
+      "line": 19,
+      "end_line": 47,
+      "exported": false,
+      "signature": "class _FakeEmbeddingClient:"
+    },
+    {
+      "id": "test_index_modes:__init__",
+      "type": "Method",
+      "file": "tests/indexing/test_index_modes.py",
+      "line": 31,
+      "end_line": 33,
+      "exported": false,
+      "signature": "def __init__(self, *, model_name: str, dimensions: int) -> None:"
+    },
+    {
+      "id": "test_index_modes:embed",
+      "type": "Method",
+      "file": "tests/indexing/test_index_modes.py",
+      "line": 35,
+      "end_line": 37,
+      "exported": true,
+      "signature": "async def embed(self, texts: list[str]) -> list[list[float]]:"
+    },
+    {
+      "id": "test_index_modes:_build_vector",
+      "type": "Method",
+      "file": "tests/indexing/test_index_modes.py",
+      "line": 39,
+      "end_line": 47,
+      "exported": false,
+      "signature": "def _build_vector(self, seed: int) -> list[float]:"
+    },
+    {
+      "id": "test_index_modes:_BadDimensionEmbeddingClient",
+      "type": "Class",
+      "file": "tests/indexing/test_index_modes.py",
+      "line": 50,
+      "end_line": 55,
+      "exported": false,
+      "signature": "class _BadDimensionEmbeddingClient(_FakeEmbeddingClient):"
+    },
+    {
+      "id": "test_index_modes:embed",
+      "type": "Method",
+      "file": "tests/indexing/test_index_modes.py",
+      "line": 53,
+      "end_line": 55,
+      "exported": true,
+      "signature": "async def embed(self, texts: list[str]) -> list[list[float]]:"
+    },
+    {
+      "id": "test_index_modes:_BrokenBM25Repo",
+      "type": "Class",
+      "file": "tests/indexing/test_index_modes.py",
+      "line": 58,
+      "end_line": 87,
+      "exported": false,
+      "signature": "class _BrokenBM25Repo:"
+    },
+    {
+      "id": "test_index_modes:__init__",
+      "type": "Method",
+      "file": "tests/indexing/test_index_modes.py",
+      "line": 61,
+      "end_line": 62,
+      "exported": false,
+      "signature": "def __init__(self) -> None:"
+    },
+    {
+      "id": "test_index_modes:upsert_chunks",
+      "type": "Method",
+      "file": "tests/indexing/test_index_modes.py",
+      "line": 64,
+      "end_line": 66,
+      "exported": true,
+      "signature": "def upsert_chunks(self, chunks):  # noqa: ANN001"
+    },
+    {
+      "id": "test_index_modes:delete_document",
+      "type": "Method",
+      "file": "tests/indexing/test_index_modes.py",
+      "line": 68,
+      "end_line": 70,
+      "exported": true,
+      "signature": "def delete_document(self, document_id: str) -> int:"
+    },
+    {
+      "id": "test_index_modes:snapshot",
+      "type": "Method",
+      "file": "tests/indexing/test_index_modes.py",
+      "line": 72,
+      "end_line": 74,
+      "exported": true,
+      "signature": "def snapshot(self) -> list:"
+    },
+    {
+      "id": "test_index_modes:restore",
+      "type": "Method",
+      "file": "tests/indexing/test_index_modes.py",
+      "line": 76,
+      "end_line": 79,
+      "exported": true,
+      "signature": "def restore(self, chunks) -> int:  # noqa: ANN001"
+    },
+    {
+      "id": "test_index_modes:get_chunks_by_ids",
+      "type": "Method",
+      "file": "tests/indexing/test_index_modes.py",
+      "line": 81,
+      "end_line": 83,
+      "exported": true,
+      "signature": "def get_chunks_by_ids(self, chunk_ids: list[str]):  # noqa: ANN001"
+    },
+    {
+      "id": "test_index_modes:count",
+      "type": "Method",
+      "file": "tests/indexing/test_index_modes.py",
+      "line": 85,
+      "end_line": 87,
+      "exported": true,
+      "signature": "def count(self, document_id: str | None = None, *, searchable_only: bool = False) -> int:"
+    },
+    {
+      "id": "test_index_modes:_FakeAsyncClient",
+      "type": "Class",
+      "file": "tests/indexing/test_index_modes.py",
+      "line": 90,
+      "end_line": 128,
+      "exported": false,
+      "signature": "class _FakeAsyncClient:"
+    },
+    {
+      "id": "test_index_modes:__init__",
+      "type": "Method",
+      "file": "tests/indexing/test_index_modes.py",
+      "line": 95,
+      "end_line": 102,
+      "exported": false,
+      "signature": "def __init__(self, timeout: float | None = None, **kwargs) -> None:  # noqa: ANN003"
+    },
+    {
+      "id": "test_index_modes:__aenter__",
+      "type": "Method",
+      "file": "tests/indexing/test_index_modes.py",
+      "line": 104,
+      "end_line": 106,
+      "exported": false,
+      "signature": "async def __aenter__(self) -> \"_FakeAsyncClient\":"
+    },
+    {
+      "id": "test_index_modes:__aexit__",
+      "type": "Method",
+      "file": "tests/indexing/test_index_modes.py",
+      "line": 108,
+      "end_line": 110,
+      "exported": false,
+      "signature": "async def __aexit__(self, exc_type, exc, tb) -> None:  # noqa: ANN001"
+    },
+    {
+      "id": "test_index_modes:post",
+      "type": "Method",
+      "file": "tests/indexing/test_index_modes.py",
+      "line": 112,
+      "end_line": 128,
+      "exported": true,
+      "signature": "async def post(self, url: str, *, headers: dict, json: dict):"
+    },
+    {
+      "id": "test_index_modes:_RecordingChromaRepo",
+      "type": "Class",
+      "file": "tests/indexing/test_index_modes.py",
+      "line": 131,
+      "end_line": 138,
+      "exported": false,
+      "signature": "class _RecordingChromaRepo:"
+    },
+    {
+      "id": "test_index_modes:__init__",
+      "type": "Method",
+      "file": "tests/indexing/test_index_modes.py",
+      "line": 134,
+      "end_line": 135,
+      "exported": false,
+      "signature": "def __init__(self) -> None:"
+    },
+    {
+      "id": "test_index_modes:upsert_chunks",
+      "type": "Method",
+      "file": "tests/indexing/test_index_modes.py",
+      "line": 137,
+      "end_line": 138,
+      "exported": true,
+      "signature": "def upsert_chunks(self, chunks):  # noqa: ANN001"
+    },
+    {
+      "id": "test_index_modes:_RecordingBM25Repo",
+      "type": "Class",
+      "file": "tests/indexing/test_index_modes.py",
+      "line": 141,
+      "end_line": 148,
+      "exported": false,
+      "signature": "class _RecordingBM25Repo:"
+    },
+    {
+      "id": "test_index_modes:__init__",
+      "type": "Method",
+      "file": "tests/indexing/test_index_modes.py",
+      "line": 144,
+      "end_line": 145,
+      "exported": false,
+      "signature": "def __init__(self) -> None:"
+    },
+    {
+      "id": "test_index_modes:upsert_chunks",
+      "type": "Method",
+      "file": "tests/indexing/test_index_modes.py",
+      "line": 147,
+      "end_line": 148,
+      "exported": true,
+      "signature": "def upsert_chunks(self, chunks):  # noqa: ANN001"
+    },
+    {
+      "id": "test_index_modes:_make_token_text",
+      "type": "Function",
+      "file": "tests/indexing/test_index_modes.py",
+      "line": 152,
+      "end_line": 159,
+      "exported": false,
+      "signature": "def _make_token_text(prefix: str, token_count: int) -> str:"
+    },
+    {
+      "id": "test_index_modes:_tokenize_for_test",
+      "type": "Function",
+      "file": "tests/indexing/test_index_modes.py",
+      "line": 163,
+      "end_line": 165,
+      "exported": false,
+      "signature": "def _tokenize_for_test(text: str) -> list[str]:"
+    },
+    {
+      "id": "test_index_modes:_build_cleaned_document",
+      "type": "Function",
+      "file": "tests/indexing/test_index_modes.py",
+      "line": 169,
+      "end_line": 188,
+      "exported": false,
+      "signature": "def _build_cleaned_document(*, document_id: str, index_mode: str, block_token_counts: list[int]) -> CleanedDocument:"
+    },
+    {
+      "id": "test_index_modes:_build_cleaned_document_from_texts",
+      "type": "Function",
+      "file": "tests/indexing/test_index_modes.py",
+      "line": 192,
+      "end_line": 217,
+      "exported": false,
+      "signature": "def _build_cleaned_document_from_texts(*, document_id: str, index_mode: str, block_texts: list[str]) -> CleanedDocument:"
+    },
+    {
+      "id": "test_index_modes:_use_temp_index_storage",
+      "type": "Function",
+      "file": "tests/indexing/test_index_modes.py",
+      "line": 221,
+      "end_line": 233,
+      "exported": false,
+      "signature": "def _use_temp_index_storage(monkeypatch) -> Path:  # noqa: ANN001"
+    },
+    {
+      "id": "test_index_modes:test_brute_index_mode_splits_into_overlapped_chunks_with_token_bounds",
+      "type": "Function",
+      "file": "tests/indexing/test_index_modes.py",
+      "line": 237,
+      "end_line": 254,
+      "exported": true,
+      "signature": "def test_brute_index_mode_splits_into_overlapped_chunks_with_token_bounds():"
+    },
+    {
+      "id": "test_index_modes:test_brute_index_mode_splits_continuous_chinese_text_without_spaces",
+      "type": "Function",
+      "file": "tests/indexing/test_index_modes.py",
+      "line": 258,
+      "end_line": 274,
+      "exported": true,
+      "signature": "def test_brute_index_mode_splits_continuous_chinese_text_without_spaces():"
+    },
+    {
+      "id": "test_index_modes:test_brute_index_mode_keeps_continuous_chinese_chunk_text_without_inserted_spaces",
+      "type": "Function",
+      "file": "tests/indexing/test_index_modes.py",
+      "line": 278,
+      "end_line": 292,
+      "exported": true,
+      "signature": "def test_brute_index_mode_keeps_continuous_chinese_chunk_text_without_inserted_spaces():"
+    },
+    {
+      "id": "test_index_modes:test_parent_child_index_mode_builds_parent_and_child_records",
+      "type": "Function",
+      "file": "tests/indexing/test_index_modes.py",
+      "line": 296,
+      "end_line": 319,
+      "exported": true,
+      "signature": "def test_parent_child_index_mode_builds_parent_and_child_records():"
+    },
+    {
+      "id": "test_index_modes:test_indexing_service_rejects_wrong_embedding_contract_before_write",
+      "type": "Function",
+      "file": "tests/indexing/test_index_modes.py",
+      "line": 323,
+      "end_line": 351,
+      "exported": true,
+      "signature": "async def test_indexing_service_rejects_wrong_embedding_contract_before_write():"
+    },
+    {
+      "id": "test_index_modes:test_indexing_service_writes_dual_indexes_and_deletes_document",
+      "type": "Function",
+      "file": "tests/indexing/test_index_modes.py",
+      "line": 355,
+      "end_line": 394,
+      "exported": true,
+      "signature": "async def test_indexing_service_writes_dual_indexes_and_deletes_document(monkeypatch):"
+    },
+    {
+      "id": "test_index_modes:test_delete_document_keeps_old_indexes_when_bm25_delete_save_fails",
+      "type": "Function",
+      "file": "tests/indexing/test_index_modes.py",
+      "line": 398,
+      "end_line": 448,
+      "exported": true,
+      "signature": "async def test_delete_document_keeps_old_indexes_when_bm25_delete_save_fails(monkeypatch):"
+    },
+    {
+      "id": "test_index_modes:_FailingDeleteSaveBM25Repo",
+      "type": "Class",
+      "file": "tests/indexing/test_index_modes.py",
+      "line": 428,
+      "end_line": 433,
+      "exported": false,
+      "signature": "class _FailingDeleteSaveBM25Repo(BM25Repo):"
+    },
+    {
+      "id": "test_index_modes:save",
+      "type": "Method",
+      "file": "tests/indexing/test_index_modes.py",
+      "line": 431,
+      "end_line": 433,
+      "exported": true,
+      "signature": "def save(self) -> None:"
+    },
+    {
+      "id": "test_index_modes:test_indexing_service_reindex_failure_keeps_old_indexes",
+      "type": "Function",
+      "file": "tests/indexing/test_index_modes.py",
+      "line": 452,
+      "end_line": 488,
+      "exported": true,
+      "signature": "async def test_indexing_service_reindex_failure_keeps_old_indexes(monkeypatch):"
+    },
+    {
+      "id": "test_index_modes:test_embedding_client_request_explicitly_includes_dimensions",
+      "type": "Function",
+      "file": "tests/indexing/test_index_modes.py",
+      "line": 492,
+      "end_line": 506,
+      "exported": true,
+      "signature": "async def test_embedding_client_request_explicitly_includes_dimensions(monkeypatch):"
+    },
+    {
+      "id": "test_index_modes:test_indexing_service_keeps_old_indexes_when_bm25_save_fails",
+      "type": "Function",
+      "file": "tests/indexing/test_index_modes.py",
+      "line": 510,
+      "end_line": 562,
+      "exported": true,
+      "signature": "async def test_indexing_service_keeps_old_indexes_when_bm25_save_fails(monkeypatch):"
+    },
+    {
+      "id": "test_index_modes:_FailingSaveBM25Repo",
+      "type": "Class",
+      "file": "tests/indexing/test_index_modes.py",
+      "line": 542,
+      "end_line": 547,
+      "exported": false,
+      "signature": "class _FailingSaveBM25Repo(BM25Repo):"
+    },
+    {
+      "id": "test_index_modes:save",
+      "type": "Method",
+      "file": "tests/indexing/test_index_modes.py",
+      "line": 545,
+      "end_line": 547,
+      "exported": true,
+      "signature": "def save(self) -> None:"
+    },
+    {
+      "id": "test_index_modes:test_indexing_service_rolls_back_chroma_when_bm25_write_fails",
+      "type": "Function",
+      "file": "tests/indexing/test_index_modes.py",
+      "line": 566,
+      "end_line": 592,
+      "exported": true,
+      "signature": "async def test_indexing_service_rolls_back_chroma_when_bm25_write_fails(monkeypatch):"
+    },
+    {
+      "id": "test_index_modes:test_bm25_repo_ignores_legacy_persistence_schema_instead_of_crashing",
+      "type": "Function",
+      "file": "tests/indexing/test_index_modes.py",
+      "line": 596,
+      "end_line": 616,
+      "exported": true,
+      "signature": "def test_bm25_repo_ignores_legacy_persistence_schema_instead_of_crashing(monkeypatch):"
+    },
+    {
+      "id": "test_index_modes:test_bm25_repo_downgrades_corrupted_persistence_file_to_empty_index",
+      "type": "Function",
+      "file": "tests/indexing/test_index_modes.py",
+      "line": 620,
+      "end_line": 634,
+      "exported": true,
+      "signature": "def test_bm25_repo_downgrades_corrupted_persistence_file_to_empty_index(monkeypatch):"
+    },
+    {
+      "id": "test_ingestion_pipeline:_FakeHttpResponse",
+      "type": "Class",
+      "file": "tests/ingestion/test_ingestion_pipeline.py",
+      "line": 23,
+      "end_line": 44,
+      "exported": false,
+      "signature": "class _FakeHttpResponse:"
+    },
+    {
+      "id": "test_ingestion_pipeline:__init__",
+      "type": "Method",
+      "file": "tests/ingestion/test_ingestion_pipeline.py",
+      "line": 33,
+      "end_line": 35,
+      "exported": false,
+      "signature": "def __init__(self, status_code: int, payload: dict) -> None:"
+    },
+    {
+      "id": "test_ingestion_pipeline:raise_for_status",
+      "type": "Method",
+      "file": "tests/ingestion/test_ingestion_pipeline.py",
+      "line": 37,
+      "end_line": 40,
+      "exported": true,
+      "signature": "def raise_for_status(self) -> None:"
+    },
+    {
+      "id": "test_ingestion_pipeline:json",
+      "type": "Method",
+      "file": "tests/ingestion/test_ingestion_pipeline.py",
+      "line": 42,
+      "end_line": 44,
+      "exported": true,
+      "signature": "def json(self) -> dict:"
+    },
+    {
+      "id": "test_ingestion_pipeline:_FakeHttpClient",
+      "type": "Class",
+      "file": "tests/ingestion/test_ingestion_pipeline.py",
+      "line": 47,
+      "end_line": 68,
+      "exported": false,
+      "signature": "class _FakeHttpClient:"
+    },
+    {
+      "id": "test_ingestion_pipeline:__init__",
+      "type": "Method",
+      "file": "tests/ingestion/test_ingestion_pipeline.py",
+      "line": 50,
+      "end_line": 54,
+      "exported": false,
+      "signature": "def __init__(self, *, post_responses: list[_FakeHttpResponse], get_responses: list[_FakeHttpResponse]) -> None:"
+    },
+    {
+      "id": "test_ingestion_pipeline:post",
+      "type": "Method",
+      "file": "tests/ingestion/test_ingestion_pipeline.py",
+      "line": 56,
+      "end_line": 61,
+      "exported": true,
+      "signature": "def post(self, url: str, *, headers: dict | None = None, json: dict | None = None):"
+    },
+    {
+      "id": "test_ingestion_pipeline:get",
+      "type": "Method",
+      "file": "tests/ingestion/test_ingestion_pipeline.py",
+      "line": 63,
+      "end_line": 68,
+      "exported": true,
+      "signature": "def get(self, url: str, *, headers: dict | None = None):"
+    },
+    {
+      "id": "test_ingestion_pipeline:_FakeMonotonic",
+      "type": "Class",
+      "file": "tests/ingestion/test_ingestion_pipeline.py",
+      "line": 71,
+      "end_line": 80,
+      "exported": false,
+      "signature": "class _FakeMonotonic:"
+    },
+    {
+      "id": "test_ingestion_pipeline:__init__",
+      "type": "Method",
+      "file": "tests/ingestion/test_ingestion_pipeline.py",
+      "line": 74,
+      "end_line": 75,
+      "exported": false,
+      "signature": "def __init__(self, values: list[float]) -> None:"
+    },
+    {
+      "id": "test_ingestion_pipeline:__call__",
+      "type": "Method",
+      "file": "tests/ingestion/test_ingestion_pipeline.py",
+      "line": 77,
+      "end_line": 80,
+      "exported": false,
+      "signature": "def __call__(self) -> float:"
+    },
+    {
+      "id": "test_ingestion_pipeline:_FakeMineruSuccessClient",
+      "type": "Class",
+      "file": "tests/ingestion/test_ingestion_pipeline.py",
+      "line": 83,
+      "end_line": 112,
+      "exported": false,
+      "signature": "class _FakeMineruSuccessClient:"
+    },
+    {
+      "id": "test_ingestion_pipeline:__init__",
+      "type": "Method",
+      "file": "tests/ingestion/test_ingestion_pipeline.py",
+      "line": 86,
+      "end_line": 87,
+      "exported": false,
+      "signature": "def __init__(self, expected_path: str) -> None:"
+    },
+    {
+      "id": "test_ingestion_pipeline:run_pdf_task",
+      "type": "Method",
+      "file": "tests/ingestion/test_ingestion_pipeline.py",
+      "line": 89,
+      "end_line": 112,
+      "exported": true,
+      "signature": "def run_pdf_task(self, file_path: str) -> dict:"
+    },
+    {
+      "id": "test_ingestion_pipeline:_FakeMineruTimeoutClient",
+      "type": "Class",
+      "file": "tests/ingestion/test_ingestion_pipeline.py",
+      "line": 115,
+      "end_line": 123,
+      "exported": false,
+      "signature": "class _FakeMineruTimeoutClient:"
+    },
+    {
+      "id": "test_ingestion_pipeline:__init__",
+      "type": "Method",
+      "file": "tests/ingestion/test_ingestion_pipeline.py",
+      "line": 118,
+      "end_line": 119,
+      "exported": false,
+      "signature": "def __init__(self, expected_path: str) -> None:"
+    },
+    {
+      "id": "test_ingestion_pipeline:run_pdf_task",
+      "type": "Method",
+      "file": "tests/ingestion/test_ingestion_pipeline.py",
+      "line": 121,
+      "end_line": 123,
+      "exported": true,
+      "signature": "def run_pdf_task(self, file_path: str) -> dict:"
+    },
+    {
+      "id": "test_ingestion_pipeline:_UnexpectedIngestionService",
+      "type": "Class",
+      "file": "tests/ingestion/test_ingestion_pipeline.py",
+      "line": 126,
+      "end_line": 131,
+      "exported": false,
+      "signature": "class _UnexpectedIngestionService:"
+    },
+    {
+      "id": "test_ingestion_pipeline:ingest_document",
+      "type": "Method",
+      "file": "tests/ingestion/test_ingestion_pipeline.py",
+      "line": 129,
+      "end_line": 131,
+      "exported": true,
+      "signature": "def ingest_document(self, record):  # noqa: ANN001"
+    },
+    {
+      "id": "test_ingestion_pipeline:_use_temp_sqlite_database",
+      "type": "Function",
+      "file": "tests/ingestion/test_ingestion_pipeline.py",
+      "line": 134,
+      "end_line": 144,
+      "exported": false,
+      "signature": "def _use_temp_sqlite_database(monkeypatch) -> Path:"
+    },
+    {
+      "id": "test_ingestion_pipeline:_create_temp_pdf",
+      "type": "Function",
+      "file": "tests/ingestion/test_ingestion_pipeline.py",
+      "line": 147,
+      "end_line": 154,
+      "exported": false,
+      "signature": "def _create_temp_pdf(name: str) -> Path:"
+    },
+    {
+      "id": "test_ingestion_pipeline:_create_temp_text_file",
+      "type": "Function",
+      "file": "tests/ingestion/test_ingestion_pipeline.py",
+      "line": 157,
+      "end_line": 164,
+      "exported": false,
+      "signature": "def _create_temp_text_file(name: str, content: str) -> Path:"
+    },
+    {
+      "id": "test_ingestion_pipeline:test_mineru_client_submits_polls_and_fetches_same_origin_result_json",
+      "type": "Function",
+      "file": "tests/ingestion/test_ingestion_pipeline.py",
+      "line": 167,
+      "end_line": 211,
+      "exported": true,
+      "signature": "def test_mineru_client_submits_polls_and_fetches_same_origin_result_json(monkeypatch):"
+    },
+    {
+      "id": "test_ingestion_pipeline:test_mineru_client_fetches_final_json_when_success_payload_uses_nested_result_url",
+      "type": "Function",
+      "file": "tests/ingestion/test_ingestion_pipeline.py",
+      "line": 214,
+      "end_line": 248,
+      "exported": true,
+      "signature": "def test_mineru_client_fetches_final_json_when_success_payload_uses_nested_result_url(monkeypatch):"
+    },
+    {
+      "id": "test_ingestion_pipeline:test_mineru_client_fetches_allowed_cdn_result_without_authorization",
+      "type": "Function",
+      "file": "tests/ingestion/test_ingestion_pipeline.py",
+      "line": 251,
+      "end_line": 286,
+      "exported": true,
+      "signature": "def test_mineru_client_fetches_allowed_cdn_result_without_authorization(monkeypatch):"
+    },
+    {
+      "id": "test_ingestion_pipeline:test_mineru_client_treats_explicit_default_port_as_same_origin",
+      "type": "Function",
+      "file": "tests/ingestion/test_ingestion_pipeline.py",
+      "line": 296,
+      "end_line": 327,
+      "exported": true,
+      "signature": "def test_mineru_client_treats_explicit_default_port_as_same_origin(monkeypatch, base_url: str, result_url: str):"
+    },
+    {
+      "id": "test_ingestion_pipeline:test_mineru_client_maps_invalid_optional_string_fields_to_invalid_response",
+      "type": "Function",
+      "file": "tests/ingestion/test_ingestion_pipeline.py",
+      "line": 344,
+      "end_line": 376,
+      "exported": true,
+      "signature": "def test_mineru_client_maps_invalid_optional_string_fields_to_invalid_response("
+    },
+    {
+      "id": "test_ingestion_pipeline:test_mineru_client_rejects_untrusted_external_result_url",
+      "type": "Function",
+      "file": "tests/ingestion/test_ingestion_pipeline.py",
+      "line": 380,
+      "end_line": 412,
+      "exported": true,
+      "signature": "def test_mineru_client_rejects_untrusted_external_result_url(monkeypatch):"
+    },
+    {
+      "id": "test_ingestion_pipeline:test_clean_mineru_payload_filters_headers_page_numbers_short_noise_and_duplicates",
+      "type": "Function",
+      "file": "tests/ingestion/test_ingestion_pipeline.py",
+      "line": 415,
+      "end_line": 454,
+      "exported": true,
+      "signature": "def test_clean_mineru_payload_filters_headers_page_numbers_short_noise_and_duplicates():"
+    },
+    {
+      "id": "test_ingestion_pipeline:test_library_import_pdf_rejects_remote_url",
+      "type": "Function",
+      "file": "tests/ingestion/test_ingestion_pipeline.py",
+      "line": 457,
+      "end_line": 469,
+      "exported": true,
+      "signature": "def test_library_import_pdf_rejects_remote_url(monkeypatch):"
+    },
+    {
+      "id": "test_ingestion_pipeline:test_library_import_pdf_rejects_unc_network_path",
+      "type": "Function",
+      "file": "tests/ingestion/test_ingestion_pipeline.py",
+      "line": 472,
+      "end_line": 484,
+      "exported": true,
+      "signature": "def test_library_import_pdf_rejects_unc_network_path(monkeypatch):"
+    },
+    {
+      "id": "test_ingestion_pipeline:test_library_import_pdf_rejects_non_pdf_file",
+      "type": "Function",
+      "file": "tests/ingestion/test_ingestion_pipeline.py",
+      "line": 487,
+      "end_line": 501,
+      "exported": true,
+      "signature": "def test_library_import_pdf_rejects_non_pdf_file(monkeypatch):"
+    },
+    {
+      "id": "test_ingestion_pipeline:test_library_import_pdf_rejects_missing_file",
+      "type": "Function",
+      "file": "tests/ingestion/test_ingestion_pipeline.py",
+      "line": 504,
+      "end_line": 520,
+      "exported": true,
+      "signature": "def test_library_import_pdf_rejects_missing_file(monkeypatch):"
+    },
+    {
+      "id": "test_ingestion_pipeline:test_library_import_pdf_runs_ingestion_pipeline_to_completed",
+      "type": "Function",
+      "file": "tests/ingestion/test_ingestion_pipeline.py",
+      "line": 523,
+      "end_line": 552,
+      "exported": true,
+      "signature": "def test_library_import_pdf_runs_ingestion_pipeline_to_completed(monkeypatch):"
+    },
+    {
+      "id": "test_ingestion_pipeline:test_ingestion_pipeline_marks_document_failed_when_mineru_times_out",
+      "type": "Function",
+      "file": "tests/ingestion/test_ingestion_pipeline.py",
+      "line": 555,
+      "end_line": 579,
+      "exported": true,
+      "signature": "def test_ingestion_pipeline_marks_document_failed_when_mineru_times_out(monkeypatch):"
+    },
+    {
+      "id": "test_ingestion_pipeline:test_ingestion_pipeline_marks_document_failed_when_cleaned_document_has_no_valid_blocks",
+      "type": "Function",
+      "file": "tests/ingestion/test_ingestion_pipeline.py",
+      "line": 582,
+      "end_line": 637,
+      "exported": true,
+      "signature": "def test_ingestion_pipeline_marks_document_failed_when_cleaned_document_has_no_valid_blocks(monkeypatch):"
+    },
+    {
+      "id": "test_ingestion_pipeline:_FakeMineruEmptyBlocksClient",
+      "type": "Class",
+      "file": "tests/ingestion/test_ingestion_pipeline.py",
+      "line": 592,
+      "end_line": 618,
+      "exported": false,
+      "signature": "class _FakeMineruEmptyBlocksClient:"
+    },
+    {
+      "id": "test_ingestion_pipeline:__init__",
+      "type": "Method",
+      "file": "tests/ingestion/test_ingestion_pipeline.py",
+      "line": 595,
+      "end_line": 596,
+      "exported": false,
+      "signature": "def __init__(self, expected_path: str) -> None:"
+    },
+    {
+      "id": "test_ingestion_pipeline:run_pdf_task",
+      "type": "Method",
+      "file": "tests/ingestion/test_ingestion_pipeline.py",
+      "line": 598,
+      "end_line": 618,
+      "exported": true,
+      "signature": "def run_pdf_task(self, file_path: str) -> dict:"
+    },
+    {
+      "id": "test_ingestion_pipeline:test_ingestion_pipeline_marks_document_failed_when_success_payload_pages_shape_is_invalid",
+      "type": "Function",
+      "file": "tests/ingestion/test_ingestion_pipeline.py",
+      "line": 649,
+      "end_line": 691,
+      "exported": true,
+      "signature": "def test_ingestion_pipeline_marks_document_failed_when_success_payload_pages_shape_is_invalid("
+    },
+    {
+      "id": "test_ingestion_pipeline:_FakeMineruInvalidPagesPayloadClient",
+      "type": "Class",
+      "file": "tests/ingestion/test_ingestion_pipeline.py",
+      "line": 663,
+      "end_line": 672,
+      "exported": false,
+      "signature": "class _FakeMineruInvalidPagesPayloadClient:"
+    },
+    {
+      "id": "test_ingestion_pipeline:__init__",
+      "type": "Method",
+      "file": "tests/ingestion/test_ingestion_pipeline.py",
+      "line": 666,
+      "end_line": 668,
+      "exported": false,
+      "signature": "def __init__(self, expected_path: str, payload: dict) -> None:"
+    },
+    {
+      "id": "test_ingestion_pipeline:run_pdf_task",
+      "type": "Method",
+      "file": "tests/ingestion/test_ingestion_pipeline.py",
+      "line": 670,
+      "end_line": 672,
+      "exported": true,
+      "signature": "def run_pdf_task(self, file_path: str) -> dict:"
+    },
+    {
+      "id": "test_ingestion_pipeline:test_ingestion_pipeline_marks_document_failed_when_success_payload_shape_is_invalid",
+      "type": "Function",
+      "file": "tests/ingestion/test_ingestion_pipeline.py",
+      "line": 695,
+      "end_line": 732,
+      "exported": true,
+      "signature": "def test_ingestion_pipeline_marks_document_failed_when_success_payload_shape_is_invalid(monkeypatch):"
+    },
+    {
+      "id": "test_ingestion_pipeline:_FakeMineruInvalidSuccessPayloadClient",
+      "type": "Class",
+      "file": "tests/ingestion/test_ingestion_pipeline.py",
+      "line": 705,
+      "end_line": 713,
+      "exported": false,
+      "signature": "class _FakeMineruInvalidSuccessPayloadClient:"
+    },
+    {
+      "id": "test_ingestion_pipeline:__init__",
+      "type": "Method",
+      "file": "tests/ingestion/test_ingestion_pipeline.py",
+      "line": 708,
+      "end_line": 709,
+      "exported": false,
+      "signature": "def __init__(self, expected_path: str) -> None:"
+    },
+    {
+      "id": "test_ingestion_pipeline:run_pdf_task",
+      "type": "Method",
+      "file": "tests/ingestion/test_ingestion_pipeline.py",
+      "line": 711,
+      "end_line": 713,
+      "exported": true,
+      "signature": "def run_pdf_task(self, file_path: str) -> dict:"
+    },
+    {
+      "id": "test_document_state_machine:_use_temp_sqlite_database",
+      "type": "Function",
+      "file": "tests/library/test_document_state_machine.py",
+      "line": 16,
+      "end_line": 31,
+      "exported": false,
+      "signature": "def _use_temp_sqlite_database(monkeypatch) -> Path:"
+    },
+    {
+      "id": "test_document_state_machine:test_document_status_can_progress_to_completed",
+      "type": "Function",
+      "file": "tests/library/test_document_state_machine.py",
+      "line": 34,
+      "end_line": 44,
+      "exported": true,
+      "signature": "def test_document_status_can_progress_to_completed():"
+    },
+    {
+      "id": "test_document_state_machine:test_library_service_can_persist_document_record",
+      "type": "Function",
+      "file": "tests/library/test_document_state_machine.py",
+      "line": 47,
+      "end_line": 69,
+      "exported": true,
+      "signature": "def test_library_service_can_persist_document_record(monkeypatch):"
+    },
+    {
+      "id": "test_document_state_machine:test_library_routes_are_registered",
+      "type": "Function",
+      "file": "tests/library/test_document_state_machine.py",
+      "line": 72,
+      "end_line": 90,
+      "exported": true,
+      "signature": "def test_library_routes_are_registered():"
+    },
+    {
+      "id": "test_document_state_machine:test_import_document_rejects_blank_file_path",
+      "type": "Function",
+      "file": "tests/library/test_document_state_machine.py",
+      "line": 93,
+      "end_line": 104,
+      "exported": true,
+      "signature": "def test_import_document_rejects_blank_file_path(monkeypatch):"
+    },
+    {
+      "id": "test_document_state_machine:test_import_document_rejects_invalid_index_mode",
+      "type": "Function",
+      "file": "tests/library/test_document_state_machine.py",
+      "line": 107,
+      "end_line": 122,
+      "exported": true,
+      "signature": "def test_import_document_rejects_invalid_index_mode(monkeypatch):"
+    },
+    {
+      "id": "test_document_state_machine:test_reindex_completed_document_does_not_enter_indexing_stuck_state",
+      "type": "Function",
+      "file": "tests/library/test_document_state_machine.py",
+      "line": 125,
+      "end_line": 147,
+      "exported": true,
+      "signature": "def test_reindex_completed_document_does_not_enter_indexing_stuck_state(monkeypatch):"
+    },
+    {
+      "id": "test_kimi_api:test_kimi_chat",
+      "type": "Function",
+      "file": "tests/test_kimi_api.py",
+      "line": 22,
+      "end_line": 53,
+      "exported": true,
+      "signature": "async def test_kimi_chat():"
+    },
+    {
+      "id": "test_kimi_api:test_kimi_vlm",
+      "type": "Function",
+      "file": "tests/test_kimi_api.py",
+      "line": 56,
+      "end_line": 107,
+      "exported": true,
+      "signature": "async def test_kimi_vlm():"
+    },
+    {
+      "id": "test_kimi_api:main",
+      "type": "Function",
+      "file": "tests/test_kimi_api.py",
+      "line": 110,
+      "end_line": 130,
+      "exported": true,
+      "signature": "async def main():"
+    }
+  ]
+}

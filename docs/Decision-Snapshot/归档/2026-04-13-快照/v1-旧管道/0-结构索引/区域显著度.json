@@ -1,0 +1,433 @@
+{
+  "metadata": {
+    "generated_at": "2026-04-12 22:50",
+    "confidence": "确定性计算",
+    "scoring_dimensions": [
+      "entry_proximity: 入口邻近度 (0-3)",
+      "hub_density: 枢纽密度 (hub数×0.5)",
+      "size: 社区规模 (log(1+N)×0.3)",
+      "cross_community: 跨社区连接 (边数×0.1, 上限5)",
+      "isolation_penalty: 孤立惩罚 (-1)"
+    ],
+    "total_regions_scored": 16
+  },
+  "regions": [
+    {
+      "community_id": 8,
+      "label": "library",
+      "score": 6.85,
+      "symbol_count": 45,
+      "file_count": 7,
+      "files": [
+        "app/modules/ingestion/service.py",
+        "app/modules/library/models.py",
+        "app/modules/library/repository.py",
+        "app/modules/library/service.py",
+        "test_batch_import.py",
+        "tests/ingestion/test_ingestion_pipeline.py",
+        "tests/library/test_document_state_machine.py"
+      ],
+      "has_entry": false,
+      "entry_reached_count": 45,
+      "hub_count": 3,
+      "cross_community_edges": 22,
+      "breakdown": {
+        "entry_proximity": 2.0,
+        "hub_density": 1.5,
+        "size": 1.15,
+        "cross_community": 2.2,
+        "isolation_penalty": 0
+      }
+    },
+    {
+      "community_id": 15,
+      "label": "ingestion-3",
+      "score": 6.12,
+      "symbol_count": 41,
+      "file_count": 12,
+      "files": [
+        "app/clients/embedding_client.py",
+        "app/clients/kimi_client.py",
+        "app/clients/mineru_client.py",
+        "app/clients/rerank_client.py",
+        "app/core/errors.py",
+        "app/modules/ingestion/dto.py",
+        "app/modules/ingestion/mineru_client.py",
+        "app/modules/ingestion/service.py",
+        "test_batch_import.py",
+        "tests/core/test_error_contract.py",
+        "tests/ingestion/test_ingestion_pipeline.py",
+        "tests/test_kimi_api.py"
+      ],
+      "has_entry": true,
+      "entry_reached_count": 41,
+      "hub_count": 2,
+      "cross_community_edges": 10,
+      "breakdown": {
+        "entry_proximity": 3.0,
+        "hub_density": 1.0,
+        "size": 1.12,
+        "cross_community": 1.0,
+        "isolation_penalty": 0
+      }
+    },
+    {
+      "community_id": 1,
+      "label": "routes-2",
+      "score": 5.53,
+      "symbol_count": 21,
+      "file_count": 6,
+      "files": [
+        "app/api/v1/routes/config.py",
+        "app/api/v1/routes/library.py",
+        "app/core/error_messages.py",
+        "app/models/base.py",
+        "app/services_archive/ingest_service.py",
+        "app/stores/qdrant_store.py"
+      ],
+      "has_entry": false,
+      "entry_reached_count": 21,
+      "hub_count": 1,
+      "cross_community_edges": 21,
+      "breakdown": {
+        "entry_proximity": 2.0,
+        "hub_density": 0.5,
+        "size": 0.93,
+        "cross_community": 2.1,
+        "isolation_penalty": 0
+      }
+    },
+    {
+      "community_id": 7,
+      "label": "repositories",
+      "score": 5.11,
+      "symbol_count": 39,
+      "file_count": 9,
+      "files": [
+        "app/api/v1/routes/session.py",
+        "app/main.py",
+        "app/models/base.py",
+        "app/models/session.py",
+        "app/modules/library/models.py",
+        "app/modules/library/repository.py",
+        "app/modules/session/service.py",
+        "app/repositories/sqlite_repo.py",
+        "app/services_archive/qa_service.py"
+      ],
+      "has_entry": false,
+      "entry_reached_count": 39,
+      "hub_count": 1,
+      "cross_community_edges": 15,
+      "breakdown": {
+        "entry_proximity": 2.0,
+        "hub_density": 0.5,
+        "size": 1.11,
+        "cross_community": 1.5,
+        "isolation_penalty": 0
+      }
+    },
+    {
+      "community_id": 10,
+      "label": "processing",
+      "score": 5.0,
+      "symbol_count": 27,
+      "file_count": 6,
+      "files": [
+        "app/models/base.py",
+        "app/modules/ingestion/service.py",
+        "app/processing/chunker.py",
+        "app/processing/cleaner.py",
+        "app/processing/describer.py",
+        "app/services_archive/ingest_service.py"
+      ],
+      "has_entry": false,
+      "entry_reached_count": 27,
+      "hub_count": 1,
+      "cross_community_edges": 15,
+      "breakdown": {
+        "entry_proximity": 2.0,
+        "hub_density": 0.5,
+        "size": 1.0,
+        "cross_community": 1.5,
+        "isolation_penalty": 0
+      }
+    },
+    {
+      "community_id": 3,
+      "label": "services_archive",
+      "score": 4.32,
+      "symbol_count": 41,
+      "file_count": 14,
+      "files": [
+        "app/api/v1/routes/config.py",
+        "app/api/v1/routes/query.py",
+        "app/clients/kimi_client.py",
+        "app/clients/vlm_client.py",
+        "app/core/retry.py",
+        "app/modules/qa/service.py",
+        "app/modules/retrieval/service.py",
+        "app/modules/session/service.py",
+        "app/repositories/sqlite_repo.py",
+        "app/services/query_rewrite_service.py",
+        "app/services_archive/qa_service.py",
+        "app/services_archive/qa_service_rag.py",
+        "app/services_archive/retrieval_service.py",
+        "app/stores/qdrant_store.py"
+      ],
+      "has_entry": false,
+      "entry_reached_count": 41,
+      "hub_count": 0,
+      "cross_community_edges": 12,
+      "breakdown": {
+        "entry_proximity": 2.0,
+        "hub_density": 0.0,
+        "size": 1.12,
+        "cross_community": 1.2,
+        "isolation_penalty": 0
+      }
+    },
+    {
+      "community_id": 0,
+      "label": "routes",
+      "score": 4.1,
+      "symbol_count": 27,
+      "file_count": 11,
+      "files": [
+        "app/api/v1/routes/config.py",
+        "app/api/v1/routes/health.py",
+        "app/clients/embedding_client.py",
+        "app/clients/llm_client.py",
+        "app/clients/rerank_client.py",
+        "app/core/config.py",
+        "app/core/logging_config.py",
+        "app/modules/ingestion/mineru_client.py",
+        "app/repositories/bm25_repo.py",
+        "app/repositories/sqlite_repo.py",
+        "tests/core/test_config_contract.py"
+      ],
+      "has_entry": false,
+      "entry_reached_count": 27,
+      "hub_count": 1,
+      "cross_community_edges": 6,
+      "breakdown": {
+        "entry_proximity": 2.0,
+        "hub_density": 0.5,
+        "size": 1.0,
+        "cross_community": 0.6,
+        "isolation_penalty": 0
+      }
+    },
+    {
+      "community_id": 2,
+      "label": "clients",
+      "score": 3.93,
+      "symbol_count": 21,
+      "file_count": 13,
+      "files": [
+        "app/clients/embedding_client.py",
+        "app/clients/kimi_client.py",
+        "app/clients/llm_client.py",
+        "app/clients/mineru_client.py",
+        "app/clients/vlm_client.py",
+        "app/modules/ingestion/service.py",
+        "app/modules/session/service.py",
+        "app/services/query_rewrite_service.py",
+        "app/services_archive/embedding_service.py",
+        "app/services_archive/ingest_service.py",
+        "app/services_archive/retrieval_service.py",
+        "app/stores/qdrant_store.py",
+        "tests/indexing/test_index_modes.py"
+      ],
+      "has_entry": false,
+      "entry_reached_count": 21,
+      "hub_count": 0,
+      "cross_community_edges": 10,
+      "breakdown": {
+        "entry_proximity": 2.0,
+        "hub_density": 0.0,
+        "size": 0.93,
+        "cross_community": 1.0,
+        "isolation_penalty": 0
+      }
+    },
+    {
+      "community_id": 12,
+      "label": "indexing",
+      "score": 3.67,
+      "symbol_count": 24,
+      "file_count": 2,
+      "files": [
+        "app/repositories/bm25_repo.py",
+        "tests/indexing/test_index_modes.py"
+      ],
+      "has_entry": false,
+      "entry_reached_count": 24,
+      "hub_count": 1,
+      "cross_community_edges": 2,
+      "breakdown": {
+        "entry_proximity": 2.0,
+        "hub_density": 0.5,
+        "size": 0.97,
+        "cross_community": 0.2,
+        "isolation_penalty": 0
+      }
+    },
+    {
+      "community_id": 14,
+      "label": "ingestion-4",
+      "score": 3.65,
+      "symbol_count": 11,
+      "file_count": 2,
+      "files": [
+        "app/modules/ingestion/mineru_client.py",
+        "tests/ingestion/test_ingestion_pipeline.py"
+      ],
+      "has_entry": false,
+      "entry_reached_count": 11,
+      "hub_count": 0,
+      "cross_community_edges": 9,
+      "breakdown": {
+        "entry_proximity": 2.0,
+        "hub_density": 0.0,
+        "size": 0.75,
+        "cross_community": 0.9,
+        "isolation_penalty": 0
+      }
+    },
+    {
+      "community_id": 13,
+      "label": "area-13",
+      "score": 3.62,
+      "symbol_count": 7,
+      "file_count": 1,
+      "files": [
+        "check_env.py"
+      ],
+      "has_entry": true,
+      "entry_reached_count": 7,
+      "hub_count": 0,
+      "cross_community_edges": 0,
+      "breakdown": {
+        "entry_proximity": 3.0,
+        "hub_density": 0.0,
+        "size": 0.62,
+        "cross_community": 0.0,
+        "isolation_penalty": 0
+      }
+    },
+    {
+      "community_id": 11,
+      "label": "ingestion-2",
+      "score": 3.55,
+      "symbol_count": 23,
+      "file_count": 8,
+      "files": [
+        "app/clients/kimi_client.py",
+        "app/clients/vlm_client.py",
+        "app/modules/ingestion/cleaning.py",
+        "app/modules/ingestion/dto.py",
+        "app/modules/ingestion/service.py",
+        "app/processing/describer.py",
+        "tests/indexing/test_index_modes.py",
+        "tests/ingestion/test_ingestion_pipeline.py"
+      ],
+      "has_entry": false,
+      "entry_reached_count": 23,
+      "hub_count": 0,
+      "cross_community_edges": 6,
+      "breakdown": {
+        "entry_proximity": 2.0,
+        "hub_density": 0.0,
+        "size": 0.95,
+        "cross_community": 0.6,
+        "isolation_penalty": 0
+      }
+    },
+    {
+      "community_id": 5,
+      "label": "ingestion",
+      "score": -0.38,
+      "symbol_count": 7,
+      "file_count": 3,
+      "files": [
+        "app/core/errors.py",
+        "app/core/logging_config.py",
+        "tests/ingestion/test_ingestion_pipeline.py"
+      ],
+      "has_entry": false,
+      "entry_reached_count": 0,
+      "hub_count": 0,
+      "cross_community_edges": 0,
+      "breakdown": {
+        "entry_proximity": 0,
+        "hub_density": 0.0,
+        "size": 0.62,
+        "cross_community": 0.0,
+        "isolation_penalty": -1.0
+      }
+    },
+    {
+      "community_id": 6,
+      "label": "area-6",
+      "score": -0.58,
+      "symbol_count": 3,
+      "file_count": 1,
+      "files": [
+        "app/core/retry.py"
+      ],
+      "has_entry": false,
+      "entry_reached_count": 0,
+      "hub_count": 0,
+      "cross_community_edges": 0,
+      "breakdown": {
+        "entry_proximity": 0,
+        "hub_density": 0.0,
+        "size": 0.42,
+        "cross_community": 0.0,
+        "isolation_penalty": -1.0
+      }
+    },
+    {
+      "community_id": 4,
+      "label": "area-4",
+      "score": -0.67,
+      "symbol_count": 2,
+      "file_count": 1,
+      "files": [
+        "app/core/errors.py"
+      ],
+      "has_entry": false,
+      "entry_reached_count": 0,
+      "hub_count": 0,
+      "cross_community_edges": 0,
+      "breakdown": {
+        "entry_proximity": 0,
+        "hub_density": 0.0,
+        "size": 0.33,
+        "cross_community": 0.0,
+        "isolation_penalty": -1.0
+      }
+    },
+    {
+      "community_id": 9,
+      "label": "processing-2",
+      "score": -0.67,
+      "symbol_count": 2,
+      "file_count": 1,
+      "files": [
+        "app/processing/chunker.py"
+      ],
+      "has_entry": false,
+      "entry_reached_count": 0,
+      "hub_count": 0,
+      "cross_community_edges": 0,
+      "breakdown": {
+        "entry_proximity": 0,
+        "hub_density": 0.0,
+        "size": 0.33,
+        "cross_community": 0.0,
+        "isolation_penalty": -1.0
+      }
+    }
+  ]
+}

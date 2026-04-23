@@ -1,0 +1,181 @@
+{
+  "metadata": {
+    "algorithm": "Leiden",
+    "modularity": 0.6997,
+    "total_communities": 9
+  },
+  "communities": [
+    {
+      "id": 2,
+      "label": "services",
+      "symbols": [
+        "api-client:requestJson",
+        "sse-client:normalizeSources",
+        "sse-client:postAskInspirationStream",
+        "sse-client:parseJsonSafely",
+        "sse-client:readSseStream",
+        "sse-client:buildApiUrl",
+        "sse-client:drainBuffer",
+        "sse-client:readJsonSafely",
+        "sse-client:processFrame",
+        "sse-client:normalizeChunkText",
+        "sse-client:parseSseFrame",
+        "sse-client:extractErrorMessage"
+      ],
+      "symbol_count": 12,
+      "cohesion": 0.0,
+      "files": [
+        "src/services/api-client.ts",
+        "src/services/sse-client.ts"
+      ]
+    },
+    {
+      "id": 7,
+      "label": "stores",
+      "symbols": [
+        "conversation:createSessionId",
+        "conversation:reset"
+      ],
+      "symbol_count": 2,
+      "cohesion": 0.0,
+      "files": [
+        "src/stores/conversation.ts"
+      ]
+    },
+    {
+      "id": 1,
+      "label": "services-2",
+      "symbols": [
+        "api-client:resolveApiBaseUrl",
+        "sse-client:resolveApiBaseUrl",
+        "sse-client:normalizeCurrentRuntimeOrigin",
+        "api-client:buildApiUrl",
+        "sse-client:isAllowedLocalHost",
+        "api-client:normalizeCurrentRuntimeOrigin",
+        "api-client:normalizeConfiguredApiBaseUrl",
+        "sse-client:normalizeConfiguredApiBaseUrl"
+      ],
+      "symbol_count": 8,
+      "cohesion": 0.0,
+      "files": [
+        "src/services/api-client.ts",
+        "src/services/sse-client.ts"
+      ]
+    },
+    {
+      "id": 6,
+      "label": "services-3",
+      "symbols": [
+        "wps-selection:start",
+        "wps-selection:handler",
+        "wps-selection:stop",
+        "wps-selection:emitIfChanged",
+        "wps-selection:resolveWpsApi",
+        "wps-selection:readSelectionSnapshot"
+      ],
+      "symbol_count": 6,
+      "cohesion": 0.0,
+      "files": [
+        "src/services/wps-selection.ts"
+      ]
+    },
+    {
+      "id": 3,
+      "label": "stores-2",
+      "symbols": [
+        "conversation:startStreaming",
+        "conversation:appendAssistantChunk",
+        "conversation:ensureStreamingAssistantMessage",
+        "conversation:appendUserActionMessage",
+        "conversation:onSources",
+        "conversation:appendAssistantMessage",
+        "conversation:attachAssistantSources",
+        "conversation:onChunk",
+        "conversation:createStreamingAssistantMessage",
+        "conversation:createMessageId",
+        "conversation:cloneSources",
+        "conversation:updateAssistantMessage"
+      ],
+      "symbol_count": 12,
+      "cohesion": 0.0,
+      "files": [
+        "src/stores/conversation.ts"
+      ]
+    },
+    {
+      "id": 5,
+      "label": "services-4",
+      "symbols": [
+        "wps-host:stopPolling",
+        "wps-host:cloneSnapshot",
+        "wps-host:writeReadResultToHostStore",
+        "host:markNoDocument",
+        "wps-host:pollOnce",
+        "host:markStale",
+        "wps-host:getSnapshot",
+        "host:markReady",
+        "host:markPolling",
+        "wps-host:startPolling",
+        "host:syncSnapshot"
+      ],
+      "symbol_count": 11,
+      "cohesion": 0.0,
+      "files": [
+        "src/services/wps-host.ts",
+        "src/stores/host.ts"
+      ]
+    },
+    {
+      "id": 8,
+      "label": "stores-3",
+      "symbols": [
+        "conversation:finishResponse",
+        "conversation:onDone",
+        "conversation:startRequest",
+        "conversation:sendPrompt",
+        "conversation:askInspiration",
+        "host:markError",
+        "conversation:onErrorEvent"
+      ],
+      "symbol_count": 7,
+      "cohesion": 0.0,
+      "files": [
+        "src/stores/conversation.ts",
+        "src/stores/host.ts"
+      ]
+    },
+    {
+      "id": 0,
+      "label": "wps-plugin",
+      "symbols": [
+        "main:GetUrlPath",
+        "main:OnOpenPane"
+      ],
+      "symbol_count": 2,
+      "cohesion": 0.0,
+      "files": [
+        "main.js",
+        "wps-plugin/main.js"
+      ]
+    },
+    {
+      "id": 4,
+      "label": "services-5",
+      "symbols": [
+        "wps-selection:normalizeString",
+        "wps-host:readSnapshotFromApi",
+        "wps-host:createReadErrorSnapshot",
+        "wps-host:createReadResult",
+        "wps-host:createUnavailableSnapshot",
+        "wps-host:createSnapshotFromApplication",
+        "wps-host:createWpsHostAdapter"
+      ],
+      "symbol_count": 7,
+      "cohesion": 0.0,
+      "files": [
+        "src/services/wps-host.ts",
+        "src/services/wps-selection.ts"
+      ]
+    }
+  ]
+}

@@ -56,3 +56,18 @@ desktop.ini
 *.zip
 *.tar.gz
 *.rar
+
+# ========================================
+# 测试产物
+# ========================================
+conversation_continuity_results.json
+rag_quality_with_content.json
+test_meta_papers/
+
+# ========================================
+# WPS 调试文件
+# ========================================
+调试/
+
+# MVP 提取数据
+project/MVP/提取数据/

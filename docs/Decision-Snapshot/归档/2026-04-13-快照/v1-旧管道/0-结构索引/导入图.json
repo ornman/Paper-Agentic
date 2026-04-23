@@ -1,0 +1,1803 @@
+{
+  "metadata": {
+    "confidence": "确定性提取",
+    "total_edges": 359
+  },
+  "edges": [
+    {
+      "source": "app/api/v1/router.py",
+      "target": "fastapi",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/api/v1/router.py",
+      "target": "app.api.v1.routes",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/api/v1/routes/config.py",
+      "target": "fastapi",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/api/v1/routes/config.py",
+      "target": "pydantic",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/api/v1/routes/config.py",
+      "target": "typing",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/api/v1/routes/config.py",
+      "target": "app.models.base",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/api/v1/routes/config.py",
+      "target": "app.core.config",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/api/v1/routes/config.py",
+      "target": "app.core.logging_config",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/api/v1/routes/config.py",
+      "target": "time",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/api/v1/routes/config.py",
+      "target": "app.clients.llm_client",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/api/v1/routes/config.py",
+      "target": "app.core.config",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/api/v1/routes/health.py",
+      "target": "fastapi",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/api/v1/routes/health.py",
+      "target": "app.models.base",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/api/v1/routes/health.py",
+      "target": "app.core.config",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/api/v1/routes/library.py",
+      "target": "shutil",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/api/v1/routes/library.py",
+      "target": "pathlib",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/api/v1/routes/library.py",
+      "target": "typing",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/api/v1/routes/library.py",
+      "target": "fastapi",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/api/v1/routes/library.py",
+      "target": "app.core.config",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/api/v1/routes/library.py",
+      "target": "app.core.error_messages",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/api/v1/routes/library.py",
+      "target": "app.core.errors",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/api/v1/routes/library.py",
+      "target": "app.models.base",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/api/v1/routes/library.py",
+      "target": "app.modules.library.service",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/api/v1/routes/library.py",
+      "target": "app.stores.qdrant_store",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/api/v1/routes/query.py",
+      "target": "fastapi",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/api/v1/routes/query.py",
+      "target": "fastapi.responses",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/api/v1/routes/query.py",
+      "target": "app.models.query",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/api/v1/routes/query.py",
+      "target": "app.models.base",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/api/v1/routes/query.py",
+      "target": "app.modules.qa.service",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/api/v1/routes/query.py",
+      "target": "app.modules.retrieval.service",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/api/v1/routes/query.py",
+      "target": "json",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/api/v1/routes/session.py",
+      "target": "fastapi",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/api/v1/routes/session.py",
+      "target": "typing",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/api/v1/routes/session.py",
+      "target": "app.models.session",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/api/v1/routes/session.py",
+      "target": "app.models.base",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/api/v1/routes/session.py",
+      "target": "app.repositories",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/api/v1/routes/session.py",
+      "target": "app.modules.session.service",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/clients/embedding_client.py",
+      "target": "httpx",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/clients/embedding_client.py",
+      "target": "app.clients.vlm_client",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/clients/embedding_client.py",
+      "target": "app.core.errors",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/clients/embedding_client.py",
+      "target": "app.core.config",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/clients/embedding_client.py",
+      "target": "app.core.retry",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/clients/kimi_client.py",
+      "target": "base64",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/clients/kimi_client.py",
+      "target": "pathlib",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/clients/kimi_client.py",
+      "target": "httpx",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/clients/kimi_client.py",
+      "target": "pydantic",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/clients/kimi_client.py",
+      "target": "app.clients.vlm_client",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/clients/kimi_client.py",
+      "target": "app.core.config",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/clients/kimi_client.py",
+      "target": "asyncio",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/clients/kimi_client.py",
+      "target": "asyncio",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/clients/llm_client.py",
+      "target": "typing",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/clients/llm_client.py",
+      "target": "openai",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/clients/llm_client.py",
+      "target": "app.core.config",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/clients/mineru_client.py",
+      "target": "time",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/clients/mineru_client.py",
+      "target": "pathlib",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/clients/mineru_client.py",
+      "target": "httpx",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/clients/mineru_client.py",
+      "target": "app.core.config",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/clients/mineru_client.py",
+      "target": "zipfile",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/clients/mineru_client.py",
+      "target": "io",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/clients/rerank_client.py",
+      "target": "httpx",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/clients/rerank_client.py",
+      "target": "app.clients.vlm_client",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/clients/rerank_client.py",
+      "target": "app.core.config",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/clients/rerank_client.py",
+      "target": "app.core.retry",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/clients/vlm_client.py",
+      "target": "abc",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/clients/vlm_client.py",
+      "target": "pathlib",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/clients/vlm_client.py",
+      "target": "pydantic",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/core/config.py",
+      "target": "functools",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/core/config.py",
+      "target": "pydantic",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/core/config.py",
+      "target": "pydantic_settings",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/core/error_messages.py",
+      "target": "typing",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/core/errors.py",
+      "target": "dataclasses",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/core/errors.py",
+      "target": "typing",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/core/logging_config.py",
+      "target": "logging",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/core/logging_config.py",
+      "target": "os",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/core/logging_config.py",
+      "target": "sys",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/core/logging_config.py",
+      "target": "datetime",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/core/logging_config.py",
+      "target": "pathlib",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/core/logging_config.py",
+      "target": "typing",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/core/logging_config.py",
+      "target": "app.core.config",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/core/retry.py",
+      "target": "asyncio",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/core/retry.py",
+      "target": "functools",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/core/retry.py",
+      "target": "typing",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/core/retry.py",
+      "target": "app.core.errors",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/core/retry.py",
+      "target": "time",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/main.py",
+      "target": "logging",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/main.py",
+      "target": "fastapi",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/main.py",
+      "target": "fastapi.responses",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/main.py",
+      "target": "fastapi.middleware.cors",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/main.py",
+      "target": "app.api.v1.router",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/main.py",
+      "target": "app.core.logging_config",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/main.py",
+      "target": "app.repositories.sqlite_repo",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/models/base.py",
+      "target": "typing",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/models/base.py",
+      "target": "pydantic",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/models/base.py",
+      "target": "dataclasses",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/models/query.py",
+      "target": "typing",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/models/query.py",
+      "target": "pydantic",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/models/session.py",
+      "target": "datetime",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/models/session.py",
+      "target": "typing",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/models/session.py",
+      "target": "pydantic",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/models/session.py",
+      "target": "sqlalchemy",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/models/session.py",
+      "target": "sqlalchemy.orm",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/models/session.py",
+      "target": "uuid",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/ingestion/cleaning.py",
+      "target": "asyncio",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/ingestion/cleaning.py",
+      "target": "pathlib",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/ingestion/cleaning.py",
+      "target": "typing",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/ingestion/cleaning.py",
+      "target": "app.clients.vlm_client",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/ingestion/cleaning.py",
+      "target": "app.clients.kimi_client",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/ingestion/cleaning.py",
+      "target": "app.core.config",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/ingestion/cleaning.py",
+      "target": "app.modules.ingestion.dto",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/ingestion/cleaning.py",
+      "target": "re",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/ingestion/dto.py",
+      "target": "typing",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/ingestion/dto.py",
+      "target": "pydantic",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/ingestion/mineru_client.py",
+      "target": "time",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/ingestion/mineru_client.py",
+      "target": "pathlib",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/ingestion/mineru_client.py",
+      "target": "typing",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/ingestion/mineru_client.py",
+      "target": "urllib.parse",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/ingestion/mineru_client.py",
+      "target": "httpx",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/ingestion/mineru_client.py",
+      "target": "pydantic",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/ingestion/mineru_client.py",
+      "target": "app.core.config",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/ingestion/mineru_client.py",
+      "target": "app.core.errors",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/ingestion/mineru_client.py",
+      "target": "app.modules.ingestion.dto",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/ingestion/mineru_client.py",
+      "target": "pathlib",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/ingestion/mineru_client.py",
+      "target": "json",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/ingestion/mineru_client.py",
+      "target": "tempfile",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/ingestion/mineru_client.py",
+      "target": "zipfile",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/ingestion/mineru_client.py",
+      "target": "urllib.parse",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/ingestion/service.py",
+      "target": "asyncio",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/ingestion/service.py",
+      "target": "pathlib",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/ingestion/service.py",
+      "target": "typing",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/ingestion/service.py",
+      "target": "app.clients.embedding_client",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/ingestion/service.py",
+      "target": "app.clients.kimi_client",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/ingestion/service.py",
+      "target": "app.clients.vlm_client",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/ingestion/service.py",
+      "target": "app.core.config",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/ingestion/service.py",
+      "target": "app.core.errors",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/ingestion/service.py",
+      "target": "app.core.retry",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/ingestion/service.py",
+      "target": "app.models.base",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/ingestion/service.py",
+      "target": "app.modules.ingestion.cleaning",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/ingestion/service.py",
+      "target": "app.modules.ingestion.dto",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/ingestion/service.py",
+      "target": "app.modules.ingestion.mineru_client",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/ingestion/service.py",
+      "target": "app.modules.library.models",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/ingestion/service.py",
+      "target": "app.modules.library.repository",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/ingestion/service.py",
+      "target": "app.processing.chunker",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/ingestion/service.py",
+      "target": "app.processing.describer",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/ingestion/service.py",
+      "target": "app.stores.qdrant_store",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/library/models.py",
+      "target": "json",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/library/models.py",
+      "target": "uuid",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/library/models.py",
+      "target": "datetime",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/library/models.py",
+      "target": "typing",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/library/models.py",
+      "target": "pydantic",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/library/models.py",
+      "target": "sqlalchemy",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/library/models.py",
+      "target": "app.models.session",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/library/repository.py",
+      "target": "json",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/library/repository.py",
+      "target": "typing",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/library/repository.py",
+      "target": "sqlalchemy",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/library/repository.py",
+      "target": "sqlalchemy.orm",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/library/repository.py",
+      "target": "app.modules.library.models",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/library/repository.py",
+      "target": "app.repositories",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/library/service.py",
+      "target": "pathlib",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/library/service.py",
+      "target": "typing",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/library/service.py",
+      "target": "urllib.parse",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/library/service.py",
+      "target": "app.modules.library.models",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/library/service.py",
+      "target": "app.modules.library.repository",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/library/service.py",
+      "target": "app.modules.ingestion.service",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/library/service.py",
+      "target": "app.modules.ingestion.service",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/library/service.py",
+      "target": "os",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/qa/__init__.py",
+      "target": "app.modules.qa.service",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/qa/service.py",
+      "target": "typing",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/qa/service.py",
+      "target": "app.clients.kimi_client",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/qa/service.py",
+      "target": "app.clients.vlm_client",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/qa/service.py",
+      "target": "app.core.retry",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/qa/service.py",
+      "target": "app.modules.retrieval.service",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/qa/service.py",
+      "target": "app.repositories.sqlite_repo",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/qa/service.py",
+      "target": "app.services.query_rewrite_service",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/retrieval/__init__.py",
+      "target": "app.modules.retrieval.service",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/retrieval/service.py",
+      "target": "typing",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/retrieval/service.py",
+      "target": "app.clients.embedding_client",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/retrieval/service.py",
+      "target": "app.clients.rerank_client",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/retrieval/service.py",
+      "target": "app.stores.qdrant_store",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/session/__init__.py",
+      "target": "app.modules.session.service",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/session/service.py",
+      "target": "json",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/session/service.py",
+      "target": "typing",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/modules/session/service.py",
+      "target": "app.repositories",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/processing/chunker.py",
+      "target": "dataclasses",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/processing/chunker.py",
+      "target": "typing",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/processing/chunker.py",
+      "target": "app.core.config",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/processing/chunker.py",
+      "target": "re",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/processing/cleaner.py",
+      "target": "json",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/processing/cleaner.py",
+      "target": "re",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/processing/cleaner.py",
+      "target": "pathlib",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/processing/cleaner.py",
+      "target": "app.models.base",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/processing/describer.py",
+      "target": "asyncio",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/processing/describer.py",
+      "target": "json",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/processing/describer.py",
+      "target": "pathlib",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/processing/describer.py",
+      "target": "app.clients.vlm_client",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/processing/describer.py",
+      "target": "app.clients.kimi_client",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/processing/describer.py",
+      "target": "app.core.config",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/processing/describer.py",
+      "target": "app.models.base",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/repositories/bm25_repo.py",
+      "target": "json",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/repositories/bm25_repo.py",
+      "target": "pickle",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/repositories/bm25_repo.py",
+      "target": "pathlib",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/repositories/bm25_repo.py",
+      "target": "typing",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/repositories/bm25_repo.py",
+      "target": "rank_bm25",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/repositories/bm25_repo.py",
+      "target": "jieba",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/repositories/bm25_repo.py",
+      "target": "app.core.config",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/repositories/sqlite_repo.py",
+      "target": "datetime",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/repositories/sqlite_repo.py",
+      "target": "typing",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/repositories/sqlite_repo.py",
+      "target": "sqlalchemy",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/repositories/sqlite_repo.py",
+      "target": "sqlalchemy.orm",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/repositories/sqlite_repo.py",
+      "target": "app.models.session",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/repositories/sqlite_repo.py",
+      "target": "app.core.config",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/repositories/sqlite_repo.py",
+      "target": "json",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/repositories/sqlite_repo.py",
+      "target": "pathlib",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/services/query_rewrite_service.py",
+      "target": "typing",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/services/query_rewrite_service.py",
+      "target": "app.clients.llm_client",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/services/query_rewrite_service.py",
+      "target": "app.models.query",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/services/query_rewrite_service.py",
+      "target": "re",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/services_archive/embedding_service.py",
+      "target": "typing",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/services_archive/embedding_service.py",
+      "target": "app.services.cleaning_service",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/services_archive/embedding_service.py",
+      "target": "app.clients.embedding_client",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/services_archive/ingest_service.py",
+      "target": "pathlib",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/services_archive/ingest_service.py",
+      "target": "typing",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/services_archive/ingest_service.py",
+      "target": "app.clients.mineru_client",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/services_archive/ingest_service.py",
+      "target": "app.core.config",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/services_archive/ingest_service.py",
+      "target": "app.models.base",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/services_archive/ingest_service.py",
+      "target": "app.processing.cleaner",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/services_archive/ingest_service.py",
+      "target": "app.processing.describer",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/services_archive/ingest_service.py",
+      "target": "app.processing.chunker",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/services_archive/ingest_service.py",
+      "target": "app.services.embedding_service",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/services_archive/ingest_service.py",
+      "target": "app.stores.qdrant_store",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/services_archive/qa_service.py",
+      "target": "typing",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/services_archive/qa_service.py",
+      "target": "app.clients.llm_client",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/services_archive/qa_service.py",
+      "target": "app.repositories",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/services_archive/qa_service.py",
+      "target": "app.models.query",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/services_archive/qa_service.py",
+      "target": "json",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/services_archive/qa_service_rag.py",
+      "target": "typing",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/services_archive/qa_service_rag.py",
+      "target": "app.clients.kimi_client",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/services_archive/qa_service_rag.py",
+      "target": "app.clients.vlm_client",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/services_archive/qa_service_rag.py",
+      "target": "app.core.config",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/services_archive/qa_service_rag.py",
+      "target": "app.models.base",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/services_archive/qa_service_rag.py",
+      "target": "app.repositories.sqlite_repo",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/services_archive/qa_service_rag.py",
+      "target": "app.services.query_rewrite_service",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/services_archive/qa_service_rag.py",
+      "target": "app.services.retrieval_service",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/services_archive/qa_service_rag.py",
+      "target": "app.stores.qdrant_store",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/services_archive/retrieval_service.py",
+      "target": "asyncio",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/services_archive/retrieval_service.py",
+      "target": "typing",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/services_archive/retrieval_service.py",
+      "target": "app.clients.rerank_client",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/services_archive/retrieval_service.py",
+      "target": "app.services.embedding_service",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/services_archive/retrieval_service.py",
+      "target": "app.services.query_rewrite_service",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/services_archive/retrieval_service.py",
+      "target": "app.stores.qdrant_store",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/services_archive/retrieval_service.py",
+      "target": "app.core.config",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/services_archive/retrieval_service.py",
+      "target": "qdrant_client.models",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/stores/qdrant_store.py",
+      "target": "pathlib",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/stores/qdrant_store.py",
+      "target": "typing",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/stores/qdrant_store.py",
+      "target": "uuid",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/stores/qdrant_store.py",
+      "target": "qdrant_client",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/stores/qdrant_store.py",
+      "target": "qdrant_client.models",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/stores/qdrant_store.py",
+      "target": "app.core.config",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/stores/qdrant_store.py",
+      "target": "app.models.base",
+      "imported_symbols": []
+    },
+    {
+      "source": "app/stores/qdrant_store.py",
+      "target": "re",
+      "imported_symbols": []
+    },
+    {
+      "source": "check_env.py",
+      "target": "os",
+      "imported_symbols": []
+    },
+    {
+      "source": "check_env.py",
+      "target": "sys",
+      "imported_symbols": []
+    },
+    {
+      "source": "check_env.py",
+      "target": "pathlib",
+      "imported_symbols": []
+    },
+    {
+      "source": "check_env.py",
+      "target": "subprocess",
+      "imported_symbols": []
+    },
+    {
+      "source": "check_env.py",
+      "target": "socket",
+      "imported_symbols": []
+    },
+    {
+      "source": "main.py",
+      "target": "uvicorn",
+      "imported_symbols": []
+    },
+    {
+      "source": "main.py",
+      "target": "app.core.config",
+      "imported_symbols": []
+    },
+    {
+      "source": "test_batch_import.py",
+      "target": "asyncio",
+      "imported_symbols": []
+    },
+    {
+      "source": "test_batch_import.py",
+      "target": "time",
+      "imported_symbols": []
+    },
+    {
+      "source": "test_batch_import.py",
+      "target": "pathlib",
+      "imported_symbols": []
+    },
+    {
+      "source": "test_batch_import.py",
+      "target": "httpx",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/conftest.py",
+      "target": "pytest",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/core/test_config_contract.py",
+      "target": "pathlib",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/core/test_config_contract.py",
+      "target": "pydantic",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/core/test_config_contract.py",
+      "target": "pytest",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/core/test_config_contract.py",
+      "target": "app.core.config",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/core/test_error_contract.py",
+      "target": "copy",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/core/test_error_contract.py",
+      "target": "importlib",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/core/test_error_contract.py",
+      "target": "pickle",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/core/test_error_contract.py",
+      "target": "app.core.errors",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/core/test_error_contract.py",
+      "target": "app.core.errors",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/core/test_error_contract.py",
+      "target": "app.core.errors",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/core/test_error_contract.py",
+      "target": "app.core.errors",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/indexing/test_index_modes.py",
+      "target": "pickle",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/indexing/test_index_modes.py",
+      "target": "uuid",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/indexing/test_index_modes.py",
+      "target": "pathlib",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/indexing/test_index_modes.py",
+      "target": "types",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/indexing/test_index_modes.py",
+      "target": "pytest",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/indexing/test_index_modes.py",
+      "target": "app.core.config",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/indexing/test_index_modes.py",
+      "target": "app.core.errors",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/indexing/test_index_modes.py",
+      "target": "app.modules.ingestion.dto",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/indexing/test_index_modes.py",
+      "target": "app.modules.indexing.chunkers.brute",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/indexing/test_index_modes.py",
+      "target": "app.modules.indexing.chunkers.brute",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/indexing/test_index_modes.py",
+      "target": "app.modules.indexing.chunkers.brute",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/indexing/test_index_modes.py",
+      "target": "app.modules.indexing.chunkers.parent_child",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/indexing/test_index_modes.py",
+      "target": "app.modules.indexing.service",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/indexing/test_index_modes.py",
+      "target": "app.modules.indexing.service",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/indexing/test_index_modes.py",
+      "target": "app.modules.indexing.bm25_repo",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/indexing/test_index_modes.py",
+      "target": "app.modules.indexing.chroma_repo",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/indexing/test_index_modes.py",
+      "target": "app.modules.indexing.service",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/indexing/test_index_modes.py",
+      "target": "app.modules.indexing.service",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/indexing/test_index_modes.py",
+      "target": "app.clients.embedding_client",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/indexing/test_index_modes.py",
+      "target": "app.modules.indexing.bm25_repo",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/indexing/test_index_modes.py",
+      "target": "app.modules.indexing.chroma_repo",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/indexing/test_index_modes.py",
+      "target": "app.modules.indexing.service",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/indexing/test_index_modes.py",
+      "target": "app.modules.indexing.chroma_repo",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/indexing/test_index_modes.py",
+      "target": "app.modules.indexing.service",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/indexing/test_index_modes.py",
+      "target": "app.modules.indexing.bm25_repo",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/indexing/test_index_modes.py",
+      "target": "app.modules.indexing.bm25_repo",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/ingestion/test_ingestion_pipeline.py",
+      "target": "uuid",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/ingestion/test_ingestion_pipeline.py",
+      "target": "pathlib",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/ingestion/test_ingestion_pipeline.py",
+      "target": "pytest",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/ingestion/test_ingestion_pipeline.py",
+      "target": "app.core.config",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/ingestion/test_ingestion_pipeline.py",
+      "target": "app.core.errors",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/ingestion/test_ingestion_pipeline.py",
+      "target": "app.repositories",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/ingestion/test_ingestion_pipeline.py",
+      "target": "app.modules.ingestion.mineru_client",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/ingestion/test_ingestion_pipeline.py",
+      "target": "app.modules.ingestion.mineru_client",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/ingestion/test_ingestion_pipeline.py",
+      "target": "app.modules.ingestion.mineru_client",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/ingestion/test_ingestion_pipeline.py",
+      "target": "app.modules.ingestion.mineru_client",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/ingestion/test_ingestion_pipeline.py",
+      "target": "app.modules.ingestion.mineru_client",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/ingestion/test_ingestion_pipeline.py",
+      "target": "app.modules.ingestion.mineru_client",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/ingestion/test_ingestion_pipeline.py",
+      "target": "app.modules.ingestion.cleaning",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/ingestion/test_ingestion_pipeline.py",
+      "target": "app.modules.library.repository",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/ingestion/test_ingestion_pipeline.py",
+      "target": "app.modules.library.service",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/ingestion/test_ingestion_pipeline.py",
+      "target": "app.modules.library.repository",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/ingestion/test_ingestion_pipeline.py",
+      "target": "app.modules.library.service",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/ingestion/test_ingestion_pipeline.py",
+      "target": "app.modules.library.repository",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/ingestion/test_ingestion_pipeline.py",
+      "target": "app.modules.library.service",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/ingestion/test_ingestion_pipeline.py",
+      "target": "app.modules.library.repository",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/ingestion/test_ingestion_pipeline.py",
+      "target": "app.modules.library.service",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/ingestion/test_ingestion_pipeline.py",
+      "target": "app.modules.ingestion.service",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/ingestion/test_ingestion_pipeline.py",
+      "target": "app.modules.library.repository",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/ingestion/test_ingestion_pipeline.py",
+      "target": "app.modules.library.service",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/ingestion/test_ingestion_pipeline.py",
+      "target": "app.modules.ingestion.service",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/ingestion/test_ingestion_pipeline.py",
+      "target": "app.modules.library.repository",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/ingestion/test_ingestion_pipeline.py",
+      "target": "app.modules.library.service",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/ingestion/test_ingestion_pipeline.py",
+      "target": "app.modules.ingestion.service",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/ingestion/test_ingestion_pipeline.py",
+      "target": "app.modules.library.repository",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/ingestion/test_ingestion_pipeline.py",
+      "target": "app.modules.library.service",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/ingestion/test_ingestion_pipeline.py",
+      "target": "app.modules.ingestion.service",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/ingestion/test_ingestion_pipeline.py",
+      "target": "app.modules.library.repository",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/ingestion/test_ingestion_pipeline.py",
+      "target": "app.modules.library.service",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/ingestion/test_ingestion_pipeline.py",
+      "target": "app.modules.ingestion.service",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/ingestion/test_ingestion_pipeline.py",
+      "target": "app.modules.library.repository",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/ingestion/test_ingestion_pipeline.py",
+      "target": "app.modules.library.service",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/library/test_document_state_machine.py",
+      "target": "uuid",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/library/test_document_state_machine.py",
+      "target": "pathlib",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/library/test_document_state_machine.py",
+      "target": "pytest",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/library/test_document_state_machine.py",
+      "target": "app.core.config",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/library/test_document_state_machine.py",
+      "target": "app.repositories",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/library/test_document_state_machine.py",
+      "target": "app.modules.library.models",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/library/test_document_state_machine.py",
+      "target": "app.modules.library.service",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/library/test_document_state_machine.py",
+      "target": "app.api.v1.router",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/library/test_document_state_machine.py",
+      "target": "app.modules.library.service",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/library/test_document_state_machine.py",
+      "target": "app.modules.library.service",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/library/test_document_state_machine.py",
+      "target": "app.modules.library.service",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/test_kimi_api.py",
+      "target": "asyncio",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/test_kimi_api.py",
+      "target": "sys",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/test_kimi_api.py",
+      "target": "pathlib",
+      "imported_symbols": []
+    },
+    {
+      "source": "tests/test_kimi_api.py",
+      "target": "httpx",
+      "imported_symbols": []
+    }
+  ]
+}
