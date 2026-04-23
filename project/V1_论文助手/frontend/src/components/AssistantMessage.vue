@@ -26,6 +26,19 @@ const props = defineProps<{
   isStreaming?: boolean
 }>()
 
+function jumpToSource(index: number) {
+  const source = props.message.sources?.[index]
+  if (!source) return
+  // TODO: 调用 WPS API 跳转到 PDF 指定页码
+  // 目前先 alert 提示
+  alert(`跳转到: ${source.title} - 第 ${source.page} 页`)
+}
+
+// 挂载到 window 以便 v-html 中的 onclick 调用
+if (typeof window !== 'undefined') {
+  (window as any).__jumpToSource = (index: number) => jumpToSource(index)
+}
+
 const formattedContent = computed(() => {
   const text = props.message.content
   return text
@@ -33,6 +46,10 @@ const formattedContent = computed(() => {
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
     .replace(/`(.+?)`/g, '<code>$1</code>')
+    .replace(/\[(\d+)\]/g, (_match, num) => {
+      const idx = parseInt(num) - 1
+      return `<a class="source-link" onclick="window.__jumpToSource(${idx})">[${num}]</a>`
+    })
     .replace(/\n/g, '<br>')
 })
 </script>
@@ -100,5 +117,19 @@ const formattedContent = computed(() => {
   border-radius: 4px;
   font-family: 'Consolas', 'Menlo', monospace;
   font-size: 13px;
+}
+
+.content-text :deep(.source-link) {
+  color: var(--color-accent);
+  text-decoration: none;
+  border-bottom: 1px dotted var(--color-accent);
+  cursor: pointer;
+  font-weight: 500;
+  padding: 0 1px;
+}
+
+.content-text :deep(.source-link:hover) {
+  background: var(--color-accent-soft);
+  border-bottom-style: solid;
 }
 </style>

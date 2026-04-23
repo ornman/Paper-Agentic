@@ -5,9 +5,12 @@
       <span class="source-count">{{ sources.length }}</span>
     </div>
     <div class="source-cards">
-      <div v-for="source in sources" :key="source.id" class="source-card">
+      <div v-for="source in sources" :key="source.id" class="source-card" @click="openSource(source)">
         <div class="source-title">{{ source.title || '未知文档' }}</div>
-        <div v-if="source.page" class="source-page">第 {{ source.page }} 页</div>
+        <div class="source-meta">
+          <span v-if="source.page" class="source-page">第 {{ source.page }} 页</span>
+          <span v-if="source.section" class="source-section">{{ source.section }}</span>
+        </div>
         <div v-if="source.snippet" class="source-snippet">{{ truncateSnippet(source.snippet) }}</div>
       </div>
     </div>
@@ -19,16 +22,25 @@ export interface SourceCard {
   id: string
   title: string
   page?: number
+  section?: string
+  file_path?: string
   snippet: string
 }
 
-defineProps<{
+const props = defineProps<{
   sources: SourceCard[]
 }>()
 
 function truncateSnippet(snippet: string, maxLength = 120) {
   if (snippet.length <= maxLength) return snippet
   return snippet.slice(0, maxLength) + '...'
+}
+
+function openSource(source: SourceCard) {
+  if (source.file_path && source.page) {
+    // TODO: WPS API 跳转
+    alert(`跳转到: ${source.title} - 第 ${source.page} 页`)
+  }
 }
 </script>
 

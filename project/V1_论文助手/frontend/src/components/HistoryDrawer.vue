@@ -1,7 +1,14 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useConversationStore } from '../stores/conversation'
 import { useLibraryStore } from '../stores/library'
+
+interface ConversationSummary {
+  session_id: string
+  msg_count: number
+  last_active: string
+  preview: string
+}
 
 type DrawerSection = 'nav' | 'library'
 
@@ -15,9 +22,63 @@ const libraryStore = useLibraryStore()
 
 const currentSection = ref<DrawerSection>('nav')
 const fileInputRef = ref<HTMLInputElement>()
+const conversationList = ref<ConversationSummary[]>([])
+const loadingHistory = ref(false)
 
 const paperCount = computed(() => libraryStore.paperCount)
 const filteredPapers = computed(() => libraryStore.filteredPapers)
+
+onMounted(() => {
+  loadConversationList()
+})
+
+async function loadConversationList() {
+  loadingHistory.value = true
+  try {
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
+    const res = await fetch(`${baseUrl}/api/v1/conversations/list?limit=20`)
+    if (res.ok) {
+      conversationList.value = await res.json()
+    }
+  } catch {
+    // 静默处理
+  } finally {
+    loadingHistory.value = false
+  }
+}
+
+async function resumeConversation(sessionId: string) {
+  try {
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
+    const res = await fetch(`${baseUrl}/api/v1/conversations/${sessionId}`)
+    if (res.ok) {
+      const data = await res.json()
+      conversationStore.loadHistory(data)
+      emit('close')
+    }
+  } catch {
+    // 静默处理
+  }
+}
+
+function formatTime(iso: string): string {
+  if (!iso) return ''
+  try {
+    const d = new Date(iso)
+    const now = new Date()
+    const diffMs = now.getTime() - d.getTime()
+    const diffMin = Math.floor(diffMs / 60000)
+    if (diffMin < 1) return '刚刚'
+    if (diffMin < 60) return `${diffMin} 分钟前`
+    const diffHour = Math.floor(diffMin / 60)
+    if (diffHour < 24) return `${diffHour} 小时前`
+    const diffDay = Math.floor(diffHour / 24)
+    if (diffDay < 7) return `${diffDay} 天前`
+    return `${d.getMonth() + 1}/${d.getDate()}`
+  } catch {
+    return ''
+  }
+}
 
 function handleNewChat() {
   conversationStore.reset()
@@ -86,6 +147,28 @@ async function confirmDelete(paperId: string) {
           <span class="nav-badge">{{ paperCount }}</span>
         </button>
       </nav>
+
+      <!-- 历史对话 -->
+      <section class="history-section">
+        <h3 class="history-title">历史对话</h3>
+        <div v-if="loadingHistory" class="history-loading">加载中...</div>
+        <div v-else-if="conversationList.length === 0" class="history-empty">暂无对话记录</div>
+        <div v-else class="history-list">
+          <button
+            v-for="conv in conversationList"
+            :key="conv.session_id"
+            class="history-item"
+            type="button"
+            @click="resumeConversation(conv.session_id)"
+          >
+            <div class="history-preview">{{ conv.preview || '对话' }}</div>
+            <div class="history-meta">
+              <span>{{ conv.msg_count }} 条消息</span>
+              <span>{{ formatTime(conv.last_active) }}</span>
+            </div>
+          </button>
+        </div>
+      </section>
     </section>
 
     <!-- 文献库 -->
@@ -299,6 +382,67 @@ async function confirmDelete(paperId: string) {
   border-bottom: none;
   border-radius: 4px 4px 0 0;
   background: var(--color-surface-muted);
+}
+
+/* ─── 历史对话 ─── */
+.history-section {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.history-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.history-loading,
+.history-empty {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  text-align: center;
+  padding: var(--space-4) 0;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.history-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: transparent;
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.history-item:hover {
+  background: var(--color-surface-card);
+  border-color: var(--color-border-subtle);
+}
+
+.history-preview {
+  font-size: 13px;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-bottom: 2px;
+}
+
+.history-meta {
+  display: flex;
+  gap: var(--space-2);
+  font-size: 11px;
+  color: var(--color-text-muted);
 }
 
 /* ─── 子页面通用 ─── */

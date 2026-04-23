@@ -218,6 +218,33 @@ export const useConversationStore = defineStore('conversation', () => {
     sessionId.value = createSessionId()
   }
 
+  function loadHistory(data: { session_id: string; messages: Array<{ role: string; content: string }> }) {
+    status.value = 'idle'
+    errorMessage.value = null
+    activeAssistantMessageId.value = null
+    pendingAssistantSources.value = null
+    sessionId.value = data.session_id
+
+    messages.value = data.messages.map((m) => {
+      if (m.role === 'user') {
+        return {
+          id: createMessageId('user'),
+          role: 'user' as const,
+          kind: 'prompt' as const,
+          content: m.content,
+          createdAt: new Date().toISOString(),
+        }
+      }
+      return {
+        id: createMessageId('assistant'),
+        role: 'assistant' as const,
+        kind: 'answer' as const,
+        content: m.content,
+        createdAt: new Date().toISOString(),
+      }
+    })
+  }
+
   return {
     status,
     errorMessage,
@@ -231,5 +258,6 @@ export const useConversationStore = defineStore('conversation', () => {
     appendAssistantMessage,
     sendPrompt,
     reset,
+    loadHistory,
   }
 })

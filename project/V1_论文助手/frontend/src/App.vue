@@ -83,6 +83,61 @@ async function handleDrop(event: DragEvent) {
   }
 }
 
+// ─── 文件选择器 ───
+const fileInputRef = ref<HTMLInputElement>()
+
+function triggerFileSelect() {
+  fileInputRef.value?.click()
+}
+
+async function handleFileSelect(event: Event) {
+  const input = event.target as HTMLInputElement
+  const files = input.files
+  if (!files || files.length === 0) return
+
+  const pdfFiles = Array.from(files).filter(f => f.name.toLowerCase().endsWith('.pdf'))
+  if (pdfFiles.length === 0) return
+
+  // 去重检查
+  await libraryStore.loadPapers()
+  const existingTitles = new Set(libraryStore.papers.map(p => p.title))
+  const duplicates = pdfFiles.filter(f => {
+    const name = f.name.replace(/\.pdf$/i, '')
+    return existingTitles.has(name)
+  })
+
+  if (duplicates.length > 0) {
+    const names = duplicates.map(f => f.name).join('、')
+    const proceed = confirm(`以下论文已存在：${names}\n\n将跳过重复文件，继续导入其他文件。`)
+    if (!proceed) {
+      input.value = ''
+      return
+    }
+  }
+
+  // 过滤掉重复文件
+  const toImport = pdfFiles.filter(f => {
+    const name = f.name.replace(/\.pdf$/i, '')
+    return !existingTitles.has(name)
+  })
+
+  if (toImport.length === 0) {
+    input.value = ''
+    return
+  }
+
+  // 打开抽屉显示进度
+  uiStore.openHistoryDrawer()
+  await nextTick()
+
+  // 逐个导入
+  for (const file of toImport) {
+    await libraryStore.importFile(file)
+  }
+
+  input.value = ''
+}
+
 // ─── 自动滚动 ───
 function scrollToBottom() {
   nextTick(() => {
@@ -161,6 +216,24 @@ watch(() => store.status, (s) => {
             @keydown="handleKeydown"
           />
           <div class="composer-toolbar">
+            <button
+              class="attach-button"
+              type="button"
+              title="导入 PDF"
+              @click="triggerFileSelect"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/>
+              </svg>
+            </button>
+            <input
+              ref="fileInputRef"
+              type="file"
+              accept=".pdf"
+              multiple
+              style="display: none"
+              @change="handleFileSelect"
+            />
             <div class="composer-spacer" />
             <button
               class="send-button"
@@ -329,5 +402,45 @@ watch(() => store.status, (s) => {
 .send-button:disabled {
   opacity: 0.3;
   cursor: not-allowed;
+}
+
+/* ─── 附件按钮（DeepSeek 风格）─── */
+.attach-button {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  transition: color 0.2s;
+  flex-shrink: 0;
+}
+
+.attach-button::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-color: transparent;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+  z-index: 0;
+}
+
+.attach-button:hover {
+  color: var(--color-text-primary);
+}
+
+.attach-button:hover::before {
+  background-color: rgba(0, 0, 0, 0.06);
+}
+
+.attach-button svg {
+  position: relative;
+  z-index: 1;
 }
 </style>
