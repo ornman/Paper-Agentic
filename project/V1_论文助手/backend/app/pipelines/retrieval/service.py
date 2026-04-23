@@ -140,11 +140,11 @@ class QAService:
             try:
                 sqlite = get_sqlite()
                 with sqlite.get_session() as session:
-                    from sqlalchemy import text as sa_text
-                    result = session.execute(
-                        sa_text("SELECT paper_id, title, file_path FROM papers WHERE paper_id IN :ids"),
-                        {"ids": tuple(paper_ids_seen)},
-                    )
+                    from sqlalchemy import text as sa_text, bindparam
+                    stmt = sa_text(
+                        "SELECT paper_id, title, file_path FROM papers WHERE paper_id IN :ids"
+                    ).bindparams(bindparam("ids", expanding=True))
+                    result = session.execute(stmt, {"ids": list(paper_ids_seen)})
                     for row in result:
                         paper_titles[row[0]] = row[1]
                         paper_paths[row[0]] = row[2]

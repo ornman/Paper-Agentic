@@ -27,7 +27,7 @@ export interface SourceCard {
   snippet: string
 }
 
-const props = defineProps<{
+defineProps<{
   sources: SourceCard[]
 }>()
 
