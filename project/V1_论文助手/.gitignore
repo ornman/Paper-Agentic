@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# 虚拟环境
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 数据目录（保留结构但忽略内容）
+data/papers/*
+data/parsed/*
+data/chunks/*
+!data/papers/.gitkeep
+!data/parsed/.gitkeep
+!data/chunks/.gitkeep
+
+# 数据库
+*.db
+*.db-shm
+*.db-wal
+
+# 日志
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 临时文件
+*.tmp
+*.bak
+*.swp
+*.swo
+*~
+
+# Claude
+.claude/
