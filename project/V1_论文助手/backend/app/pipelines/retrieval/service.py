@@ -135,17 +135,19 @@ class QAService:
                 paper_ids_seen.add(pid)
 
         paper_titles: dict[str, str] = {}
+        paper_paths: dict[str, str] = {}
         if paper_ids_seen:
             try:
                 sqlite = get_sqlite()
                 with sqlite.get_session() as session:
                     from sqlalchemy import text as sa_text
                     result = session.execute(
-                        sa_text("SELECT paper_id, title FROM papers WHERE paper_id IN :ids"),
+                        sa_text("SELECT paper_id, title, file_path FROM papers WHERE paper_id IN :ids"),
                         {"ids": tuple(paper_ids_seen)},
                     )
                     for row in result:
                         paper_titles[row[0]] = row[1]
+                        paper_paths[row[0]] = row[2]
             except Exception as e:
                 logger.warning("查询论文标题失败: %s", e)
 
@@ -165,6 +167,7 @@ class QAService:
                 "title": paper_titles.get(pid, ""),
                 "page": fields.get("source_page", 0) if isinstance(fields, dict) else 0,
                 "section": fields.get("section_title", "") if isinstance(fields, dict) else "",
+                "file_path": paper_paths.get(pid, ""),
             }
             sources.append(source_info)
             context_parts.append(
@@ -210,8 +213,10 @@ class QAService:
             logger.error("LLM 流式调用失败: %s", e)
             yield {"event": "error", "data": {"message": "LLM 服务暂时不可用"}}
 
-        # 7. 保存对话历史
+        # 7. 保存对话历史（Redis + SQLite 双写）
         if full_response:
+            import time
+            now = time.strftime("%Y-%m-%dT%H:%M:%S")
             try:
                 redis = get_redis()
                 await redis.add_message(session_id, {"role": "user", "content": query_text})
@@ -220,6 +225,21 @@ class QAService:
                 )
             except Exception:
                 pass
+            try:
+                sqlite = get_sqlite()
+                with sqlite.get_session() as session:
+                    from sqlalchemy import text as sa_text
+                    session.execute(sa_text(
+                        "INSERT INTO conversations (session_id, role, content, created_at) "
+                        "VALUES (:sid, :role, :content, :time)"
+                    ), {"sid": session_id, "role": "user", "content": query_text, "time": now})
+                    session.execute(sa_text(
+                        "INSERT INTO conversations (session_id, role, content, created_at) "
+                        "VALUES (:sid, :role, :content, :time)"
+                    ), {"sid": session_id, "role": "assistant", "content": "".join(full_response), "time": now})
+                    session.commit()
+            except Exception as e:
+                logger.warning("保存对话到 SQLite 失败: %s", e)
 
         yield {"event": "done", "data": {}}
 

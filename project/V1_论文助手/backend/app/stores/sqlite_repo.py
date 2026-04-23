@@ -66,6 +66,21 @@ class SQLiteRepo:
                 CREATE INDEX IF NOT EXISTS idx_papers_file_hash ON papers(file_hash)
             """))
             conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS conversations (
+                    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                    session_id TEXT NOT NULL,
+                    role       TEXT NOT NULL,
+                    content    TEXT NOT NULL,
+                    created_at TEXT NOT NULL
+                )
+            """))
+            conn.execute(text("""
+                CREATE INDEX IF NOT EXISTS idx_conversations_session ON conversations(session_id)
+            """))
+            conn.execute(text("""
+                CREATE INDEX IF NOT EXISTS idx_conversations_created ON conversations(created_at)
+            """))
+            conn.execute(text("""
                 CREATE INDEX IF NOT EXISTS idx_import_logs_task_id ON import_logs(task_id)
             """))
 
