@@ -11,6 +11,7 @@ from app.api.v1.deps import init_deps
 from app.api.v1.router import api_router
 from app.core.config import get_settings
 from app.stores.bm25_store import BM25Store
+from app.stores.memory_cache import MemoryCache
 from app.stores.redis_cache import RedisCache
 from app.stores.sqlite_repo import SQLiteRepo
 from app.stores.zvec_store import ZvecStore
@@ -38,7 +39,9 @@ async def lifespan(app: FastAPI):
         await redis.init()
         logger.info("Redis connected")
     except Exception as e:
-        logger.warning("Redis unavailable (%s) — features needing Redis will fail", e)
+        logger.warning("Redis 不可用 (%s)，使用内存缓存替代", e)
+        redis = MemoryCache(ttl=settings.redis_ttl)
+        await redis.init()
 
     bm25 = BM25Store("./data/bm25_index")
     bm25.init()

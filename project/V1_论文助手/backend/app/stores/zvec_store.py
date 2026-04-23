@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import atexit
 import logging
 import os
 import time
@@ -42,18 +43,21 @@ class ZvecStore:
         if not os.path.exists(self._path):
             self._collection = zvec.create_and_open(self._path, schema)
             logger.info("Zvec 新建: %s", self._path)
+            self._register_atexit()
             return
 
         # 尝试正常打开
         col = self._try_open_with_lock_recovery()
         if col is not None:
             self._collection = col
+            self._register_atexit()
             return
 
         # 所有尝试都失败 → 创建新库（只在目录为空时）
         if self._is_data_dir_empty():
             logger.warning("Zvec 目录为空，重新创建: %s", self._path)
             self._collection = zvec.create_and_open(self._path, schema)
+            self._register_atexit()
             return
 
         # 目录有数据但打不开 → 致命错误，不删数据
@@ -121,6 +125,24 @@ class ZvecStore:
                 self._collection.flush()
             except Exception as e:
                 logger.warning("Zvec flush 失败: %s", e)
+            # 释放底层 C++ 句柄，让 RocksDB 正常释放 LOCK
+            try:
+                self._collection = None
+            except Exception:
+                pass
+
+    def _register_atexit(self) -> None:
+        """注册 atexit 钩子，确保进程退出时释放 LOCK"""
+        collection = self._collection
+
+        def _cleanup():
+            if collection is not None:
+                try:
+                    collection.flush()
+                except Exception:
+                    pass
+
+        atexit.register(_cleanup)
 
     def insert_chunks(
         self,
