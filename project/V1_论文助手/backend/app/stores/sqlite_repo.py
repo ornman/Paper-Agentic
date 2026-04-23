@@ -47,6 +47,22 @@ class SQLiteRepo:
                 )
             """))
             conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS import_progress (
+                    paper_id    TEXT PRIMARY KEY,
+                    file_path   TEXT NOT NULL,
+                    file_hash   TEXT NOT NULL UNIQUE,
+                    stage       TEXT NOT NULL DEFAULT 'pending',
+                    error_msg   TEXT,
+                    updated_at  TEXT NOT NULL
+                )
+            """))
+            conn.execute(text("""
+                CREATE INDEX IF NOT EXISTS idx_import_progress_stage ON import_progress(stage)
+            """))
+            conn.execute(text("""
+                CREATE INDEX IF NOT EXISTS idx_import_progress_hash ON import_progress(file_hash)
+            """))
+            conn.execute(text("""
                 CREATE INDEX IF NOT EXISTS idx_papers_file_hash ON papers(file_hash)
             """))
             conn.execute(text("""

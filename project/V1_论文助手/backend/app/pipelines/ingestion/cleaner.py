@@ -11,8 +11,11 @@ MinerU 输出 full.md（主文本）+ layout.json（结构化元数据）+ image
 
 from __future__ import annotations
 
+import logging
 import re
 from dataclasses import dataclass
+
+logger = logging.getLogger("paper-assistant")
 
 
 @dataclass
@@ -184,6 +187,10 @@ def _detect_zones(lines: list[str]) -> list[_Zone]:
         if re.match(r"^摘\s*要\s*[：:]", stripped):
             body_start = idx
             break
+        # 中文括号格式：【摘要】、【摘要】：、【关键词】
+        if re.match(r"^【摘\s*要】", stripped):
+            body_start = idx
+            break
         # 英文 Abstract（纯英文论文）
         if stripped in ("# Abstract", "# ABSTRACT", "## Abstract", "## ABSTRACT"):
             if body_start == n:
@@ -193,7 +200,13 @@ def _detect_zones(lines: list[str]) -> list[_Zone]:
     if body_start == n:
         body_start = _find_first_chapter(lines)
 
+    # 智能降级：找不到任何标准格式时，把整个文档视为 body
+    if body_start == n and len(lines) > 5:
+        logger.debug("清洗器降级: 无法识别标准格式，全文档处理 (%d lines)", len(lines))
+        body_start = 0
+
     # 摘要之后、正文第一章之前还有 ABSTRACT 段和英文目录，跳过
+    # 但如果找不到章节标题，就从摘要位置开始（期刊论文格式）
     real_body_start = body_start
     if body_start < n:
         ch_idx = _find_first_chapter(lines, start=body_start + 1)

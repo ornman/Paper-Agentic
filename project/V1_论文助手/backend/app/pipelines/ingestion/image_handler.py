@@ -23,8 +23,16 @@ async def inject_image_descriptions(
     paper_dir: str,
     vlm: VLMClient,
     concurrency: int = 2,
+    on_error: str = "fail",
 ) -> str:
-    """扫描 MD 中的图片引用，调用 VLM 生成描述，回填到 alt text"""
+    """扫描 MD 中的图片引用，调用 VLM 生成描述，回填到 alt text
+
+    Args:
+        on_error: VLM 失败时的策略
+            "fail" - 整批失败时抛异常（原行为）
+            "skip" - 跳过失败的图片，不回填
+            "default" - 失败的图片用默认 alt 文本
+    """
     cache = _load_cache(paper_dir)
 
     pattern = re.compile(r"!\[\]\((images/[^)]+)\)")
@@ -50,25 +58,57 @@ async def inject_image_descriptions(
     logger.info("图片描述注入: %d 张（缓存命中 %d，需描述 %d）", len(unique), cached_hits, len(to_describe))
 
     if to_describe:
-        sem = asyncio.Semaphore(concurrency)
+        if on_error == "fail":
+            # 原逻辑：批量调用，失败抛异常
+            sem = asyncio.Semaphore(concurrency)
 
-        async def _describe_batch_group(items: list[tuple[str, str]]) -> list[tuple[str, str]]:
-            async with sem:
-                paths = [path for _, path in items]
-                descs = await vlm.describe_batch(paths)
-                return [(items[i][0], descs[i]) for i in range(len(items))]
+            async def _describe_batch_group(items: list[tuple[str, str]]) -> list[tuple[str, str]]:
+                async with sem:
+                    paths = [path for _, path in items]
+                    descs = await vlm.describe_batch(paths)
+                    return [(items[i][0], descs[i]) for i in range(len(items))]
 
-        # 每批并发组最多 concurrency 个组同时跑
-        results = await asyncio.gather(
-            *[_describe_batch_group(to_describe[i : i + 5]) for i in range(0, len(to_describe), 5)],
-            return_exceptions=True,
-        )
-        for r in results:
-            if isinstance(r, Exception):
-                logger.warning("VLM 批量调用失败: %s", r)
-            else:
-                for ref, desc in r:
-                    cache[ref] = desc
+            results = await asyncio.gather(
+                *[_describe_batch_group(to_describe[i : i + 5]) for i in range(0, len(to_describe), 5)],
+                return_exceptions=True,
+            )
+            for r in results:
+                if isinstance(r, Exception):
+                    logger.warning("VLM 批量调用失败: %s", r)
+                else:
+                    for ref, desc in r:
+                        cache[ref] = desc
+        else:
+            # 容错模式：逐个处理，失败不阻塞
+            sem = asyncio.Semaphore(concurrency)
+            failed_count = 0
+
+            async def _describe_one(img_ref: str, img_path: str) -> tuple[str, str | None]:
+                async with sem:
+                    try:
+                        descs = await vlm.describe_batch([img_path])
+                        return (img_ref, descs[0])
+                    except Exception as e:
+                        logger.warning("VLM 描述失败: %s → %s", img_path, e)
+                        return (img_ref, None)
+
+            tasks = [_describe_one(ref, path) for ref, path in to_describe]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+
+            for r in results:
+                if isinstance(r, Exception):
+                    failed_count += 1
+                    continue
+                img_ref, desc = r
+                if desc and desc != "description unavailable":
+                    cache[img_ref] = desc
+                elif on_error == "default":
+                    cache[img_ref] = "图片"
+                else:
+                    failed_count += 1
+
+            if failed_count:
+                logger.warning("VLM 容错: %d/%d 张图片描述失败", failed_count, len(to_describe))
 
         _save_cache(paper_dir, cache)
 

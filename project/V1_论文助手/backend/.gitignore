@@ -6,3 +6,4 @@ data/
 .venv/
 dist/
 *.egg-info/
+# .pytest_cache 和 uv.lock 是构建/缓存产物，通常应该提交 uv.lock

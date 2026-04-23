@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from collections.abc import AsyncIterator
 
-from app.api.v1.deps import get_bm25, get_redis, get_zvec
+from app.api.v1.deps import get_bm25, get_redis, get_sqlite, get_zvec
 from app.clients.embedding_client import EmbeddingClient
 from app.clients.llm_client import LLMClient
 from app.pipelines.ingestion.chunker import estimate_tokens
@@ -126,6 +126,29 @@ class QAService:
         sources: list[dict] = []
         total_tokens = 0
 
+        # 批量查询 paper_id → title 映射
+        paper_ids_seen: set[str] = set()
+        for doc in results:
+            fields = doc.fields if hasattr(doc, "fields") else {}
+            pid = fields.get("paper_id", "") if isinstance(fields, dict) else ""
+            if pid:
+                paper_ids_seen.add(pid)
+
+        paper_titles: dict[str, str] = {}
+        if paper_ids_seen:
+            try:
+                sqlite = get_sqlite()
+                with sqlite.get_session() as session:
+                    from sqlalchemy import text as sa_text
+                    result = session.execute(
+                        sa_text("SELECT paper_id, title FROM papers WHERE paper_id IN :ids"),
+                        {"ids": tuple(paper_ids_seen)},
+                    )
+                    for row in result:
+                        paper_titles[row[0]] = row[1]
+            except Exception as e:
+                logger.warning("查询论文标题失败: %s", e)
+
         for doc in results:
             fields = doc.fields if hasattr(doc, "fields") else {}
             content = fields.get("content", "") if isinstance(fields, dict) else ""
@@ -136,8 +159,10 @@ class QAService:
             if total_tokens + tokens > _MAX_CONTEXT_TOKENS:
                 break
 
+            pid = fields.get("paper_id", "") if isinstance(fields, dict) else ""
             source_info = {
-                "paper_id": fields.get("paper_id", "") if isinstance(fields, dict) else "",
+                "paper_id": pid,
+                "title": paper_titles.get(pid, ""),
                 "page": fields.get("source_page", 0) if isinstance(fields, dict) else 0,
                 "section": fields.get("section_title", "") if isinstance(fields, dict) else "",
             }
