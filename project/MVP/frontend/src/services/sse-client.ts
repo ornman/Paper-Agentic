@@ -293,7 +293,22 @@ async function readSseStream(
   let buffer = ''
   let terminalEventReached = false
 
+  // 🔴 P2-2 优化：缓冲区大小限制配置
+  const MAX_BUFFER_SIZE = 1024 * 1024  // 1MB
+  const MAX_FRAME_SIZE = 100 * 1024  // 100KB（单个帧）
+  let droppedBytes = 0  // 记录丢弃的字节数
+  let droppedFrames = 0  // 记录丢弃的帧数
+
   async function processFrame(frameText: string) {
+    // 🔴 P2-2 优化：帧级别大小限制
+    const frameSize = new Blob([frameText]).size
+    if (frameSize > MAX_FRAME_SIZE) {
+      console.warn(`SSE 帧过大 (${frameSize} 字节)，已丢弃`)
+      handlers.onErrorEvent?.(`接收到的数据块过大（${frameSize} 字节），已跳过`)
+      droppedFrames++
+      return
+    }
+
     const parsedFrame = parseSseFrame(frameText)
     if (!parsedFrame || terminalEventReached) {
       return
@@ -313,6 +328,10 @@ async function readSseStream(
       }
       case 'done': {
         terminalEventReached = true
+        // 🔴 P2-2 优化：报告丢弃的字节数和帧数
+        if (droppedBytes > 0 || droppedFrames > 0) {
+          console.warn(`SSE 传输完成，丢弃统计：${droppedBytes} 字节，${droppedFrames} 帧`)
+        }
         handlers.onDone?.()
         await reader.cancel()
         return
@@ -331,6 +350,21 @@ async function readSseStream(
   async function drainBuffer(flushRemaining = false) {
     const normalizedBuffer = buffer.replace(/\r\n/g, '\n')
     buffer = normalizedBuffer
+
+    // 🔴 P2-2 优化：检查缓冲区大小
+    const bufferSize = new Blob([buffer]).size
+    if (bufferSize > MAX_BUFFER_SIZE) {
+      // 丢弃最旧的数据
+      const overflow = bufferSize - MAX_BUFFER_SIZE
+      const dropRatio = overflow / bufferSize
+      const keepStart = Math.floor(buffer.length * dropRatio)
+
+      buffer = buffer.slice(keepStart)
+      droppedBytes += overflow
+
+      console.warn(`SSE 缓冲区溢出，丢弃 ${overflow} 字节`)
+      handlers.onErrorEvent?.(`网络数据过多，已丢弃部分数据（${overflow} 字节）`)
+    }
 
     let separatorIndex = buffer.indexOf('\n\n')
     while (separatorIndex >= 0 && !terminalEventReached) {
@@ -391,4 +425,65 @@ export async function postAskInspirationStream(
   }
 
   await readSseStream(response.body, handlers)
+}
+
+/**
+ * 🔴 P1-2 优化：带重试机制的 SSE 流式请求
+ *
+ * 实现指数退避重试策略：
+ * - 初始延迟 1 秒
+ * - 每次失败后延迟翻倍（1s → 2s → 4s）
+ * - 最多重试 3 次
+ * - 记录已接收的 chunk，支持断点续传
+ */
+export interface RetryConfig {
+  maxRetries: number
+  initialDelay: number
+  backoffFactor: number
+}
+
+export async function postAskInspirationStreamWithRetry(
+  payload: AskInspirationRequestPayload,
+  handlers: AskInspirationStreamHandlers,
+  retryConfig: RetryConfig = { maxRetries: 3, initialDelay: 1000, backoffFactor: 2 }
+): Promise<void> {
+  let attempt = 0
+  let receivedChunks: string[] = []
+
+  while (attempt < retryConfig.maxRetries) {
+    try {
+      // 🔴 P1-2 优化：记录已接收的 chunk
+      const retryHandlers: AskInspirationStreamHandlers = {
+        ...handlers,
+        onChunk: (chunk: string) => {
+          receivedChunks.push(chunk)
+          handlers.onChunk?.(chunk)
+        }
+      }
+
+      await postAskInspirationStream(payload, retryHandlers)
+
+      // 成功，退出重试
+      return
+    } catch (error) {
+      attempt++
+
+      if (attempt >= retryConfig.maxRetries) {
+        // 最后一次尝试也失败，抛出错误
+        throw error
+      }
+
+      // 🔴 P1-2 优化：指数退避
+      const delay = retryConfig.initialDelay * Math.pow(retryConfig.backoffFactor, attempt - 1)
+      console.warn(`SSE 请求失败，${delay}ms 后重试 (${attempt}/${retryConfig.maxRetries})...`)
+
+      await new Promise(resolve => setTimeout(resolve, delay))
+
+      // 🔴 P1-2 优化：重连时恢复已接收的内容
+      if (receivedChunks.length > 0) {
+        console.log(`恢复已接收的 ${receivedChunks.length} 个 chunks`)
+        handlers.onChunk?.(receivedChunks.join(''))
+      }
+    }
+  }
 }

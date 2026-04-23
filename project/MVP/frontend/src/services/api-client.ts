@@ -217,12 +217,54 @@ export async function fetchLibraryDocuments(): Promise<LibraryDocumentRecord[]> 
 }
 
 /**
+ * 🔴 P2-1 优化：前端 PDF 路径校验
+ *
+ * 在发送请求前进行前端校验，提供即时反馈
+ */
+function validatePdfPath(filePath: string): { valid: boolean; error?: string } {
+  const trimmed = filePath.trim()
+
+  // 空路径
+  if (!trimmed) {
+    return { valid: false, error: "请输入 PDF 文件路径" }
+  }
+
+  // 路径遍历检测
+  if (trimmed.includes('..') || trimmed.startsWith('.')) {
+    return { valid: false, error: "路径不能包含 .. 或以 . 开头" }
+  }
+
+  // 文件扩展名校验
+  if (!trimmed.toLowerCase().endsWith('.pdf')) {
+    return { valid: false, error: "只支持 .pdf 文件" }
+  }
+
+  // URI/UNC 检测
+  if (trimmed.includes('://') || /^\\\\|^\//.test(trimmed)) {
+    return { valid: false, error: "只支持本地文件路径" }
+  }
+
+  // 路径长度限制（Windows MAX_PATH）
+  if (trimmed.length > 260) {
+    return { valid: false, error: "路径过长（最大 260 字符）" }
+  }
+
+  return { valid: true }
+}
+
+/**
  * 提交 PDF 路径导入请求。
  *
+ * 🔴 P2-1 优化：添加前端路径预校验
  * 第一版索引模式固定为 brute，
  * 这里直接在 API 层锁死，避免页面层自己拼装魔法字符串。
  */
 export async function importLibraryPdf(filePath: string): Promise<LibraryDocumentRecord> {
+  // 🔴 P2-1 优化：前端预校验
+  const validation = validatePdfPath(filePath)
+  if (!validation.valid) {
+    throw new ApiClientError(validation.error!, 400)
+  }
   const payload: LibraryImportPayload = {
     file_path: filePath,
     index_mode: 'brute',

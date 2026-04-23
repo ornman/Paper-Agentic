@@ -94,6 +94,13 @@ export const useConversationStore = defineStore('conversation', () => {
   const errorMessage = ref<string | null>(null)
   const messages = ref<ConversationRecord[]>([])
 
+  // 🔴 P1-2 优化：重试状态管理
+  const retryState = ref({
+    canRetry: false,
+    lastPayload: null as AskInspirationRequestPayload | null,
+    retryCount: 0
+  })
+
   /**
    * 当前前端单会话的 session_id。
    *
@@ -326,6 +333,11 @@ export const useConversationStore = defineStore('conversation', () => {
       content: '基于当前论文草稿获取灵感',
       kind: 'action',
     })
+
+    // 🔴 P1-2 优化：保存 payload 用于重试
+    retryState.value.lastPayload = payload
+    retryState.value.canRetry = false
+
     // 注意：不要在拿到任何 chunk 之前就创建空的 assistant message。
     //
     // 原因：
@@ -333,7 +345,10 @@ export const useConversationStore = defineStore('conversation', () => {
     // - 正确的行为是：只有确认收到内容/来源后，才创建并增量填充 assistant message。
 
     try {
-      await postAskInspirationStream(payload, {
+      // 🔴 P1-2 优化：使用带重试的 SSE 请求
+      const { postAskInspirationStreamWithRetry } = await import('../services/sse-client')
+
+      await postAskInspirationStreamWithRetry(payload, {
         onChunk(chunkText) {
           if (status.value !== 'streaming') {
             startStreaming()
@@ -352,11 +367,16 @@ export const useConversationStore = defineStore('conversation', () => {
           finishResponse()
           activeAssistantMessageId.value = null
           pendingAssistantSources.value = null
+          // 🔴 P1-2 优化：成功后清除重试状态
+          retryState.value.canRetry = false
+          retryState.value.retryCount = 0
         },
         onErrorEvent(message) {
           markError(message)
           activeAssistantMessageId.value = null
           pendingAssistantSources.value = null
+          // 🔴 P1-2 优化：错误时允许重试
+          retryState.value.canRetry = true
         },
       })
 
@@ -376,6 +396,9 @@ export const useConversationStore = defineStore('conversation', () => {
       markError(message)
       activeAssistantMessageId.value = null
       pendingAssistantSources.value = null
+      // 🔴 P1-2 优化：错误时允许重试并增加重试计数
+      retryState.value.canRetry = true
+      retryState.value.retryCount++
     }
   }
 
@@ -406,11 +429,16 @@ export const useConversationStore = defineStore('conversation', () => {
           finishResponse()
           activeAssistantMessageId.value = null
           pendingAssistantSources.value = null
+          // 🔴 P1-2 优化：成功后清除重试状态
+          retryState.value.canRetry = false
+          retryState.value.retryCount = 0
         },
         onErrorEvent(message) {
           markError(message)
           activeAssistantMessageId.value = null
           pendingAssistantSources.value = null
+          // 🔴 P1-2 优化：错误时允许重试
+          retryState.value.canRetry = true
         },
       })
 
