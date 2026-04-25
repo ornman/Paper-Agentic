@@ -1,9 +1,12 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { SourceCard } from '../components/SourceCardList.vue'
+import type { SourceCard } from '../types/source'
 import { ApiClientError, postJson } from '../services/api-client'
 import { postAskStream } from '../services/sse-client'
 import type { AskRequestPayload } from '../services/sse-client'
+import { useLogger } from '../composables/logger'
+
+const log = useLogger('api')
 
 export type ConversationStatus = 'idle' | 'requesting' | 'streaming' | 'done' | 'error'
 
@@ -43,7 +46,13 @@ function createSessionId() {
 
 function cloneSources(sources: readonly SourceCard[] | undefined): SourceCard[] | undefined {
   if (!sources) return undefined
-  return sources.map(s => ({ ...s }))
+  return sources.map((source) => ({ ...source }))
+}
+
+function extractConversationTitle(messages: Array<{ role: string; content: string }>): string {
+  const firstUserMessage = messages.find((message) => message.role === 'user' && message.content.trim())
+  if (!firstUserMessage) return ''
+  return firstUserMessage.content.trim().slice(0, 20)
 }
 
 export const useConversationStore = defineStore('conversation', () => {
@@ -85,22 +94,6 @@ export const useConversationStore = defineStore('conversation', () => {
       kind: payload.kind ?? 'action',
       content: payload.content,
       createdAt: payload.createdAt ?? new Date().toISOString(),
-    }
-    messages.value = [...messages.value, nextMessage]
-  }
-
-  function appendAssistantMessage(payload: {
-    content: string
-    sources?: SourceCard[]
-    createdAt?: string
-  }) {
-    const nextMessage: ConversationAssistantMessage = {
-      id: createMessageId('assistant'),
-      role: 'assistant',
-      kind: 'answer',
-      content: payload.content,
-      createdAt: payload.createdAt ?? new Date().toISOString(),
-      sources: cloneSources(payload.sources),
     }
     messages.value = [...messages.value, nextMessage]
   }
@@ -168,27 +161,38 @@ export const useConversationStore = defineStore('conversation', () => {
       content: payload.prompt,
       kind: 'prompt',
     })
+    log.info('发送问题', {
+      sessionId: payload.session_id,
+      enableRag: payload.enable_rag,
+      paperCount: payload.paper_ids?.length ?? 0,
+    })
 
     try {
+      let chunkCount = 0
       await postAskStream(payload, {
         onChunk(chunkText) {
           if (status.value !== 'streaming') {
             startStreaming()
+            log.info('收到首个流式分片', { sessionId: payload.session_id })
           }
+          chunkCount += 1
           appendAssistantChunk(chunkText)
         },
         onSources(sources) {
           if (status.value !== 'streaming') {
             startStreaming()
           }
+          log.info('收到来源数据', { count: sources.length, sessionId: payload.session_id })
           attachAssistantSources(sources)
         },
         onDone() {
+          log.info('流式响应完成', { sessionId: payload.session_id, chunkCount })
           finishResponse()
           activeAssistantMessageId.value = null
           pendingAssistantSources.value = null
         },
         onErrorEvent(message) {
+          log.warn('流式响应事件错误', { sessionId: payload.session_id, message })
           markError(message)
           activeAssistantMessageId.value = null
           pendingAssistantSources.value = null
@@ -201,18 +205,15 @@ export const useConversationStore = defineStore('conversation', () => {
         pendingAssistantSources.value = null
       }
 
-      // 首条消息后自动生成标题
       if (isFirstMessage && payload.prompt.trim()) {
         try {
-          const result = await postJson<{ title: string }>(
-            '/api/v1/query/generate-title',
-            { message: payload.prompt }
-          )
+          const result = await postJson<{ title: string }>('/api/v1/query/generate-title', {
+            message: payload.prompt,
+          })
           if (result.title) {
             title.value = result.title
           }
         } catch {
-          // 标题生成失败不影响主流程，使用消息前 20 字
           title.value = payload.prompt.slice(0, 20)
         }
       }
@@ -221,6 +222,7 @@ export const useConversationStore = defineStore('conversation', () => {
         error instanceof ApiClientError || error instanceof Error
           ? error.message
           : '发送失败，请稍后重试'
+      log.error('发送问题失败', error, { sessionId: payload.session_id })
       markError(message)
       activeAssistantMessageId.value = null
       pendingAssistantSources.value = null
@@ -237,28 +239,30 @@ export const useConversationStore = defineStore('conversation', () => {
     title.value = 'AIForScience'
   }
 
-  function loadHistory(data: { session_id: string; messages: Array<{ role: string; content: string }> }) {
+  function loadHistory(data: { session_id: string; title?: string; messages: Array<{ role: string; content: string }> }) {
     status.value = 'idle'
     errorMessage.value = null
     activeAssistantMessageId.value = null
     pendingAssistantSources.value = null
     sessionId.value = data.session_id
+    title.value = data.title?.trim() || extractConversationTitle(data.messages) || 'AIForScience'
 
-    messages.value = data.messages.map((m) => {
-      if (m.role === 'user') {
+    messages.value = data.messages.map((message) => {
+      if (message.role === 'user') {
         return {
           id: createMessageId('user'),
           role: 'user' as const,
           kind: 'prompt' as const,
-          content: m.content,
+          content: message.content,
           createdAt: new Date().toISOString(),
         }
       }
+
       return {
         id: createMessageId('assistant'),
         role: 'assistant' as const,
         kind: 'answer' as const,
-        content: m.content,
+        content: message.content,
         createdAt: new Date().toISOString(),
       }
     })
@@ -275,7 +279,6 @@ export const useConversationStore = defineStore('conversation', () => {
     finishResponse,
     markError,
     appendUserActionMessage,
-    appendAssistantMessage,
     sendPrompt,
     reset,
     loadHistory,

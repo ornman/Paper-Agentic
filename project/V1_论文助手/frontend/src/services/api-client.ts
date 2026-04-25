@@ -77,7 +77,7 @@ function resolveApiBaseUrl(): string {
   return normalizeConfiguredApiBaseUrl(configuredBaseUrl)
 }
 
-function buildApiUrl(pathname: string): string {
+export function buildApiUrl(pathname: string): string {
   const apiBaseUrl = resolveApiBaseUrl()
   const normalizedPathname = pathname.startsWith('/') ? pathname : `/${pathname}`
 
@@ -129,6 +129,11 @@ async function requestJson<TData>(pathname: string, init?: RequestInit): Promise
   }
 
   return payload as ApiResponseEnvelope<TData>
+}
+
+export async function requestJsonData<TData>(pathname: string, init?: RequestInit): Promise<TData> {
+  const response = await requestJson<TData>(pathname, init)
+  return response.data as TData
 }
 
 export async function fetchHealthCheck(): Promise<{ status: string }> {

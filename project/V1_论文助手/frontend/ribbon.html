@@ -2,22 +2,9 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <title>WPS 插件入口</title>
-  <script src="https://wps.cn/2019/v1/wpsjsrpcsdk.js"></script>
+  <title>AIForScience 历史入口</title>
 </head>
 <body>
-  <script>
-    // WPS 插件初始化
-    function OnOpenPane() {
-      wps.ShowDialog('http://localhost:3001/taskpane.html', '论文助手', 800, 600, true)
-    }
-
-    // 自动打开任务窗格
-    window.onload = function() {
-      if (typeof wps !== 'undefined') {
-        OnOpenPane()
-      }
-    }
-  </script>
+  <p>该页面为旧版调试残留，当前不再作为正式 WPS Ribbon 入口使用。</p>
 </body>
 </html>

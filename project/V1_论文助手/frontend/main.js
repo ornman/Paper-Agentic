@@ -1,40 +1,16 @@
 /**
- * WPS 插件桥接层 - V1 项目
- *
- * 负责处理 Ribbon 回调和 TaskPane 打开
+ * 历史 WPS 宿主桥接文件。
+ * 正式桥接入口使用 frontend/wps-plugin/main.js，构建后复制到 dist/main.js。
  */
 
 function OnAddinLoad() {
-  console.log('[WPS Plugin V1] 插件已加载');
-  return true;
-}
-
-function GetUrlPath() {
-  const e = document.location.toString();
-  return -1 != (e = decodeURI(e)).indexOf('/') && (e = e.substring(0, e.lastIndexOf('/'))), e;
+  return false;
 }
 
 function OnOpenPane() {
-  console.log('[WPS Plugin V1] 打开 TaskPane');
-
-  try {
-    const taskPane = Application.CreateTaskPane(GetUrlPath() + '/taskpane.html');
-    taskPane.Title = '论文写作助手 V1';
-    taskPane.Visible = true;
-    taskPane.DockPosition = 2; // 右侧停靠
-    taskPane.Width = 450;
-
-    console.log('[WPS Plugin V1] TaskPane 已创建');
-    return true;
-  } catch (error) {
-    const message = error?.message ?? String(error);
-    console.error('[WPS Plugin V1] 打开失败:', message);
-    alert('打开助手失败: ' + message);
-    return false;
-  }
+  alert('旧调试插件入口已停用，请删除它并只保留 dist/manifest.xml 对应的正式插件。');
+  return false;
 }
 
-// 挂载到全局
 window.OnAddinLoad = OnAddinLoad;
 window.OnOpenPane = OnOpenPane;
-window.GetUrlPath = GetUrlPath;

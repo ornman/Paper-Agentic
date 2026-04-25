@@ -1,18 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- 旧调试入口已停用。正式插件入口只使用 dist/manifest.xml。 -->
 <oaddin xmlns="http://www.wps.cn/office/addins/1.0">
-    <id>com.aiforscience.assistant</id>
-    <name>AIForScience</name>
-    <version>1.0.0</version>
+    <id>com.aiforscience.assistant.legacy-placeholder</id>
+    <name>LegacyPlaceholder</name>
+    <version>0.0.0</version>
     <provider>Thesis Assistant Team</provider>
-    <description>基于 RAG 的学术论文写作辅助工具</description>
+    <description>占位文件，禁止作为插件入口加载。</description>
     <defaultLocale>zh-CN</defaultLocale>
-
-    <hosts>
-        <host name="wps" />
-    </hosts>
-
-    <resources>
-        <ribbon>wps-plugin/ribbon.xml</ribbon>
-        <page>wps-plugin/main.html</page>
-    </resources>
+    <hosts />
+    <resources />
 </oaddin>

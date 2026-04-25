@@ -114,11 +114,15 @@ onMounted(() => {
   store.loadPapers()
 })
 
-function handleFileSelect(event: Event) {
+async function handleFileSelect(event: Event) {
   const input = event.target as HTMLInputElement
-  const file = input.files?.[0]
-  if (!file) return
-  store.importFile(file)
+  const files = input.files ? Array.from(input.files) : []
+  if (files.length > 0) {
+    try {
+      await store.importFiles(files)
+    } catch {
+    }
+  }
   input.value = ''
 }
 

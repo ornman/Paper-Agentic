@@ -30,6 +30,7 @@ const filteredPapers = computed(() => libraryStore.filteredPapers)
 
 onMounted(() => {
   loadConversationList()
+  libraryStore.loadPapers()
 })
 
 async function loadConversationList() {
@@ -96,11 +97,14 @@ function goBack() {
   currentSection.value = 'nav'
 }
 
-function handleFileSelect(event: Event) {
+async function handleFileSelect(event: Event) {
   const input = event.target as HTMLInputElement
-  const file = input.files?.[0]
-  if (file) {
-    libraryStore.importFile(file)
+  const files = input.files ? Array.from(input.files) : []
+  if (files.length > 0) {
+    try {
+      await libraryStore.importFiles(files)
+    } catch {
+    }
   }
   input.value = ''
 }
@@ -248,7 +252,7 @@ async function confirmDelete(paperId: string) {
             <div class="paper-title" :title="paper.title">{{ paper.title }}</div>
             <div class="paper-meta">
               <span v-if="paper.authors">{{ paper.authors }}</span>
-              <span>{{ paper.chunk_count }} 块</span>
+              <span :title="`已切分为 ${paper.chunk_count} 个检索片段`" class="chunk-count">{{ paper.chunk_count }} 块</span>
               <span>{{ formatDate(paper.import_time) }}</span>
             </div>
           </div>
@@ -624,9 +628,13 @@ async function confirmDelete(paperId: string) {
   font-size: 13px;
   font-weight: 500;
   color: var(--color-text-primary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.4;
+  max-height: 2.8em;
   margin-bottom: 2px;
 }
 
@@ -636,6 +644,11 @@ async function confirmDelete(paperId: string) {
   font-size: 11px;
   color: var(--color-text-muted);
   flex-wrap: wrap;
+}
+
+.chunk-count {
+  cursor: help;
+  border-bottom: 1px dotted var(--color-text-secondary);
 }
 
 .delete-btn {

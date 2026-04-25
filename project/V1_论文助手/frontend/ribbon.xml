@@ -1,12 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<customUI xmlns="http://schemas.microsoft.com/office/2006/01/customui" onLoad="OnAddinLoad">
-    <ribbon startFromScratch="false">
-        <tabs>
-            <tab id="AIForScienceTab" label="AIForScience">
-                <group id="MainGroup" label="写作辅助">
-                    <button id="OpenTaskPaneButton" label="打开助手" size="large" onAction="OnOpenPane"/>
-                </group>
-            </tab>
-        </tabs>
-    </ribbon>
+<!-- 旧调试入口已停用。正式插件入口只使用 dist/manifest.xml。 -->
+<customUI xmlns="http://schemas.microsoft.com/office/2006/01/customui">
+    <ribbon startFromScratch="false" />
 </customUI>

@@ -5,13 +5,8 @@
         <div v-if="!message.content" class="empty-content">
           <span class="cursor"></span>
         </div>
-        <div v-else class="content-text" v-html="formattedContent"></div>
+        <div v-else class="content-text" v-html="formattedContent" @click="handleContentClick"></div>
       </div>
-
-      <SourceCardList
-        v-if="message.sources && message.sources.length > 0"
-        :sources="message.sources"
-      />
     </div>
   </div>
 </template>
@@ -19,25 +14,65 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { ConversationAssistantMessage } from '../stores/conversation'
-import SourceCardList from './SourceCardList.vue'
+import type { SourceCard } from '../types/source'
 
 const props = defineProps<{
   message: ConversationAssistantMessage
   isStreaming?: boolean
 }>()
 
+const emit = defineEmits<{
+  (event: 'open-source', source: SourceCard): void
+}>()
+
+function activateSourceByIndex(indexText: string) {
+  const index = Number(indexText) - 1
+  const source = props.message.sources?.[index]
+  if (!source) return
+  emit('open-source', source)
+}
+
+function escapeHtml(text: string) {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+}
+
+function buildSourceLabel(indexText: string) {
+  const index = Number(indexText) - 1
+  const source = props.message.sources?.[index]
+  if (!source) {
+    return `[${indexText}]`
+  }
+
+  const parts = [source.title]
+  if (source.page) {
+    parts.push(`第 ${source.page} 页`)
+  }
+  return parts.join(' · ')
+}
+
 const formattedContent = computed(() => {
-  const text = props.message.content
+  const text = escapeHtml(props.message.content)
   return text
     .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
     .replace(/`(.+?)`/g, '<code>$1</code>')
     .replace(/\[(\d+)\]/g, (_match, num) => {
-      return `<span class="source-ref">[${num}]</span>`
+      const label = buildSourceLabel(num)
+      return `<button class="source-ref" type="button" data-source-index="${num}" title="${label}">${label}</button>`
     })
     .replace(/\n/g, '<br>')
 })
+
+function handleContentClick(event: MouseEvent) {
+  const target = event.target as HTMLElement
+  const sourceIndex = target.closest('[data-source-index]')?.getAttribute('data-source-index')
+  if (!sourceIndex) return
+  activateSourceByIndex(sourceIndex)
+}
 </script>
 
 <style scoped>
@@ -50,16 +85,14 @@ const formattedContent = computed(() => {
   max-width: 88%;
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
 }
 
 .assistant-bubble {
   padding: var(--space-3) var(--space-4);
-  background: #f0f4ff;
-  border: 1px solid #d0d9ff;
-  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.76);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: var(--radius-lg);
   border-bottom-left-radius: 6px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
 
 .empty-content {
@@ -109,15 +142,24 @@ const formattedContent = computed(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 20px;
-  height: 18px;
-  padding: 0 4px;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 5px;
   margin: 0 2px;
-  background: var(--color-accent);
-  color: white;
-  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--color-text-secondary);
+  border-radius: 999px;
   font-size: 11px;
   font-weight: 600;
   vertical-align: baseline;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.content-text :deep(.source-ref:hover) {
+  border-color: rgba(59, 130, 246, 0.35);
+  background: rgba(59, 130, 246, 0.08);
+  color: var(--color-text-primary);
 }
 </style>

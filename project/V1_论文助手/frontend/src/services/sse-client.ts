@@ -1,4 +1,8 @@
-import type { SourceCard } from '../components/SourceCardList.vue'
+import type { SourceCard } from '../types/source'
+import { useLogger } from '../composables/logger'
+import { buildApiUrl } from './api-client'
+
+const log = useLogger('api')
 
 export interface AskRequestPayload {
   session_id: string
@@ -6,7 +10,7 @@ export interface AskRequestPayload {
   selection?: string
   draft?: string
   paper_ids?: string[] | null
-  enable_rag?: boolean  // 是否启用 RAG 检索，默认 true
+  enable_rag?: boolean
 }
 
 export interface AskInspirationStreamHandlers {
@@ -21,80 +25,7 @@ interface ParsedSseFrame {
   data: unknown
 }
 
-const DEFAULT_API_BASE_URL = 'http://127.0.0.1:8000'
 const ASK_ENDPOINT = '/api/v1/query'
-const LOCAL_API_HOSTNAME_ALLOWLIST = new Set(['127.0.0.1', 'localhost', '[::1]', '::1'])
-
-function isAllowedLocalHost(hostname: string): boolean {
-  return LOCAL_API_HOSTNAME_ALLOWLIST.has(hostname)
-}
-
-function normalizeCurrentRuntimeOrigin(): string | null {
-  if (typeof window === 'undefined' || !window.location) {
-    return null
-  }
-
-  const { protocol, hostname } = window.location
-  if ((protocol !== 'http:' && protocol !== 'https:') || !isAllowedLocalHost(hostname)) {
-    return null
-  }
-
-  return '/'
-}
-
-function normalizeConfiguredApiBaseUrl(configuredBaseUrl: string): string {
-  if (configuredBaseUrl === '/') {
-    return normalizeCurrentRuntimeOrigin() ?? DEFAULT_API_BASE_URL
-  }
-
-  if (configuredBaseUrl.startsWith('//')) {
-    return DEFAULT_API_BASE_URL
-  }
-
-  let parsedUrl: URL
-
-  try {
-    parsedUrl = new URL(configuredBaseUrl)
-  } catch {
-    return DEFAULT_API_BASE_URL
-  }
-
-  const hasAllowedProtocol = parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:'
-  const hasAllowedHostname = LOCAL_API_HOSTNAME_ALLOWLIST.has(parsedUrl.hostname)
-  const isPureOrigin =
-    (parsedUrl.pathname === '/' || parsedUrl.pathname === '') &&
-    !parsedUrl.search &&
-    !parsedUrl.hash &&
-    !parsedUrl.username &&
-    !parsedUrl.password
-
-  if (!hasAllowedProtocol || !hasAllowedHostname || !isPureOrigin) {
-    return DEFAULT_API_BASE_URL
-  }
-
-  return parsedUrl.origin
-}
-
-function resolveApiBaseUrl(): string {
-  const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim()
-
-  if (!configuredBaseUrl) {
-    return DEFAULT_API_BASE_URL
-  }
-
-  return normalizeConfiguredApiBaseUrl(configuredBaseUrl)
-}
-
-function buildApiUrl(pathname: string): string {
-  const apiBaseUrl = resolveApiBaseUrl()
-  const normalizedPathname = pathname.startsWith('/') ? pathname : `/${pathname}`
-
-  if (apiBaseUrl === '/') {
-    return normalizedPathname
-  }
-
-  return `${apiBaseUrl}${normalizedPathname}`
-}
 
 function parseJsonSafely(rawText: string): unknown {
   try {
@@ -156,43 +87,45 @@ function normalizeChunkText(payload: unknown): string {
   return ''
 }
 
+function resolveSourceTitle(record: Record<string, unknown>, index: number): string {
+  if (typeof record.title === 'string' && record.title) {
+    return record.title
+  }
+
+  if (typeof record.document === 'string' && record.document) {
+    return record.document
+  }
+
+  if (typeof record.section === 'string' && record.section) {
+    return record.section
+  }
+
+  return `来源 ${index + 1}`
+}
+
 function normalizeSourceCard(input: unknown, index: number): SourceCard | null {
   if (!input || typeof input !== 'object') {
     return null
   }
 
   const record = input as Record<string, unknown>
-
   const rawId = record.id ?? record.paper_id
   const id =
     (typeof rawId === 'string' && rawId) || typeof rawId === 'number'
       ? String(rawId)
       : `source-${index + 1}`
 
-  const title =
-    typeof record.title === 'string'
-      ? record.title
-      : typeof record.document === 'string'
-        ? record.document
-        : typeof record.section === 'string' && record.section
-          ? record.section
-          : `来源 ${index + 1}`
-
-  const content = typeof record.content === 'string' ? record.content : ''
-
-  const page = typeof record.page === 'number' ? record.page : undefined
-  const section = typeof record.section === 'string' ? record.section : undefined
-  const file_path = typeof record.file_path === 'string' ? record.file_path : undefined
-  const paper_id = typeof record.paper_id === 'string' ? record.paper_id : undefined
+  const title = resolveSourceTitle(record, index)
 
   return {
     id,
-    paper_id,
+    paper_id: typeof record.paper_id === 'string' ? record.paper_id : undefined,
     title,
-    page,
-    section,
-    file_path,
-    content,
+    page: typeof record.page === 'number' ? record.page : undefined,
+    section: typeof record.section === 'string' ? record.section : undefined,
+    file_path: typeof record.file_path === 'string' ? record.file_path : undefined,
+    local_path: typeof record.local_path === 'string' ? record.local_path : undefined,
+    content: typeof record.content === 'string' ? record.content : '',
   }
 }
 
@@ -208,93 +141,185 @@ function normalizeSources(payload: unknown): SourceCard[] {
     .filter((item): item is SourceCard => item !== null)
 }
 
-async function readSseStream(
+async function processFrameText(
+  frameText: string,
+  handlers: AskInspirationStreamHandlers,
+  onTerminal?: () => Promise<void> | void,
+): Promise<boolean> {
+  const parsedFrame = parseSseFrame(frameText)
+  if (!parsedFrame) {
+    return false
+  }
+
+  switch (parsedFrame.event) {
+    case 'chunk': {
+      const chunkText = normalizeChunkText(parsedFrame.data)
+      if (chunkText) {
+        handlers.onChunk?.(chunkText)
+      }
+      return false
+    }
+    case 'sources':
+    case 'metadata': {
+      const data = parsedFrame.data as Record<string, unknown> | null
+      const rawSources = data && typeof data === 'object'
+        ? (data as Record<string, unknown>).sources ?? parsedFrame.data
+        : parsedFrame.data
+      handlers.onSources?.(normalizeSources(rawSources))
+      return false
+    }
+    case 'done': {
+      handlers.onDone?.()
+      await onTerminal?.()
+      return true
+    }
+    case 'error': {
+      const message = typeof parsedFrame.data === 'string' ? parsedFrame.data : '请求失败'
+      handlers.onErrorEvent?.(message)
+      await onTerminal?.()
+      return true
+    }
+    default:
+      return false
+  }
+}
+
+async function drainSseBuffer(
+  state: { buffer: string; terminal: boolean },
+  handlers: AskInspirationStreamHandlers,
+  flushRemaining = false,
+  onTerminal?: () => Promise<void> | void,
+): Promise<void> {
+  state.buffer = state.buffer.replace(/\r\n/g, '\n')
+
+  let separatorIndex = state.buffer.indexOf('\n\n')
+  while (separatorIndex >= 0 && !state.terminal) {
+    const frameText = state.buffer.slice(0, separatorIndex)
+    state.buffer = state.buffer.slice(separatorIndex + 2)
+    state.terminal = await processFrameText(frameText, handlers, onTerminal)
+    separatorIndex = state.buffer.indexOf('\n\n')
+  }
+
+  if (flushRemaining && state.buffer.trim() && !state.terminal) {
+    state.terminal = await processFrameText(state.buffer, handlers, onTerminal)
+    state.buffer = ''
+  }
+}
+
+async function readFetchSseStream(
   body: ReadableStream<Uint8Array>,
   handlers: AskInspirationStreamHandlers,
 ): Promise<void> {
   const reader = body.getReader()
   const decoder = new TextDecoder()
-  let buffer = ''
-  let terminalEventReached = false
+  const state = { buffer: '', terminal: false }
 
-  async function processFrame(frameText: string) {
-    const parsedFrame = parseSseFrame(frameText)
-    if (!parsedFrame || terminalEventReached) {
-      return
-    }
-
-    switch (parsedFrame.event) {
-      case 'chunk': {
-        const chunkText = normalizeChunkText(parsedFrame.data)
-        if (chunkText) {
-          handlers.onChunk?.(chunkText)
-        }
-        return
-      }
-      case 'sources':
-      case 'metadata': {
-        const data = parsedFrame.data as Record<string, unknown> | null
-        const rawSources = data && typeof data === 'object'
-          ? (data as Record<string, unknown>).sources ?? parsedFrame.data
-          : parsedFrame.data
-        handlers.onSources?.(normalizeSources(rawSources))
-        return
-      }
-      case 'done': {
-        terminalEventReached = true
-        handlers.onDone?.()
-        await reader.cancel()
-        return
-      }
-      case 'error': {
-        terminalEventReached = true
-        const message = typeof parsedFrame.data === 'string' ? parsedFrame.data : '请求失败'
-        handlers.onErrorEvent?.(message)
-        await reader.cancel()
-        return
-      }
-      default:
-        return
-    }
-  }
-
-  async function drainBuffer(flushRemaining = false) {
-    const normalizedBuffer = buffer.replace(/\r\n/g, '\n')
-    buffer = normalizedBuffer
-
-    let separatorIndex = buffer.indexOf('\n\n')
-    while (separatorIndex >= 0 && !terminalEventReached) {
-      const frameText = buffer.slice(0, separatorIndex)
-      buffer = buffer.slice(separatorIndex + 2)
-      await processFrame(frameText)
-      separatorIndex = buffer.indexOf('\n\n')
-    }
-
-    if (flushRemaining && buffer.trim() && !terminalEventReached) {
-      await processFrame(buffer)
-      buffer = ''
-    }
-  }
-
-  while (!terminalEventReached) {
+  while (!state.terminal) {
     const { done, value } = await reader.read()
 
     if (done) {
-      buffer += decoder.decode()
-      await drainBuffer(true)
+      state.buffer += decoder.decode()
+      await drainSseBuffer(state, handlers, true)
       break
     }
 
-    buffer += decoder.decode(value, { stream: true })
-    await drainBuffer(false)
+    state.buffer += decoder.decode(value, { stream: true })
+    await drainSseBuffer(state, handlers, false, async () => {
+      await reader.cancel()
+    })
   }
+}
+
+function readXhrSseStream(
+  url: string,
+  payload: AskRequestPayload,
+  handlers: AskInspirationStreamHandlers,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    const state = { buffer: '', terminal: false }
+    let processedLength = 0
+
+    xhr.open('POST', url, true)
+    xhr.setRequestHeader('Content-Type', 'application/json')
+    xhr.setRequestHeader('Accept', 'text/event-stream')
+
+    xhr.onprogress = async () => {
+      if (state.terminal) {
+        return
+      }
+
+      const nextChunk = xhr.responseText.slice(processedLength)
+      processedLength = xhr.responseText.length
+      state.buffer += nextChunk
+      await drainSseBuffer(state, handlers, false, () => {
+        xhr.abort()
+        resolve()
+      })
+    }
+
+    xhr.onerror = () => {
+      if (state.terminal) {
+        return
+      }
+      reject(new Error('网络请求失败'))
+    }
+
+    xhr.onload = async () => {
+      if (xhr.status < 200 || xhr.status >= 300) {
+        let errorMessage = `HTTP ${xhr.status}`
+        try {
+          const errorData = JSON.parse(xhr.responseText)
+          if (typeof errorData.message === 'string') {
+            errorMessage = errorData.message
+          } else if (typeof errorData.detail === 'string') {
+            errorMessage = errorData.detail
+          }
+        } catch {
+          // 忽略解析错误
+        }
+        reject(new Error(errorMessage))
+        return
+      }
+
+      if (state.terminal) {
+        resolve()
+        return
+      }
+
+      const nextChunk = xhr.responseText.slice(processedLength)
+      processedLength = xhr.responseText.length
+      state.buffer += nextChunk
+      await drainSseBuffer(state, handlers, true)
+      resolve()
+    }
+
+    xhr.send(JSON.stringify(payload))
+  })
+}
+
+function shouldUseXhrStreaming(): boolean {
+  return typeof window !== 'undefined' && typeof (window as { wps?: unknown }).wps !== 'undefined'
 }
 
 export async function postAskStream(
   payload: AskRequestPayload,
   handlers: AskInspirationStreamHandlers,
 ): Promise<void> {
-  const response = await fetch(buildApiUrl(ASK_ENDPOINT), {
+  const requestUrl = buildApiUrl(ASK_ENDPOINT)
+  log.info('发起问答流请求', {
+    sessionId: payload.session_id,
+    enableRag: payload.enable_rag,
+    paperCount: payload.paper_ids?.length ?? 0,
+    transport: shouldUseXhrStreaming() ? 'xhr' : 'fetch',
+  })
+
+  if (shouldUseXhrStreaming()) {
+    await readXhrSseStream(requestUrl, payload, handlers)
+    return
+  }
+
+  const response = await fetch(requestUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -322,5 +347,5 @@ export async function postAskStream(
     throw new Error('SSE 响应体为空')
   }
 
-  await readSseStream(response.body, handlers)
+  await readFetchSseStream(response.body, handlers)
 }

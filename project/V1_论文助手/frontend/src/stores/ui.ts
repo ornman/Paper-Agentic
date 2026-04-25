@@ -2,39 +2,24 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
 export const useUiStore = defineStore('ui', () => {
-  const historyDrawerOpen = ref(false)
-  const libraryDrawerOpen = ref(false)
+  const sidebarOpen = ref(true)
 
-  function openHistoryDrawer() {
-    historyDrawerOpen.value = true
-    libraryDrawerOpen.value = false
+  function toggleSidebar() {
+    sidebarOpen.value = !sidebarOpen.value
   }
 
-  function closeHistoryDrawer() {
-    historyDrawerOpen.value = false
+  function openSidebar() {
+    sidebarOpen.value = true
   }
 
-  function openLibraryDrawer() {
-    libraryDrawerOpen.value = true
-    historyDrawerOpen.value = false
-  }
-
-  function closeLibraryDrawer() {
-    libraryDrawerOpen.value = false
-  }
-
-  function closeAllDrawers() {
-    historyDrawerOpen.value = false
-    libraryDrawerOpen.value = false
+  function closeSidebar() {
+    sidebarOpen.value = false
   }
 
   return {
-    historyDrawerOpen,
-    libraryDrawerOpen,
-    openHistoryDrawer,
-    closeHistoryDrawer,
-    openLibraryDrawer,
-    closeLibraryDrawer,
-    closeAllDrawers,
+    sidebarOpen,
+    toggleSidebar,
+    openSidebar,
+    closeSidebar,
   }
 })

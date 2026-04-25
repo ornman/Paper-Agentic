@@ -1,12 +1,13 @@
 <template>
   <header class="top-nav">
-    <button class="icon-button" type="button" aria-label="打开菜单" @click="emit('open-history')">
+    <button class="icon-button" type="button" aria-label="菜单" @click="emit('open-history')">
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
         <line x1="3" y1="6" x2="17" y2="6"></line>
         <line x1="3" y1="10" x2="17" y2="10"></line>
         <line x1="3" y1="14" x2="17" y2="14"></line>
       </svg>
     </button>
+
     <h1 class="page-title">{{ title }}</h1>
     <div class="top-right">
       <!-- 新建对话 -->
@@ -18,11 +19,17 @@
         </svg>
       </button>
       <!-- 设置按钮 -->
-      <button class="icon-button" type="button" aria-label="设置" @click="showSettings = !showSettings">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="3"></circle>
-          <path d="M12 1v6m0 6v6m0-6h6"></path>
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+      <button class="icon-button icon-button--settings" type="button" aria-label="设置" @click="showSettings = !showSettings">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3.25"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21"></path>
+          <path d="M4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3"></path>
+          <path d="M9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3"></path>
+          <path d="M15 4.6a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21"></path>
+          <path d="M21 14a2 2 0 0 1-2 2h-.09"></path>
+          <path d="M3.09 12H3a2 2 0 0 1 2-2h.09"></path>
+          <path d="M12 3v.09"></path>
+          <path d="M12 20.91V21"></path>
         </svg>
       </button>
     </div>
@@ -52,6 +59,40 @@
               </div>
             </div>
           </div>
+          <div class="setting-group">
+            <h3>API 配置</h3>
+            <div class="setting-item">
+              <label class="setting-label">API 地址</label>
+              <input
+                type="text"
+                v-model="apiUrl"
+                placeholder="https://api.kimi.com"
+                class="text-input"
+              >
+            </div>
+            <div class="setting-item">
+              <label class="setting-label">API 密钥</label>
+              <input
+                type="password"
+                v-model="apiKey"
+                placeholder="sk-..."
+                class="text-input"
+              >
+            </div>
+            <div class="setting-item">
+              <label class="setting-label">当前模型</label>
+              <select v-model="selectedModel" class="text-input" :disabled="models.length === 0">
+                <option value="">请选择模型</option>
+                <option v-for="model in models" :key="model" :value="model">{{ model }}</option>
+              </select>
+            </div>
+            <div class="setting-item">
+              <button class="btn-secondary" @click="fetchModels" :disabled="!apiUrl || !apiKey">
+                刷新模型列表
+              </button>
+              <span v-if="models.length > 0" class="model-count">已加载 {{ models.length }} 个模型</span>
+            </div>
+          </div>
         </div>
         <div class="settings-footer">
           <button class="btn-primary" @click="showSettings = false">完成</button>
@@ -76,10 +117,37 @@ defineProps<{
 const fontSize = ref(16)
 const showSettings = ref(false)
 
+// API 配置
+const apiUrl = ref('')
+const apiKey = ref('')
+const models = ref<string[]>([])
+const selectedModel = ref('')
+
 onMounted(() => {
   const saved = localStorage.getItem('fontSize')
   if (saved) fontSize.value = parseInt(saved)
   applyFontSize()
+
+  // 加载 API 配置
+  const savedApiUrl = localStorage.getItem('apiUrl')
+  const savedApiKey = localStorage.getItem('apiKey')
+  if (savedApiUrl) apiUrl.value = savedApiUrl
+  if (savedApiKey) apiKey.value = savedApiKey
+
+  const savedModels = localStorage.getItem('models')
+  if (savedModels) models.value = JSON.parse(savedModels)
+
+  const savedSelectedModel = localStorage.getItem('selectedModel')
+  if (savedSelectedModel) {
+    selectedModel.value = savedSelectedModel
+  } else if (models.value.length > 0) {
+    selectedModel.value = models.value[0]
+    localStorage.setItem('selectedModel', selectedModel.value)
+  }
+
+  if (apiUrl.value && apiKey.value && models.value.length === 0) {
+    void fetchModels()
+  }
 })
 
 watch(fontSize, (newSize) => {
@@ -89,6 +157,60 @@ watch(fontSize, (newSize) => {
 
 function applyFontSize() {
   document.documentElement.style.setProperty('--font-size-base', `${fontSize.value}px`)
+}
+
+// 保存 API 配置
+watch([apiUrl, apiKey], ([nextApiUrl, nextApiKey], [prevApiUrl, prevApiKey]) => {
+  if (nextApiUrl) localStorage.setItem('apiUrl', nextApiUrl)
+  if (nextApiKey) localStorage.setItem('apiKey', nextApiKey)
+
+  if (!nextApiUrl || !nextApiKey) {
+    return
+  }
+
+  if (nextApiUrl === prevApiUrl && nextApiKey === prevApiKey) {
+    return
+  }
+
+  void fetchModels()
+})
+
+watch(selectedModel, (model) => {
+  if (!model) return
+  localStorage.setItem('selectedModel', model)
+})
+
+async function fetchModels() {
+  if (!apiUrl.value || !apiKey.value) return
+
+  try {
+    // 标准化 API URL
+    let baseUrl = apiUrl.value.trim()
+    if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1)
+
+    const response = await fetch(`${baseUrl}/v1/models`, {
+      headers: {
+        'Authorization': `Bearer ${apiKey.value}`,
+        'User-Agent': 'AIForScience/1.0 (WPS Plugin)',
+      },
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      // 假设返回格式是 { data: [{ id: 'model-name' }] }
+      if (data.data && Array.isArray(data.data)) {
+        models.value = data.data.map((m: any) => m.id)
+        localStorage.setItem('models', JSON.stringify(models.value))
+        if (!models.value.includes(selectedModel.value)) {
+          selectedModel.value = models.value[0] || ''
+        }
+      }
+    } else {
+      alert('获取模型列表失败：' + response.statusText)
+    }
+  } catch (error) {
+    alert('获取模型列表失败：' + (error as Error).message)
+  }
 }
 </script>
 
@@ -123,6 +245,15 @@ function applyFontSize() {
   background: var(--color-surface-muted);
 }
 
+.icon-button--disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.icon-button--disabled:hover {
+  background: transparent;
+}
+
 .page-title {
   color: var(--color-text-primary);
   font-size: 18px;
@@ -131,10 +262,12 @@ function applyFontSize() {
   line-height: 1;
 }
 
-.top-right {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
+.icon-button--settings {
+  color: var(--color-text-secondary);
+}
+
+.icon-button--settings:hover {
+  color: var(--color-text-primary);
 }
 
 /* ─── 设置弹窗 ─── */
@@ -321,5 +454,52 @@ function applyFontSize() {
 
 .btn-primary:hover {
   opacity: 0.85;
+}
+
+.text-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--color-text-primary);
+  background: white;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.text-input:focus {
+  border-color: var(--color-accent);
+}
+
+.text-input::placeholder {
+  color: var(--color-text-secondary);
+}
+
+.btn-secondary {
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--color-surface-muted);
+}
+
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.model-count {
+  margin-left: var(--space-2);
+  font-size: 12px;
+  color: var(--color-text-secondary);
 }
 </style>
