@@ -1,5 +1,11 @@
+from pathlib import Path
+
 from pydantic import Field
 from pydantic_settings import BaseSettings
+
+
+_BACKEND_ROOT = Path(__file__).resolve().parents[2]
+_DATA_DIR = _BACKEND_ROOT / "data"
 
 
 class Settings(BaseSettings):
@@ -20,15 +26,19 @@ class Settings(BaseSettings):
     mineru_timeout: float = 300.0
 
     # 存储
-    chroma_data_dir: str = "./data/chroma_db"
-    backup_dir: str = "./data/backups"
+    chroma_data_dir: str = str(_DATA_DIR / "chroma_db")
+    bm25_data_dir: str = str(_DATA_DIR / "bm25_index")
+    backup_dir: str = str(_DATA_DIR / "backups")
+    papers_dir: str = str(_DATA_DIR / "papers")
+    uploads_dir: str = str(_DATA_DIR / "uploads")
+    app_db_path: str = str(_DATA_DIR / "app.db")
 
     # 切分策略
     chunk_max_context: int = 32000
     chunk_target_size: int = 24000
     chunk_overlap_buffer: int = 8000
 
-    model_config = {"env_file": ".env", "extra": "ignore", "populate_by_name": True}
+    model_config = {"env_file": str(_BACKEND_ROOT / ".env"), "extra": "ignore", "populate_by_name": True}
 
 
 def get_settings() -> Settings:

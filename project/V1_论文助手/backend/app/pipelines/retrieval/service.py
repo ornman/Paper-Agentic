@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import logging
+import re
 from collections.abc import AsyncIterator
+from pathlib import Path
 
-from app.api.v1.deps import get_bm25, get_sqlite, get_zvec
+from app.api.v1.deps import get_bm25, get_chroma, get_sqlite
 from app.clients.embedding_client import EmbeddingClient
 from app.clients.llm_client import LLMClient
 from app.pipelines.ingestion.chunker import estimate_tokens
@@ -14,11 +16,49 @@ logger = logging.getLogger("paper-assistant")
 
 _SYSTEM_PROMPT = """你是一个有帮助的助手。请用中文回答用户的问题。
 
+你必须基于提供的资料回答。
+- 只在有证据时下结论，不要编造来源
+- 回答中引用证据时，使用方括号编号，如 [1]、[2]
+- 同一个段落可引用多个来源，如 [1][3]
+- 编号必须对应提供给你的来源顺序
+- 优先把结论写清楚，再用编号引用支撑，不要输出文件 hash 或内部 ID
+
 {context}
 """
 
 _MAX_CONTEXT_TOKENS = 30000
 _RRF_K = 60  # RRF 融合常数
+_TITLE_MAX_LENGTH = 20
+_SOURCE_SNIPPET_MAX_LENGTH = 220
+
+
+def _sanitize_title(raw_title: str, fallback: str) -> str:
+    title = re.sub(r"\s+", " ", raw_title).strip().strip('"\'“”‘’`')
+    title = re.split(r"[\n\r。！？.!?]", title, maxsplit=1)[0].strip()
+    title = re.sub(r"^(标题|对话标题)\s*[:：]\s*", "", title)
+    if not title:
+        title = re.sub(r"\s+", " ", fallback).strip()
+    return title[:_TITLE_MAX_LENGTH].strip() or fallback[:_TITLE_MAX_LENGTH].strip() or "新对话"
+
+
+def _normalize_snippet(text: str) -> str:
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _truncate_snippet(text: str, max_length: int = _SOURCE_SNIPPET_MAX_LENGTH) -> str:
+    normalized = _normalize_snippet(text)
+    if len(normalized) <= max_length:
+        return normalized
+    return f"{normalized[: max_length - 1].rstrip()}…"
+
+
+def _build_source_label(title: str, page: int | None, section: str) -> str:
+    parts = [title or "未命名论文"]
+    if page and page > 0:
+        parts.append(f"第 {page} 页")
+    if section:
+        parts.append(section)
+    return "｜".join(parts)
 
 
 def _rrf_fuse(
@@ -150,13 +190,13 @@ class QAService:
             yield {"event": "error", "data": {"message": "向量化服务暂时不可用"}}
             return
 
-        zvec = get_zvec()
-        dense_results = zvec.query(query_vec, topk=20)
+        chroma = get_chroma()
+        dense_results = chroma.query(query_vec, topk=20, paper_ids=paper_ids)
 
         # 3. BM25 检索 + RRF 融合
         try:
             bm25 = get_bm25()
-            sparse_results = bm25.query(query_text, topk=20)
+            sparse_results = bm25.query(query_text, topk=20, paper_ids=paper_ids)
             results = _rrf_fuse(dense_results, sparse_results, topk=10)
             logger.info("检索: dense=%d, bm25=%d, 融合后=%d", len(dense_results), len(sparse_results), len(results))
         except Exception as e:
@@ -216,19 +256,24 @@ class QAService:
                 break
 
             pid = fields.get("paper_id", "") if isinstance(fields, dict) else ""
+            page = fields.get("source_page", 0) if isinstance(fields, dict) else 0
+            section = fields.get("section_title", "") if isinstance(fields, dict) else ""
+            fallback_title = Path(paper_paths.get(pid, "")).stem if paper_paths.get(pid) else "未命名论文"
+            title = paper_titles.get(pid) or fallback_title
+            snippet = _truncate_snippet(content)
+            label = _build_source_label(title, page if isinstance(page, int) else None, section)
             source_info = {
-                "id": f"{pid}_{fields.get('chunk_id', '')}",  # 唯一ID
+                "id": f"{pid}_{fields.get('chunk_id', '')}",
                 "paper_id": pid,
-                "title": paper_titles.get(pid, ""),
-                "page": fields.get("source_page", 0) if isinstance(fields, dict) else 0,
-                "section": fields.get("section_title", "") if isinstance(fields, dict) else "",
+                "title": title,
+                "page": page,
+                "section": section,
                 "file_path": paper_paths.get(pid, ""),
-                "content": content,  # 完整段落内容
+                "content": snippet,
+                "citation_label": label,
             }
             sources.append(source_info)
-            context_parts.append(
-                f"[来源: 论文 {source_info['paper_id'][:8]}, 第{source_info['page']}页]\n{content}"
-            )
+            context_parts.append(f"[{len(sources)}] {label}\n摘录：{snippet}")
             total_tokens += tokens
 
         context = "\n\n---\n\n".join(context_parts)
@@ -299,11 +344,9 @@ class QAService:
         """根据首条用户消息生成简短对话标题"""
         prompt = (
             "请根据以下用户消息，生成一个简短的对话标题（5-12个汉字）。\n"
-            "要求：简洁概括主题，不要加引号或标点。\n\n"
+            "要求：只输出标题本身，不要解释，不要换行，不要加引号或标点。\n\n"
             f"用户消息：{first_message[:200]}\n\n标题："
         )
+        fallback = first_message[:_TITLE_MAX_LENGTH]
         response = await self._llm.chat([{"role": "user", "content": prompt}])
-        title = response.strip().strip('"\'""''')
-        if not title:
-            title = first_message[:20]
-        return title
+        return _sanitize_title(response, fallback)

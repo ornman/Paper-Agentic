@@ -25,7 +25,8 @@ class PaperExistsError(AppError):
 
 
 class ImportFailedError(AppError):
-    def __init__(self, message: str):
+    def __init__(self, message: str, stage: str | None = None):
+        self.stage = stage
         super().__init__(code=2003, message=message)
 
 

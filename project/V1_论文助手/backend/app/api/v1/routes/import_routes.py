@@ -6,20 +6,36 @@ import asyncio
 import json
 import logging
 import uuid
+from pathlib import Path
 
-from fastapi import APIRouter, UploadFile, File
+from fastapi import APIRouter, File, UploadFile
+from sqlalchemy import text
 from starlette.responses import StreamingResponse
 
 from app.api.v1.deps import get_sqlite
-from app.core.errors import AppError
+from app.core.config import get_settings
+from app.core.errors import AppError, ImportFailedError
 from app.pipelines.ingestion.service import IngestionService
-from sqlalchemy import text
 
 router = APIRouter(prefix="/import", tags=["import"])
 logger = logging.getLogger("paper-assistant")
 
 _ingest_service: IngestionService | None = None
-_active_tasks: dict[str, asyncio.Task] = {}
+
+
+STAGE_PERCENT = {
+    "pending": 3,
+    "queued": 8,
+    "parsing": 18,
+    "vlm": 34,
+    "cleaning": 52,
+    "chunking": 64,
+    "embedding": 78,
+    "storing": 92,
+    "completed": 100,
+    "failed": 100,
+    "error": 100,
+}
 
 
 def _get_service() -> IngestionService:
@@ -29,6 +45,19 @@ def _get_service() -> IngestionService:
     return _ingest_service
 
 
+def _format_progress_payload(row: tuple[str, str | None, str | None, str | None, str | None]) -> dict:
+    status, step, paper_id, error_msg, file_path = row
+    file_name = Path(file_path).name if file_path else None
+    return {
+        "status": status,
+        "current_step": step,
+        "paper_id": paper_id,
+        "error_msg": error_msg,
+        "file_name": file_name,
+        "percent": STAGE_PERCENT.get(status, 0),
+    }
+
+
 @router.post("/start")
 async def start_import(file: UploadFile = File(...)):
     """启动异步导入任务"""
@@ -36,32 +65,27 @@ async def start_import(file: UploadFile = File(...)):
         raise AppError(1001, "只支持 PDF 文件")
 
     task_id = uuid.uuid4().hex[:12]
+    uploads_dir = Path(get_settings().uploads_dir)
+    uploads_dir.mkdir(parents=True, exist_ok=True)
+    upload_path = uploads_dir / f"{task_id}_{Path(file.filename).name}"
 
-    # 保存上传文件
-    os.makedirs("./data/uploads", exist_ok=True)
-    upload_path = f"./data/uploads/{task_id}_{file.filename}"
-    with open(upload_path, "wb") as f:
-        content = await file.read()
-        f.write(content)
+    with open(upload_path, "wb") as output_file:
+        output_file.write(await file.read())
 
-    # 后台异步执行
-    progress_queue: asyncio.Queue = asyncio.Queue()
+    upload_path_str = str(upload_path)
+    IngestionService._log(task_id, upload_path_str, "queued", "任务已创建，等待处理")
     service = _get_service()
 
     async def _run():
-        async def progress_cb(stage, msg, data=None):
-            await progress_queue.put({"stage": stage, "message": msg, "data": data})
-
         try:
-            await service.ingest_pdf(upload_path, task_id, progress_cb)
-        except Exception as e:
-            await progress_queue.put({"stage": "error", "message": str(e)})
-        finally:
-            await progress_queue.put(None)  # sentinel
+            await service.ingest_pdf(upload_path_str, task_id)
+        except ImportFailedError as exc:
+            logger.warning("导入任务阶段失败: %s - %s", task_id, exc.detail["message"])
+        except Exception as exc:
+            logger.exception("导入任务失败: %s", task_id)
+            IngestionService._log(task_id, upload_path_str, "error", "导入失败", error_msg=str(exc))
 
-    task = asyncio.create_task(_run())
-    _active_tasks[task_id] = task
-
+    asyncio.create_task(_run())
     return {"task_id": task_id, "status": "started"}
 
 
@@ -71,8 +95,10 @@ async def get_import_status(task_id: str):
     sqlite = get_sqlite()
     with sqlite.get_session() as session:
         result = session.execute(
-            text("SELECT task_id, paper_id, status, current_step, error_msg "
-                 "FROM import_logs WHERE task_id = :tid"),
+            text(
+                "SELECT status, current_step, paper_id, error_msg, file_path "
+                "FROM import_logs WHERE task_id = :tid"
+            ),
             {"tid": task_id},
         )
         row = result.fetchone()
@@ -80,41 +106,42 @@ async def get_import_status(task_id: str):
     if not row:
         raise AppError(2001, f"任务不存在: {task_id}")
 
-    return {
-        "task_id": row[0],
-        "paper_id": row[1],
-        "status": row[2],
-        "current_step": row[3],
-        "error_msg": row[4],
-    }
+    return {"task_id": task_id, **_format_progress_payload(row)}
 
 
 @router.get("/stream/{task_id}")
 async def stream_import(task_id: str):
     """SSE 实时推送导入进度"""
+
     async def event_generator():
         sqlite = get_sqlite()
+        missing_checks = 0
+
         while True:
             with sqlite.get_session() as session:
                 result = session.execute(
-                    text("SELECT status, current_step, paper_id FROM import_logs WHERE task_id = :tid"),
+                    text(
+                        "SELECT status, current_step, paper_id, error_msg, file_path "
+                        "FROM import_logs WHERE task_id = :tid"
+                    ),
                     {"tid": task_id},
                 )
                 row = result.fetchone()
 
             if not row:
+                missing_checks += 1
+                if missing_checks < 10:
+                    await asyncio.sleep(0.2)
+                    continue
                 yield f"event: error\ndata: {json.dumps({'message': '任务不存在'})}\n\n"
                 return
 
-            status, step, paper_id = row
-            yield f"data: {json.dumps({'status': status, 'step': step, 'paper_id': paper_id})}\n\n"
+            missing_checks = 0
+            yield f"data: {json.dumps(_format_progress_payload(row))}\n\n"
 
-            if status in ("completed", "failed", "error"):
+            if row[0] in ("completed", "failed", "error"):
                 break
 
-            await asyncio.sleep(1)
+            await asyncio.sleep(0.6)
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
-
-
-import os

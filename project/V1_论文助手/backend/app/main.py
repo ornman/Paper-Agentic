@@ -4,6 +4,8 @@ import logging
 import os
 from contextlib import asynccontextmanager
 
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -21,19 +23,28 @@ logger = logging.getLogger("paper-assistant")
 async def lifespan(app: FastAPI):
     settings = get_settings()
 
-    os.makedirs("./data/chroma_db", exist_ok=True)
-    os.makedirs("./data/bm25_index", exist_ok=True)
-    os.makedirs("./data/backups", exist_ok=True)
+    chroma_dir = Path(settings.chroma_data_dir)
+    bm25_dir = Path(settings.bm25_data_dir)
+    backup_dir = Path(settings.backup_dir)
+    papers_dir = Path(settings.papers_dir)
+    uploads_dir = Path(settings.uploads_dir)
+    app_db_path = Path(settings.app_db_path)
 
-    sqlite = SQLiteRepo("./data/app.db")
+    os.makedirs(chroma_dir, exist_ok=True)
+    os.makedirs(bm25_dir, exist_ok=True)
+    os.makedirs(backup_dir, exist_ok=True)
+    os.makedirs(papers_dir, exist_ok=True)
+    os.makedirs(uploads_dir, exist_ok=True)
+
+    sqlite = SQLiteRepo(str(app_db_path))
     sqlite.init()
     logger.info("SQLite initialized")
 
-    chroma = ChromaStore("./data/chroma_db", settings.embedding_dimensions)
+    chroma = ChromaStore(str(chroma_dir), settings.embedding_dimensions)
     chroma.init()
     logger.info("Chroma initialized")
 
-    bm25 = BM25Store("./data/bm25_index")
+    bm25 = BM25Store(str(bm25_dir))
     bm25.init()
     logger.info("BM25 initialized")
 

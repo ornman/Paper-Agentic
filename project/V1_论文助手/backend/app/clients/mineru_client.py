@@ -10,6 +10,7 @@ import os
 import random
 import zipfile
 from dataclasses import dataclass
+from pathlib import Path
 from time import monotonic
 from urllib.parse import urlparse
 
@@ -59,6 +60,8 @@ class MinerUClient:
     def _headers(self, auth: bool = True) -> dict[str, str]:
         h: dict[str, str] = {"Accept": "application/json"}
         if auth:
+            if not self._api_key.strip():
+                raise RuntimeError("MinerU API Key 未配置")
             h["Authorization"] = f"Bearer {self._api_key}"
         return h
 
@@ -210,7 +213,7 @@ class MinerUClient:
         )
         resp.raise_for_status()
 
-        paper_dir = os.path.join("./data/papers", task_id)
+        paper_dir = str(Path(get_settings().papers_dir) / task_id)
         images_dir = os.path.join(paper_dir, "images")
         os.makedirs(images_dir, exist_ok=True)
 
