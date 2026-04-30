@@ -69,12 +69,22 @@ class BM25Store:
         self._bm25 = BM25Okapi(self._corpus)
         self._save_index()
 
-    def query(self, query_text: str, topk: int = 10) -> list[tuple[str, float]]:
+    def query(self, query_text: str, topk: int = 10, paper_ids: list[str] | None = None) -> list[tuple[str, float]]:
         if not self._bm25:
             return []
+
+        allowed_paper_ids = {paper_id for paper_id in (paper_ids or []) if paper_id}
         tokens = list(jieba.cut(query_text))
         scores = self._bm25.get_scores(tokens)
         scored = list(zip(self._doc_ids, scores))
+
+        if allowed_paper_ids:
+            scored = [
+                (doc_id, score)
+                for doc_id, score in scored
+                if doc_id.split("_", 1)[0] in allowed_paper_ids
+            ]
+
         scored.sort(key=lambda x: x[1], reverse=True)
         return [(did, s) for did, s in scored[:topk] if s > 0]
 

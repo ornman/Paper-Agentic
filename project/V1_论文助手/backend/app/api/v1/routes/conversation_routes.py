@@ -66,6 +66,20 @@ async def get_conversation(session_id: str):
     ).model_dump()
 
 
+@router.delete("")
+async def delete_all_conversations():
+    """删除全部对话会话"""
+    try:
+        sqlite = get_sqlite()
+        with sqlite.get_session() as session:
+            session.execute(sa_text("DELETE FROM conversations"))
+            session.commit()
+    except Exception as e:
+        raise AppError(3002, f"删除全部对话失败: {e}")
+
+    return {"status": "deleted", "scope": "all"}
+
+
 @router.delete("/{session_id}")
 async def delete_conversation(session_id: str):
     """删除对话会话"""

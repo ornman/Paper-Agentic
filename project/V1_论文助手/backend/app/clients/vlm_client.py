@@ -1,8 +1,8 @@
-"""Kimi VLM 图片理解客户端
+"""VLM 图片描述客户端
 
-必须携带特殊 headers：
-  - User-Agent: claude-code
-  - anthropic-version: 2023-06-01
+自动检测 Kimi Coding API：
+  - Kimi Coding（api.kimi.com/coding）→ Anthropic Vision 格式 + 特殊 headers
+  - 其他 → OpenAI Vision 兼容协议（openai SDK）
 """
 
 from __future__ import annotations
@@ -13,16 +13,11 @@ import logging
 import re
 
 import httpx
+from openai import AsyncOpenAI
 
 from app.core.config import get_settings
 
 logger = logging.getLogger("paper-assistant")
-
-_HEADERS = {
-    "anthropic-version": "2023-06-01",
-    "User-Agent": "claude-code",
-    "Content-Type": "application/json",
-}
 
 _PROMPT_SINGLE = (
     "这张图片来自一篇学术论文。请用中文描述图片内容，要求："
@@ -55,28 +50,46 @@ _MEDIA_TYPE_MAP = {
 
 _MAX_BATCH_SIZE = 5
 
+_KIMI_HEADERS = {
+    "anthropic-version": "2023-06-01",
+    "User-Agent": "Roo Code",
+    "Content-Type": "application/json",
+}
+
+_KIMI_ENDPOINT = "/messages"
+
+
+def _is_kimi_coding(base_url: str) -> bool:
+    return "kimi.com/coding" in base_url.lower()
+
 
 class VLMClient:
-    """Kimi Coding API 图片描述"""
-
     def __init__(self):
         settings = get_settings()
-        self._api_key = settings.kimi_api_key
-        self._base_url = settings.kimi_base_url
-        self._model = settings.kimi_model
-        self._client: httpx.AsyncClient | None = None
+        self._api_key = settings.llm_api_key
+        self._base_url = settings.llm_base_url
+        self._model = settings.vlm_model or settings.llm_model
+        self._kimi_mode = _is_kimi_coding(settings.llm_base_url)
 
-    async def _get_client(self) -> httpx.AsyncClient:
-        if self._client is None or self._client.is_closed:
-            self._client = httpx.AsyncClient(timeout=120)
-        return self._client
+        if self._kimi_mode:
+            self._httpx_client = httpx.AsyncClient(
+                headers={**_KIMI_HEADERS, "x-api-key": self._api_key},
+                timeout=120.0,
+            )
+            self._openai_client = None
+        else:
+            self._openai_client = AsyncOpenAI(
+                api_key=self._api_key,
+                base_url=self._base_url,
+                timeout=120.0,
+            )
+            self._httpx_client = None
 
     async def close(self) -> None:
-        if self._client and not self._client.is_closed:
-            await self._client.aclose()
-
-    def _build_headers(self) -> dict[str, str]:
-        return {**_HEADERS, "x-api-key": self._api_key}
+        if self._httpx_client:
+            await self._httpx_client.aclose()
+        if self._openai_client:
+            await self._openai_client.close()
 
     @staticmethod
     def _encode_image(image_path: str) -> tuple[str, str]:
@@ -86,14 +99,94 @@ class VLMClient:
             data = base64.b64encode(f.read()).decode()
         return media_type, data
 
+    # --- 公共接口 ---
+
     async def describe_image(
         self,
         image_path: str,
         prompt: str | None = None,
     ) -> str:
-        if not self._api_key:
+        try:
+            if self._kimi_mode:
+                return await self._kimi_describe(image_path, prompt)
+            return await self._openai_describe(image_path, prompt)
+        except Exception as e:
+            logger.warning("VLM single failed for %s: %s", image_path, e)
             return "description unavailable"
 
+    async def describe_batch(
+        self,
+        image_paths: list[str],
+        batch_size: int = _MAX_BATCH_SIZE,
+    ) -> list[str]:
+        if not image_paths:
+            return []
+
+        results: list[str | None] = [None] * len(image_paths)
+        batches = []
+        for i in range(0, len(image_paths), batch_size):
+            batches.append((i, image_paths[i : i + batch_size]))
+
+        for offset, batch in batches:
+            if len(batch) == 1:
+                results[offset] = await self.describe_image(batch[0])
+                continue
+            descs = await self._call_batch(batch)
+            has_failure = any(d == "description unavailable" for d in descs)
+            if has_failure:
+                for j, d in enumerate(descs):
+                    if d == "description unavailable":
+                        logger.info("Batch fallback to single: %s", batch[j])
+                        results[offset + j] = await self.describe_image(batch[j])
+                    else:
+                        results[offset + j] = d
+            else:
+                for j, d in enumerate(descs):
+                    results[offset + j] = d
+
+        return [r or "description unavailable" for r in results]
+
+    # --- OpenAI Vision 模式 ---
+
+    async def _openai_describe(self, image_path: str, prompt: str | None = None) -> str:
+        media_type, img_data = self._encode_image(image_path)
+        data_url = f"data:{media_type};base64,{img_data}"
+
+        response = await self._openai_client.chat.completions.create(
+            model=self._model,
+            max_tokens=1024,
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "image_url", "image_url": {"url": data_url}},
+                        {"type": "text", "text": prompt or _PROMPT_SINGLE},
+                    ],
+                }
+            ],
+        )
+        return response.choices[0].message.content or ""
+
+    async def _openai_batch(self, paths: list[str]) -> list[str]:
+        count = len(paths)
+        content_blocks: list[dict] = []
+        for p in paths:
+            media_type, img_data = self._encode_image(p)
+            data_url = f"data:{media_type};base64,{img_data}"
+            content_blocks.append({"type": "image_url", "image_url": {"url": data_url}})
+        content_blocks.append({"type": "text", "text": _BATCH_PROMPT.format(count=count)})
+
+        response = await self._openai_client.chat.completions.create(
+            model=self._model,
+            max_tokens=4096,
+            messages=[{"role": "user", "content": content_blocks}],
+        )
+        text = response.choices[0].message.content or ""
+        return self._parse_batch_response(text, count)
+
+    # --- Kimi Coding 模式（Anthropic Vision 格式） ---
+
+    async def _kimi_describe(self, image_path: str, prompt: str | None = None) -> str:
         media_type, img_data = self._encode_image(image_path)
         body = {
             "model": self._model,
@@ -109,53 +202,14 @@ class VLMClient:
             ],
         }
 
-        try:
-            client = await self._get_client()
-            resp = await client.post(self._base_url, headers=self._build_headers(), json=body)
-            resp.raise_for_status()
-            return self._extract_text(resp.json())
-        except Exception as e:
-            logger.warning("VLM single failed for %s: %s", image_path, e)
-            return "description unavailable"
+        resp = await self._httpx_client.post(
+            f"{self._base_url}{_KIMI_ENDPOINT}",
+            json=body,
+        )
+        resp.raise_for_status()
+        return self._extract_anthropic_text(resp.json())
 
-    async def describe_batch(
-        self,
-        image_paths: list[str],
-        batch_size: int = _MAX_BATCH_SIZE,
-    ) -> list[str]:
-        """批量描述图片，每 batch_size 张打包成一次 API 调用。"""
-        if not image_paths:
-            return []
-        if not self._api_key:
-            return ["description unavailable"] * len(image_paths)
-
-        results: list[str | None] = [None] * len(image_paths)
-        batches = []
-        for i in range(0, len(image_paths), batch_size):
-            batches.append((i, image_paths[i : i + batch_size]))
-
-        for offset, batch in batches:
-            if len(batch) == 1:
-                results[offset] = await self.describe_image(batch[0])
-                continue
-            descs = await self._call_batch(batch)
-            # 检查 batch 结果是否有全盘失败的
-            has_failure = any(d == "description unavailable" for d in descs)
-            if has_failure:
-                # 对失败的逐个单图 fallback
-                for j, d in enumerate(descs):
-                    if d == "description unavailable":
-                        logger.info("Batch fallback to single: %s", batch[j])
-                        results[offset + j] = await self.describe_image(batch[j])
-                    else:
-                        results[offset + j] = d
-            else:
-                for j, d in enumerate(descs):
-                    results[offset + j] = d
-
-        return [r or "description unavailable" for r in results]
-
-    async def _call_batch(self, paths: list[str]) -> list[str]:
+    async def _kimi_batch(self, paths: list[str]) -> list[str]:
         count = len(paths)
         content_blocks: list[dict] = []
         for p in paths:
@@ -171,18 +225,16 @@ class VLMClient:
             "messages": [{"role": "user", "content": content_blocks}],
         }
 
-        try:
-            client = await self._get_client()
-            resp = await client.post(self._base_url, headers=self._build_headers(), json=body)
-            resp.raise_for_status()
-            text = self._extract_text(resp.json())
-            return self._parse_batch_response(text, count)
-        except Exception as e:
-            logger.warning("VLM batch failed (%d imgs): %s", count, e)
-            return ["description unavailable"] * count
+        resp = await self._httpx_client.post(
+            f"{self._base_url}{_KIMI_ENDPOINT}",
+            json=body,
+        )
+        resp.raise_for_status()
+        text = self._extract_anthropic_text(resp.json())
+        return self._parse_batch_response(text, count)
 
     @staticmethod
-    def _extract_text(data: dict) -> str:
+    def _extract_anthropic_text(data: dict) -> str:
         content = data.get("content", [])
         if content and isinstance(content, list):
             return content[0].get("text", "")
@@ -190,9 +242,20 @@ class VLMClient:
             return content
         return ""
 
+    # --- 批量调度 ---
+
+    async def _call_batch(self, paths: list[str]) -> list[str]:
+        count = len(paths)
+        try:
+            if self._kimi_mode:
+                return await self._kimi_batch(paths)
+            return await self._openai_batch(paths)
+        except Exception as e:
+            logger.warning("VLM batch failed (%d imgs): %s", count, e)
+            return ["description unavailable"] * count
+
     @staticmethod
     def _parse_batch_response(text: str, expected: int) -> list[str]:
-        # 尝试 JSON 解析
         try:
             match = re.search(r"\[.*\]", text, re.DOTALL)
             if match:
@@ -201,7 +264,6 @@ class VLMClient:
                     return [str(item) for item in parsed]
         except json.JSONDecodeError:
             pass
-        # JSON 解析失败，按序号分割兜底
         parts = re.split(r"(?:^|\n)\s*\d+[\.\)、]\s*", text)
         parts = [p.strip() for p in parts if p.strip()]
         if len(parts) == expected:

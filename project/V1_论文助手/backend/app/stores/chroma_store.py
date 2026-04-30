@@ -79,9 +79,15 @@ class ChromaStore:
         self,
         vector: list[float],
         topk: int = 10,
-        paper_id: str | None = None,
+        paper_ids: list[str] | None = None,
     ) -> list[Doc]:
-        where = {"paper_id": {"$eq": paper_id}} if paper_id else None
+        normalized_paper_ids = [paper_id for paper_id in (paper_ids or []) if paper_id]
+        where = None
+        if len(normalized_paper_ids) == 1:
+            where = {"paper_id": {"$eq": normalized_paper_ids[0]}}
+        elif len(normalized_paper_ids) > 1:
+            where = {"paper_id": {"$in": normalized_paper_ids}}
+
         results = self._collection.query(
             query_embeddings=[vector],
             n_results=topk,

@@ -19,6 +19,7 @@
 cd backend
 uv sync
 cp .env.example .env
+# 编辑 .env，填入你的 LLM API Key 和 Base URL
 uv run python main.py
 
 # 前端
@@ -31,6 +32,20 @@ pnpm build
 ```
 
 后端默认运行在 `http://127.0.0.1:8000`，前端默认运行在 `http://127.0.0.1:3904/app.html`。
+
+## 支持的 LLM 服务
+
+后端使用 OpenAI 兼容协议，支持所有兼容 API：
+
+| 服务商 | Base URL | Model 示例 |
+|--------|----------|-----------|
+| DeepSeek | `https://api.deepseek.com` | `deepseek-chat` |
+| 智谱 (GLM) | `https://open.bigmodel.cn/api/paas/v4` | `glm-4-flash` |
+| 硅基流动 | `https://api.siliconflow.cn/v1` | `deepseek-ai/DeepSeek-V3` |
+| Kimi | `https://api.moonshot.cn/v1` | `moonshot-v1-8k` |
+| OpenAI | `https://api.openai.com/v1` | `gpt-4o` |
+
+使用 Kimi Coding API 时会自动添加所需 headers，无需手动配置。
 
 ## 项目结构
 
@@ -55,7 +70,7 @@ V1_论文助手/
 | 组件 | 技术 |
 |------|------|
 | 后端框架 | FastAPI (Python 3.13) |
-| LLM/VLM | Kimi Coding API |
+| LLM/VLM | OpenAI 兼容协议（DeepSeek / 智谱 / 硅基流动 / Kimi 等） |
 | Embedding | 硅基流动 Qwen3-Embedding-8B (1536 维) |
 | 向量库 | ChromaDB |
 | 关键词检索 | BM25 + jieba |
@@ -87,6 +102,6 @@ PDF
 
 - 浏览器端上传 PDF 后可完成整条导入链
 - 重复导入会返回明确提示，不再重复入库
-- 导入失败会显示真实阶段错误，不再落成“导入状态丢失”
+- 导入失败会显示真实阶段错误，不再落成"导入状态丢失"
 - 选中文献提问时可返回带来源的回答
 - 历史对话可在侧栏立即刷新并重新打开

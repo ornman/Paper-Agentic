@@ -107,5 +107,5 @@ class SQLiteRepo:
             result = conn.execute(text("SELECT COUNT(*) FROM papers WHERE status = 'completed'"))
             return result.scalar() or 0
 
-    def get_chunk_count(self, zvec_stats: dict) -> int:
-        return zvec_stats.get("doc_count", 0)
+    def get_chunk_count(self, chroma_stats: dict) -> int:
+        return chroma_stats.get("doc_count", 0)

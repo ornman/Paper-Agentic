@@ -32,10 +32,6 @@ def get_chroma() -> ChromaStore:
     return _chroma
 
 
-# 保留 get_zvec 别名兼容（返回 ChromaStore）
-get_zvec = get_chroma
-
-
 def get_bm25() -> BM25Store:
     assert _bm25 is not None, "BM25Store not initialized"
     return _bm25

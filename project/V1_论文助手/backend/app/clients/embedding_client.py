@@ -1,4 +1,4 @@
-"""硅基流动 Embedding 客户端"""
+"""Embedding 客户端（OpenAI 兼容协议）"""
 
 from __future__ import annotations
 
@@ -13,15 +13,16 @@ from app.utils import error_handler
 logger = logging.getLogger("paper-assistant")
 
 _BATCH_SIZE = 32
-_MAX_CONCURRENCY = 20  # RPM 2000, batch 32 → 20 并发批次安全
+_MAX_CONCURRENCY = 20
 _MAX_RETRIES = 3
 
 
 class EmbeddingClient:
     def __init__(self):
         settings = get_settings()
-        self._api_key = settings.siliconflow_api_key
-        self._base_url = "https://api.siliconflow.cn/v1/embeddings"
+        self._api_key = settings.embedding_api_key
+        # 约定：配置存 base URL（如 https://api.siliconflow.cn/v1），客户端追加 /embeddings
+        self._base_url = settings.embedding_base_url.rstrip("/") + "/embeddings"
         self._model = settings.embedding_model
         self._dimension = settings.embedding_dimensions
         self._client: httpx.AsyncClient | None = None

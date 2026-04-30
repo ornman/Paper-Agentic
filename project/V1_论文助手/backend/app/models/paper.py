@@ -20,6 +20,8 @@ class PaperListItem(BaseModel):
     paper_id: str
     title: str
     authors: str
+    file_path: str
+    file_hash: str
     chunk_count: int
     total_pages: int | None
     import_time: str
