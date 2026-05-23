@@ -1,165 +1,82 @@
-# 论文写作助手 MVP
+# 论文助手
 
-> 基于 RAG（检索增强生成）的学术写作辅助系统，以 WPS 插件形式嵌入写作场景。
+基于 RAG 的学术写作助手，当前以 WPS 插件形态运行。活动源码已提升到仓库根目录，`backend/` 和 `frontend/` 是当前唯一真相源，历史版本和旧数据统一归档到 `archives/`。
+
+## 目录结构
+
+```text
+论文助手/
+├── backend/                  # FastAPI 后端
+├── frontend/                 # Vue 3 + TypeScript + WPS 插件壳
+├── docs/                     # 项目文档与决策记录
+├── datasets/
+│   └── test_meta_papers/     # 样本/测试语料
+├── archives/
+│   ├── legacy/               # 历史版本与旧数据
+│   └── packages/             # 历史压缩包
+├── research/                 # 调研资料
+└── AGENTS.md / CLAUDE.md     # 项目协作说明
+```
 
 ## 快速开始
 
 ### 环境要求
 
 - Python 3.13+
+- uv
 - Node.js 18+ / pnpm
-- uv（Python 包管理器）
 
-### 本地开发
-
-#### 1. 后端启动
+### 1. 启动后端
 
 ```bash
-cd project/MVP/backend
-
-# 安装依赖
+cd backend
 uv sync
-
-# 配置环境变量
 cp .env.example .env
-# 编辑 .env，填入必要的 API Key
-
-# 启动服务
 uv run python main.py
 ```
 
-访问 http://localhost:8000/docs 查看 API 文档。
+后端默认运行在 `http://127.0.0.1:8000`。
 
-#### 2. 前端启动（WPS 插件）
+### 2. 构建前端并注册 WPS 插件
 
 ```bash
-cd project/MVP/frontend
-
-# 安装依赖
+cd frontend
 pnpm install
-
-# 开发模式
-pnpm dev
-
-# 构建生产版本
 pnpm build
+cd dist
+npx wpsjs debug
 ```
 
-### Docker 部署
+`pnpm dev` 仍可用于浏览器侧调试，但正式使用需要通过 `wpsjs debug` 注册到 WPS。
 
-```bash
-# 一键启动（待实现）
-docker-compose up -d
+## 当前主链
+
+```text
+PDF 上传
+  → MinerU 解析
+  → VLM 图片描述
+  → 清洗
+  → 切块
+  → Embedding
+  → Chroma / BM25 / SQLite
+
+用户提问
+  → 是否选中文献
+  → Dense + BM25 融合检索
+  → LLM 流式生成
+  → 返回可读来源
 ```
 
-## 核心功能
+## 主要目录约定
 
-### MVP 阶段（当前）
-
-- ✅ 会话管理（创建/列表/删除）
-- ✅ 基础问答（LLM 直接调用）
-- ✅ 流式输出（SSE）
-- ✅ 上下文管理
-- ✅ PDF 导入（MinerU + 清洗 + VLM + 切分 + 索引）
-- ✅ RAG 检索增强
-- ⏳ 前后端完整对接
-
-### 技术亮点
-
-- **混合切分策略**：智能打包 + 平均切分 + 首尾重叠
-- **抽象接口设计**：VLM/LLM 客户端可替换
-- **分布式向量库**：Qdrant 每篇论文独立 collection
-- **低幻觉图片描述**：优化 prompt，针对论文图表
-
-## 架构设计
-
-### 数据流
-
-```
-PDF 导入：用户上传 → MinerU API → 清洗 → VLM 描述 → 混合切分 → Embedding → Qdrant
-RAG 问答：用户提问 → Query 改写 → Qdrant 检索 → Rerank → LLM → 流式返回
-```
-
-### 技术栈
-
-| 组件 | 技术 |
-|------|------|
-| **后端框架** | FastAPI |
-| **LLM/VLM** | Kimi Coding API (kimi-for-coding) |
-| **Embedding** | 硅基流动 Qwen3-Embedding-8B (1536维) |
-| **Rerank** | 硅基流动 Qwen3-Reranker-8B |
-| **向量库** | Qdrant（分布式隔离） |
-| **PDF 解析** | MinerU API |
-| **前端框架** | Vue 3 + TypeScript |
-| **状态管理** | Pinia |
-| **构建工具** | Vite |
-
-## API 端点
-
-| 端点 | 方法 | 说明 |
-|------|------|------|
-| `/api/v1/health` | GET | 健康检查 |
-| `/api/v1/session` | POST | 创建会话 |
-| `/api/v1/session` | GET | 会话列表 |
-| `/api/v1/query/ask` | POST | 流式问答（SSE） |
-| `/api/v1/library/import` | POST | 导入 PDF |
-| `/api/v1/library/papers` | GET | 论文列表 |
-| `/api/v1/library/papers/{id}` | GET | 论文详情 |
-| `/api/v1/library/papers/{id}` | DELETE | 删除论文 |
-
-## 配置说明
-
-### 必需环境变量
-
-```env
-# Kimi Coding API（VLM + LLM）
-KIMI_API_KEY=your_key
-
-# 硅基流动（Embedding + Rerank）
-SILICONFLOW_API_KEY=your_key
-```
-
-### 可选配置
-
-```env
-# MinerU API（PDF 解析）
-MINERU_API_KEY=your_key
-
-# 切分策略参数
-CHUNK_MAX_CONTEXT=32000
-CHUNK_TARGET_SIZE=24000
-CHUNK_OVERLAP_BUFFER=8000
-
-# 服务端口
-APP_PORT=8000
-```
+- `backend/data/`：运行态数据目录，承载 `app.db`、`chroma_db/`、`bm25_index/`、`papers/`、`parsed/`、`uploads/`、`backups/`
+- `datasets/test_meta_papers/`：联调用测试 PDF
+- `archives/legacy/`：MVP、旧布局数据、提取产物
+- `archives/packages/`：历史压缩包
 
 ## 文档
 
-- [架构分析报告](docs/架构分析报告.md)
-- [流程架构图](docs/流程架构图.md)
-- [北极星文档](docs/北极星.md)
-
-## 开发规范
-
-### 代码风格
-
-- 注释必须用中文
-- 函数必须有 docstring
-- 错误处理要完整
-- 不可变数据优先
-
-### 抽象接口
-
-```python
-# VLM/LLM 客户端抽象接口
-from app.clients.vlm_client import VLMClient, LLMClient
-
-# 使用抽象接口，可替换实现
-async def process_image(vlm_client: VLMClient):
-    return await vlm_client.describe_image(path)
-```
-
----
-
-> 本项目为私有项目，保留所有权利。
+- [开发文档总览](docs/开发文档/README.md)
+- [V1 架构设计](docs/开发文档/02-设计/架构/V1-架构设计.md)
+- [API 接口文档](docs/开发文档/02-设计/API/API接口文档.md)
+- [开发指南](docs/开发文档/03-开发/开发指南.md)

@@ -1,7 +1,7 @@
 """批量导入脚本（基于 IngestionService + BackupManager）
 
 用法:
-    uv run python scripts/batch_import.py [--dir ../test_meta_papers] [--concurrency 3] [--limit 0]
+    uv run python scripts/batch_import.py [--dir ../datasets/test_meta_papers] [--concurrency 3] [--limit 0]
     uv run python scripts/batch_import.py --resume   # 断点续传：跳过已完成的论文
 """
 
@@ -99,7 +99,7 @@ async def import_one(
 
 async def main():
     parser = argparse.ArgumentParser(description="批量导入论文（ChromaDB + 备份断点续传）")
-    parser.add_argument("--dir", default="../test_meta_papers", help="PDF 目录")
+    parser.add_argument("--dir", default="../datasets/test_meta_papers", help="PDF 目录")
     parser.add_argument("--concurrency", type=int, default=3, help="并发数")
     parser.add_argument("--limit", type=int, default=0, help="限制导入数量（0=全部）")
     parser.add_argument("--resume", action="store_true", help="断点续传：跳过已完成的论文")

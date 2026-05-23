@@ -62,12 +62,13 @@ desktop.ini
 # ========================================
 conversation_continuity_results.json
 rag_quality_with_content.json
-test_meta_papers/
+datasets/test_meta_papers/
 
 # ========================================
 # WPS 调试文件
 # ========================================
 调试/
+.tools/log/
 
 # MVP 提取数据
-project/MVP/提取数据/
+archives/legacy/extracted_assets/
