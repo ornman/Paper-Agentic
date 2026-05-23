@@ -70,5 +70,9 @@ datasets/test_meta_papers/
 调试/
 .tools/log/
 
+# 本地归档数据（仅本地保留，不提交）
+archives/legacy/MVP/data/papers/
+archives/legacy/v1_stale_data/project_root_data/
+
 # MVP 提取数据
 archives/legacy/extracted_assets/
