@@ -2,6 +2,14 @@
 # 辅助工具（不提交）
 # ========================================
 
+# 本地规则与辅助目录
+.agents/
+.claude/
+.tools/
+research/
+AGENTS.md
+CLAUDE.md
+
 # RAG 系统数据
 .tools/rag/data/chromadb/
 .tools/rag/data/json/
