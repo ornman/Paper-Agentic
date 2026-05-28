@@ -87,6 +87,7 @@ import PdfPage from './pdf-reader/PdfPage.vue'
 import PdfToolbar from './pdf-reader/PdfToolbar.vue'
 import PdfOutline from './pdf-reader/PdfOutline.vue'
 import type { OutlineItem } from './pdf-reader/PdfOutline.vue'
+import { usePdfKeyboard } from '../composables/use-pdf-keyboard'
 
 const { lib: pdfjsLib, cMapOptions } = usePdfjs()
 
@@ -117,6 +118,16 @@ const renderer = usePdfRenderer(
   computed(() => pdfDocProxy),
   scale,
 )
+
+usePdfKeyboard({
+  active: computed(() => props.visible),
+  currentPage: renderer.currentPage,
+  totalPages: renderer.totalPages,
+  onClose: () => emit('close'),
+  onScrollToPage: renderer.scrollToPage,
+  onZoomIn: () => setScale(Math.min(3, scale.value + 0.25)),
+  onZoomOut: () => setScale(Math.max(0.5, scale.value - 0.25)),
+})
 
 function onPageHeight(pageNum: number, height: number) {
   if (renderer.pageHeights.value[pageNum - 1] !== height) {
