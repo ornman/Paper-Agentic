@@ -112,6 +112,30 @@
           <button class="storage-btn storage-btn-danger" @click="handleClearCache">清理缓存</button>
         </div>
       </section>
+
+      <!-- 5. 关于 -->
+      <section class="settings-card">
+        <div class="about-header">
+          <span class="about-logo" v-html="logoSvg" @click="handleLogoClick" />
+          <div class="about-info">
+            <h2 class="settings-section-title">论文助手</h2>
+            <p class="about-version">v0.1.0 · MVP</p>
+          </div>
+        </div>
+        <div class="about-body">
+          <p class="about-desc">基于 RAG 的学术写作助手，当前以 WPS 插件形态运行。</p>
+          <div class="about-stack">
+            <span class="about-tag" v-for="tag in techTags" :key="tag">{{ tag }}</span>
+          </div>
+          <div class="about-links">
+            <span class="about-link-item">Vue 3 + TypeScript + Vite</span>
+            <span class="about-link-divider">·</span>
+            <span class="about-link-item">FastAPI + Pydantic</span>
+            <span class="about-link-divider">·</span>
+            <span class="about-link-item">ChromaDB</span>
+          </div>
+        </div>
+      </section>
     </main>
   </div>
 </template>
@@ -120,11 +144,30 @@
 import { ref, onMounted } from 'vue'
 import { useSettingsStore } from '../stores/settings'
 import { useTheme } from '../composables/use-theme'
+import logoSvg from '../assets/icons/ai-science-spark.svg?raw'
 
 const settingsStore = useSettingsStore()
 const theme = useTheme()
 
 const storageUsage = ref('')
+
+const techTags = ['RAG', 'BM25 + Dense', 'VLM', 'MinerU', 'DeepSeek', 'Qwen3-Embedding']
+
+// easter egg: 连点 logo 5 次触发旋转动画
+const easterClickCount = ref(0)
+const easterEggActive = ref(false)
+let easterTimer: ReturnType<typeof setTimeout> | null = null
+
+function handleLogoClick() {
+  easterClickCount.value++
+  if (easterTimer) clearTimeout(easterTimer)
+  easterTimer = setTimeout(() => { easterClickCount.value = 0 }, 1500)
+  if (easterClickCount.value >= 5) {
+    easterClickCount.value = 0
+    easterEggActive.value = true
+    setTimeout(() => { easterEggActive.value = false }, 2000)
+  }
+}
 
 onMounted(() => {
   storageUsage.value = settingsStore.estimateStorageUsage()
@@ -429,5 +472,77 @@ function handleClearCache() {
   border-color: var(--color-accent);
   color: var(--color-accent);
   background: var(--color-accent-soft);
+}
+
+/* About section */
+.about-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.about-logo {
+  display: flex;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.about-logo :deep(svg) {
+  width: 100%;
+  height: 100%;
+}
+
+.about-logo:hover {
+  transform: scale(1.08);
+}
+
+.about-version {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.about-body {
+  padding-top: 14px;
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.about-desc {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.about-stack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.about-tag {
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 99px;
+  background: var(--color-surface-muted);
+  color: var(--color-text-secondary);
+}
+
+.about-links {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.about-link-divider {
+  opacity: 0.4;
 }
 </style>
