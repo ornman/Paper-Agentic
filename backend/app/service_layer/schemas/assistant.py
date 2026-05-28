@@ -19,3 +19,8 @@ class ContextState(BaseModel):
     session_id: str
     written_context: str = ""
     selection: str = ""
+
+
+class PollingStartRequest(BaseModel):
+    session_id: str
+    interval: int = Field(default=5, ge=1, le=60, description="轮询间隔（秒）")

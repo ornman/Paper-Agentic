@@ -1,0 +1,94 @@
+# PDF 转换模块 - 当前进度汇报
+
+更新时间：2026-05-25
+
+## ✅ 已完成
+
+### 1. PDF 转换核心链路
+- **路由转换器**：`backend/app/data_layer/conversion/pdf_router.py`
+  - 探针 → 路由 → 转换完整流程
+  - 输出：`ConversionResult(markdown, metadata, images)`
+  - 路由策略：A(纯文本) / B(文字+图片) / C(文字+表单+表格) / D(复杂混合) / E(扫描件)
+  - 轻量替代：MarkItDown + pdfplumber + pypdf + pdf2image
+
+- **PDF 探针**：`backend/app/data_layer/conversion/pdf_probe.py`
+  - 检测：文本层、文字密度、扫描件特征、图片、表单字段、公式信号、表格信号
+  - 返回推荐路由和复杂度评级
+
+- **MarkItDown 适配器**：`backend/app/data_layer/conversion/markitdown_adapter.py`
+  - 轻量文本提取主链
+  - 异步接口封装
+
+### 2. 单元测试（完整版）
+- **测试文件**：`backend/tests/UnitTesting-Docling&&Anthropic'sPDF&DOCX/test_pdf_router.py`
+- **测试覆盖**：
+  - 数据结构测试（ConversionResult 字段、不可变性）
+  - 转换质量测试（markdown 无乱码、metadata 完整性、路由有效性）
+  - 性能测试（单文件 < 120s、批量 < 600s）
+  - 异常处理测试（不存在文件、空文件、垃圾文件）
+  - 输出产物测试（报告文件、每个 PDF 的输出目录）
+
+- **产出目录**：`backend/tests/UnitTesting-Docling&&Anthropic'sPDF&DOCX/data_UnitTest/`
+  - 每个 PDF 独立目录 → `converted.md` + `metadata.json`
+  - `_report.md` / `_report.json` — 汇总报告
+  - `_concurrency.json` — 已校准的并发配置
+
+### 3. 性能优化
+- **问题**：ThreadPool 被 GIL 卡住，8 线程反而更慢（101s）
+- **解决**：换 ProcessPool 绕 GIL，自适应并发（首次校准、后续固定）
+- **效果**：5 个 PDF 从 101s → 38s，提速 2.6 倍
+- **并发数**：24 核 CPU 校准为 31 进程
+
+### 4. 测试结果
+- 19/19 全部通过，1 分钟完成
+- 5 个测试 PDF 全部成功转换
+- 无乱码、无语义断层、成功率 100%
+- 路由分布：A(3个) / B(2个)
+
+## 🔄 待完成
+
+### 短期（P0）
+- [ ] 删除旧的测试文件（`test_pdf_probe.py`、`test_markitdown_adapter.py`）已合并
+- [ ] 文档更新：README 中说明 PDF 转换链路和测试方式
+
+### 中期（P1）
+- [ ] Marker API 接入（Route C/D 的公式/表格处理）
+- [ ] 扫描件支持（Route E + OCR API）
+- [ ] 批量导入 API 接口
+
+### 长期（P2）
+- [ ] VLM 图片描述集成（当前占位）
+- [ ] 向量化 + Qdrant 存储
+
+## 📁 关键文件
+
+```
+backend/app/data_layer/conversion/
+├── pdf_router.py      # 路由转换器（入口）
+├── pdf_probe.py       # PDF 探针
+└── markitdown_adapter.py  # MarkItDown 适配器
+
+backend/tests/UnitTesting-Docling&&Anthropic'sPDF&DOCX/
+├── test_pdf_router.py        # 完整测试套件
+├── data_UnitTest/            # 测试产出
+│   ├── _report.md/.json
+│   ├── _concurrency.json
+│   └── <PDF名>/
+│       ├── converted.md
+│       └── metadata.json
+└── Testpaper-PDF-ZH-CN/      # 测试样本
+```
+
+## 📊 性能数据
+
+| 指标 | ThreadPool×8 | ProcessPool×31 |
+|------|--------------|----------------|
+| 并发总耗时 | 101.46s | 38.42s |
+| 平均单文件 | 20.29s | 7.68s |
+| 最慢单文件 | 35.79s | 37.71s |
+
+## 🎯 下次启动建议
+
+1. 运行测试确认环境：`cd backend && uv run pytest "tests/UnitTesting-Docling&&Anthropic'sPDF&DOCX/test_pdf_router.py" -v`
+2. 查看 `data_UnitTest/_report.md` 了解转换质量
+3. 开始接入 Marker API（Route C/D 公式处理）

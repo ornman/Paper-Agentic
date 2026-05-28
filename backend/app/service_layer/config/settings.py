@@ -20,6 +20,12 @@ class BackendSettings(BaseSettings):
     llm_timeout: float = Field(default=120.0, alias="LLM_TIMEOUT")
     llm_fallback_models: str = Field(default="", alias="LLM_FALLBACK_MODELS")
 
+    reflection_api_key: str = Field(default="", alias="REFLECTION_API_KEY")
+    reflection_base_url: str = Field(default="", alias="REFLECTION_BASE_URL")
+    reflection_model: str = Field(default="", alias="REFLECTION_MODEL")
+    reflection_temperature: float = Field(default=0.3, alias="REFLECTION_TEMPERATURE")
+    reflection_timeout: float = Field(default=60.0, alias="REFLECTION_TIMEOUT")
+
     vlm_api_key: str = Field(default="", alias="VLM_API_KEY")
     vlm_base_url: str = Field(default="", alias="VLM_BASE_URL")
     vlm_model: str = Field(default="", alias="VLM_MODEL")
@@ -59,6 +65,9 @@ class BackendSettings(BaseSettings):
     chunk_target_size: int = Field(default=24000, alias="CHUNK_TARGET_SIZE")
     chunk_overlap_buffer: int = Field(default=8000, alias="CHUNK_OVERLAP_BUFFER")
 
+    context_window_tokens: int = Field(default=32000, alias="CONTEXT_WINDOW_TOKENS")
+    max_output_tokens: int = Field(default=4096, alias="MAX_OUTPUT_TOKENS")
+
     cors_allow_origins: list[str] = Field(default_factory=lambda: ["*"], alias="CORS_ALLOW_ORIGINS")
 
     model_config = SettingsConfigDict(
@@ -84,6 +93,10 @@ class BackendSettings(BaseSettings):
     @property
     def rerank_configured(self) -> bool:
         return bool(self.rerank_api_key.strip() and self.rerank_base_url.strip() and self.rerank_model.strip())
+
+    @property
+    def reflection_configured(self) -> bool:
+        return bool(self.reflection_api_key.strip() and self.reflection_base_url.strip() and self.reflection_model.strip())
 
     def ensure_runtime_dirs(self) -> None:
         for path in (

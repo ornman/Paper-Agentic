@@ -1,4 +1,4 @@
 from .compact import compact_conversation
-from .reflection import ReflectionResult, reflect
+from .reflection import EvidenceJudgment, ReflectionResult, judge_evidence, reflect
 
-__all__ = ["compact_conversation", "reflect", "ReflectionResult"]
+__all__ = ["compact_conversation", "reflect", "ReflectionResult", "judge_evidence", "EvidenceJudgment"]

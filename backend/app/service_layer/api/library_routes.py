@@ -56,8 +56,8 @@ async def import_document(body: ImportRequest, request: Request):
 
     if not file_path.exists():
         raise HTTPException(status_code=400, detail=f"文件不存在: {body.file_path}")
-    if file_path.suffix.lower() not in (".pdf", ".docx"):
-        raise HTTPException(status_code=400, detail="仅支持 PDF 和 DOCX 格式")
+    if file_path.suffix.lower() != ".pdf":
+        raise HTTPException(status_code=400, detail="仅支持 PDF 格式")
 
     file_hash = _compute_file_hash(file_path)
     existing = container.library_repo.get_by_hash(file_hash)

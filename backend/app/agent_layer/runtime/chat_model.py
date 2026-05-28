@@ -24,6 +24,7 @@ class ChatModel:
         self._timeout = settings.llm_timeout
         self._fallback_models = settings.llm_fallback_list
         self._client: AsyncOpenAI | None = None
+        self.max_context_tokens: int = getattr(settings, "chunk_max_context", 32000)
 
         if self._api_key and self._base_url:
             self._client = AsyncOpenAI(

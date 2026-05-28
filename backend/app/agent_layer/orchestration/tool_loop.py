@@ -102,12 +102,11 @@ async def execute_tool_loop(
     hit_max = False
 
     for round_num in range(1, max_rounds + 1):
-        rounds_used = round_num
-
         call = await llm_decide(messages)
         if call is None:
             break
 
+        rounds_used = round_num
         tool_calls.append(call)
 
         if round_num == max_rounds:

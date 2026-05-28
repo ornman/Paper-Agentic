@@ -5,34 +5,19 @@
 # 本地规则与辅助目录
 .agents/
 .claude/
-.tools/
 research/
 AGENTS.md
 CLAUDE.md
 
-# RAG 系统数据
-.tools/rag/data/chromadb/
-.tools/rag/data/json/
-.tools/rag/data/json_backup/
-.tools/rag/.env
-.tools/rag/__pycache__/
-.tools/rag/**/__pycache__/
-.tools/rag/*.pyc
-.tools/rag/.venv/
-.tools/rag/libs/
 
-# WPS 调试系统
-.tools/wps-debug/logs/
-.tools/wps-debug/.claude/
-.tools/wps-debug/__pycache__/
+
 
 # ========================================
 # 调研资料（不提交）
 # ========================================
 
 # 参考项目（体积大）
-reference/external/
-reference/competitor/
+reference/
 WPS_PATH/
 
 # ========================================
@@ -117,19 +102,35 @@ desktop.ini
 # ========================================
 # 测试产物
 # ========================================
+
+# 测试运行时产出（MinerU 解析结果等）
+tests/data/
+
+# 测试 PDF 样本（体积大，自行准备）
+tests/fixtures/pdfs_en/
+tests/fixtures/pdfs_zh/
+
+# 测试产物（soak reports、fault logs）
+**/_artifacts/
+
+# 旧测试产物
 conversation_continuity_results.json
 rag_quality_with_content.json
 datasets/test_meta_papers/
-
-# 测试 PDF 数据（自备，不入版本控制）
-backend/tests/fixtures/pdfs_en/*.pdf
-backend/tests/fixtures/pdfs_zh/*.pdf
+datasets/中文文献-测试-PDF/
+datasets/外文文献-测试-PDF/
 
 # ========================================
 # WPS 调试文件
 # ========================================
 调试/
 .tools/log/
+
+# 系统运行日志
+log/
+
+# 外部工具包（独立于项目）
+Dev_Tools/
 
 # ========================================
 # 本地归档数据（仅本地保留，不提交）

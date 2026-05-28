@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 
 from fastapi import APIRouter, Request
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import StreamingResponse
 
 from app.agent_layer.contracts.query import AskRequest
 from app.agent_layer.orchestration.turn_runner import TurnRunner
@@ -23,29 +23,30 @@ logger = logging.getLogger("paper-assistant")
 
 router = APIRouter()
 
-_window_store = ConversationWindowStore(max_messages=20)
-_editor_context_store = EditorContextStore()
-_persistence = SessionPersistence()
 
+def _build_runner(request: Request) -> TurnRunner:
+    container = getattr(request.app.state, "container", None)
+    if container is not None:
+        return container.turn_runner
 
-def _build_runner(settings=None) -> TurnRunner:
-    s = settings or get_settings()
-    chat_model = ChatModel(s)
+    # Fallback: container 未初始化（E2E 测试 / 未进入 lifespan）
+    settings = get_settings()
+    persistence = SessionPersistence()
     return TurnRunner(
-        chat_model=chat_model,
+        chat_model=ChatModel(settings),
         snapshot_builder=build_snapshot,
         retrieval_gate=should_retrieve,
         source_mapper=map_sources,
         block_streamer=stream_to_blocks,
-        window_store=_window_store,
-        editor_context_store=_editor_context_store,
-        persistence=_persistence,
+        window_store=ConversationWindowStore(max_messages=20),
+        editor_context_store=EditorContextStore(),
+        persistence=persistence,
     )
 
 
 @router.post("/query")
 async def query_endpoint(body: AskRequest, request: Request):
-    runner = _build_runner()
+    runner = _build_runner(request)
 
     async def event_stream():
         async for frame in runner.run(body):
