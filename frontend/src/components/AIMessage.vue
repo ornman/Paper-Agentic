@@ -117,6 +117,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import type { AssistantMessage } from '../stores/conversation'
+import { renderInlineMarkdown } from '../utils/markdown-inline'
 
 const props = defineProps<{
   message: AssistantMessage
@@ -167,9 +168,9 @@ function formatThinkingTime(ms: number): string {
  */
 function renderParagraphWithCitations(text: string | undefined): string {
   if (!text) return ''
-  if (numberedSources.value.length === 0) return escapeHtml(text)
+  if (numberedSources.value.length === 0) return renderInlineMarkdown(escapeHtml(text))
 
-  const escaped = escapeHtml(text)
+  const escaped = renderInlineMarkdown(escapeHtml(text))
 
   // Find all sentence-end positions
   const sentenceEndRe = /[。！？；.!?]/g
@@ -453,6 +454,18 @@ function onContentMouseLeave(event: MouseEvent): void {
   color: var(--color-text-secondary);
   font-style: italic;
   word-break: break-word;
+}
+
+/* ── Inline elements (from markdown-inline renderer) ── */
+
+:deep(.inline-code) {
+  font-family: var(--font-family-mono);
+  font-size: 0.9em;
+  padding: 1px 5px;
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 3px;
+  color: var(--color-accent);
 }
 
 /* ── Streaming cursor ── */
