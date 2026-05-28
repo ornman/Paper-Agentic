@@ -366,7 +366,7 @@ function autoResize(event: Event) {
 /* ── 操作按钮组 ── */
 .input-actions {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   gap: 4px;
   flex-shrink: 0;
 }
