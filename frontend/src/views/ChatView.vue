@@ -25,7 +25,7 @@
             />
             <EmptyState
               v-else
-              :key="'empty'"
+              :key="'empty-' + resetCounter"
               @select-prompt="handleSelectPrompt"
             />
           </Transition>
@@ -86,6 +86,16 @@
       :y="previewY"
       @preview-enter="cancelHideTimer"
       @preview-leave="startHideTimer"
+      @preview-click="handlePreviewClick"
+    />
+
+    <!-- PDF 阅读面板 -->
+    <PdfReaderPanel
+      :visible="uiStore.readerOpen"
+      :paper-id="uiStore.readerPaperId ?? ''"
+      :target-page="uiStore.readerTargetPage"
+      :demo-mode="demoActive"
+      @close="uiStore.closeReader()"
     />
   </div>
 </template>
@@ -108,6 +118,7 @@ import EmptyState from '../components/EmptyState.vue'
 
 import InputBar from '../components/InputBar.vue'
 import CitationPreview from '../components/CitationPreview.vue'
+import PdfReaderPanel from '../components/PdfReaderPanel.vue'
 import SidebarDrawer from '../components/SidebarDrawer.vue'
 import HistoryPanel from '../components/HistoryPanel.vue'
 import LibraryPanel from '../components/LibraryPanel.vue'
@@ -115,6 +126,7 @@ import LibraryPanel from '../components/LibraryPanel.vue'
 const store = useConversationStore()
 const libraryStore = useLibraryStore()
 const uiStore = useUiStore()
+const resetCounter = ref(0)
 
 const { startPolling, isWPSAvailable } = useWPSPolling(true, () => store.sessionId)
 
@@ -173,12 +185,18 @@ function handleCitationLeave() {
 function handleCitationClick(sourceId: string) {
   const src = allSources.value.find((s) => s.id === sourceId)
   if (!src) return
-  // Demo mode or no real file path: show citation preview popup
-  if (demoActive.value || !src.file_path) {
+  // 无 paper_id：显示预览浮窗
+  if (!src.paper_id) {
     showCitationPreview(src)
     return
   }
-  handleOpenSource(src)
+  // WPS 环境（非 demo）：走外部打开
+  if (!demoActive.value && isWPSAvailable.value) {
+    handleOpenSource(src)
+    return
+  }
+  // 浏览器环境 / demo 模式：打开 PDF 阅读面板
+  uiStore.openReader(src.paper_id, src.page)
 }
 
 function cancelHoverTimer() {
@@ -303,6 +321,7 @@ async function handleNewChat() {
   if (isBusy.value && !confirm('当前对话正在进行中，确定要开始新对话吗？')) return
   // Just reset locally — don't create a backend session until user actually sends a message
   store.reset()
+  resetCounter.value++
   libraryStore.clearSelectedPapers()
 }
 
@@ -396,17 +415,26 @@ async function handleDeleteSession(sessionId: string) {
 function handleOpenSource(source: SourceCard) {
   const filePath = source.file_path || source.local_path
   if (!filePath) {
-    // No file path available — show preview instead
     showCitationPreview(source)
     return
   }
 
   if (isWPSAvailable.value && window.wps?.OAAssist?.ShellExecute) {
     window.wps.OAAssist.ShellExecute(filePath)
+  } else if (source.paper_id) {
+    uiStore.openReader(source.paper_id, source.page)
   } else {
-    // 浏览器回退：尝试用 file:// 打开
-    const fileUrl = filePath.replace(/\\/g, '/')
-    window.open(`file:///${fileUrl}`, '_blank')
+    showCitationPreview(source)
+  }
+}
+
+// 点击引用预览浮窗 → 打开阅读面板
+function handlePreviewClick() {
+  const src = previewSource.value
+  if (!src) return
+  previewVisible.value = false
+  if (src.paper_id) {
+    uiStore.openReader(src.paper_id, src.page)
   }
 }
 
