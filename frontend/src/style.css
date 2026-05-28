@@ -4,6 +4,10 @@
    浅色/深色双主题
    ═════════════════════════════════════════ */
 
+html {
+  font-size: 14px;
+}
+
 :root {
   /* ── 浅色模式色彩 ── */
   --color-surface-base:    #f5f7fa;
@@ -37,10 +41,10 @@
   --radius-full: 9999px;
 
   /* ── 字体 ── */
-  --font-size-base: 14px;
-  --font-size-sm: 12px;
-  --font-size-lg: 16px;
-  --font-size-xl: 20px;
+  --font-size-base: 1rem;
+  --font-size-sm: 0.857rem;
+  --font-size-lg: 1.143rem;
+  --font-size-xl: 1.429rem;
 
   --font-family-base:
     "PingFang SC",

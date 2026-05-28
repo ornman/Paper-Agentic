@@ -31,7 +31,7 @@ export const useSettingsStore = defineStore('settings', () => {
   watch(ragEnabled, (v) => persist('ragEnabled', v))
   watch(fontSize, (v) => {
     persist('fontSize', v)
-    document.documentElement.style.setProperty('--font-size-base', `${v}px`)
+    document.documentElement.style.fontSize = `${v}px`
   })
 
   // ── Fetch models from API ──
@@ -109,9 +109,7 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   // ── Apply font size on init ──
-  if (fontSize.value !== 14) {
-    document.documentElement.style.setProperty('--font-size-base', `${fontSize.value}px`)
-  }
+  document.documentElement.style.fontSize = `${fontSize.value}px`
 
   return {
     apiUrl,
