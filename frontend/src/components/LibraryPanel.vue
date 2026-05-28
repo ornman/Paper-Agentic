@@ -1,28 +1,48 @@
 <template>
   <div class="library-panel">
-    <!-- Search (always visible) -->
+    <!-- Search bar -->
     <div class="library-search">
       <svg class="library-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="11" cy="11" r="8" />
         <line x1="21" y1="21" x2="16.65" y2="16.65" />
       </svg>
       <input
-        v-model="searchText"
+        v-model="search.query"
         type="text"
         class="library-search-input"
-        placeholder="搜索论文..."
+        placeholder="搜索标题、作者、关键词..."
         aria-label="搜索文献库"
       />
-      <div class="sort-wrapper">
-        <button class="sort-toggle" type="button" @click="showSortMenu = !showSortMenu" title="排序">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 4h12M4 8h8M6 12h4"/></svg>
+      <div class="search-actions">
+        <button v-if="search.hasQuery.value" class="search-clear" type="button" @click="search.resetFilters()" title="清除搜索">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
         </button>
-        <div v-if="showSortMenu" class="sort-menu" @mouseleave="showSortMenu = false">
-          <button :class="{ active: sortBy === 'time' }" @click="sortBy = 'time'; showSortMenu = false">按导入时间</button>
-          <button :class="{ active: sortBy === 'title' }" @click="sortBy = 'title'; showSortMenu = false">按标题</button>
-          <button :class="{ active: sortBy === 'pages' }" @click="sortBy = 'pages'; showSortMenu = false">按页数</button>
+        <div class="sort-wrapper">
+          <button class="sort-toggle" type="button" @click="showSortMenu = !showSortMenu" title="排序">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 4h12M4 8h8M6 12h4"/></svg>
+          </button>
+          <div v-if="showSortMenu" class="sort-menu" @mouseleave="showSortMenu = false">
+            <button :class="{ active: search.sortBy.value === 'relevance' }" @click="search.sortBy.value = 'relevance'; showSortMenu = false">相关度</button>
+            <button :class="{ active: search.sortBy.value === 'time' }" @click="search.sortBy.value = 'time'; showSortMenu = false">导入时间</button>
+            <button :class="{ active: search.sortBy.value === 'year' }" @click="search.sortBy.value = 'year'; showSortMenu = false">发表年份</button>
+            <button :class="{ active: search.sortBy.value === 'title' }" @click="search.sortBy.value = 'title'; showSortMenu = false">标题</button>
+          </div>
         </div>
       </div>
+    </div>
+
+    <!-- Filter row -->
+    <div v-if="papers.length > 0" class="library-filters">
+      <select v-model="search.yearFilter.value" class="filter-select" :class="{ 'filter-active': search.yearFilter.value }">
+        <option value="">年份</option>
+        <option v-for="y in search.yearOptions.value" :key="y" :value="y">{{ y }}</option>
+      </select>
+      <select v-model="search.authorFilter.value" class="filter-select" :class="{ 'filter-active': search.authorFilter.value }">
+        <option value="">作者</option>
+        <option v-for="a in search.authorOptions.value" :key="a" :value="a">{{ a }}</option>
+      </select>
     </div>
 
     <!-- Upload button -->
@@ -60,14 +80,14 @@
     </div>
 
     <!-- No search results -->
-    <div v-else-if="filteredPapers.length === 0 && searchText" class="library-empty">
+    <div v-else-if="filteredPapers.length === 0 && (search.hasQuery.value || search.yearFilter.value || search.authorFilter.value)" class="library-empty">
       未找到匹配的论文
     </div>
 
     <!-- Paper list -->
     <div v-else class="library-list">
       <!-- Select all header -->
-      <label v-if="sortedPapers.length > 0" class="library-select-all">
+      <label v-if="filteredPapers.length > 0" class="library-select-all">
         <input
           type="checkbox"
           class="library-item-checkbox"
@@ -78,42 +98,37 @@
         <span class="library-select-all-label">
           {{ allFilteredSelected ? '取消全选' : '全选' }}
         </span>
+        <span v-if="search.hasQuery.value || search.yearFilter.value || search.authorFilter.value" class="library-result-count">
+          {{ search.totalResults.value }} / {{ papers.length }}
+        </span>
       </label>
 
-      <label
-        v-for="paper in sortedPapers"
+      <LibraryPaperCard
+        v-for="paper in filteredPapers"
         :key="paper.paper_id"
-        class="library-item"
-        :class="{ 'library-item--selected': selectedIds.includes(paper.paper_id) }"
-      >
-        <input
-          type="checkbox"
-          class="library-item-checkbox"
-          :value="paper.paper_id"
-          :checked="selectedIds.includes(paper.paper_id)"
-          @change="emit('toggle', paper.paper_id)"
-        />
-        <div class="library-item-body">
-          <span class="library-item-title">{{ paper.title }}</span>
-          <span class="library-item-meta">
-            {{ truncateAuthors(paper.authors) }}
-            &middot; {{ paper.total_pages }} 页
-            &middot; {{ paper.chunk_count }} 块
-            &middot; {{ relativeTime(paper.import_time) }}
-          </span>
+        :paper="paper"
+        :selected="selectedIds.includes(paper.paper_id)"
+        :highlight-fn="search.highlightText"
+        @toggle="emit('toggle', $event)"
+        @remove="emit('remove', $event)"
+        @similar="handleSimilar"
+      />
+
+      <!-- Similar mode overlay -->
+      <div v-if="similarPapers.length > 0" class="similar-panel">
+        <div class="similar-header">
+          <span class="similar-title">相似论文</span>
+          <button class="similar-close" type="button" @click="similarPapers = []">关闭</button>
         </div>
-        <button
-          class="library-item-remove"
-          type="button"
-          aria-label="移除论文"
-          @click.prevent.stop="emit('remove', paper.paper_id)"
-        >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="3 6 5 6 21 6" />
-            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-          </svg>
-        </button>
-      </label>
+        <LibraryPaperCard
+          v-for="paper in similarPapers"
+          :key="'sim-' + paper.paper_id"
+          :paper="paper"
+          :selected="selectedIds.includes(paper.paper_id)"
+          @toggle="emit('toggle', $event)"
+          @remove="emit('remove', $event)"
+        />
+      </div>
 
       <!-- Summary footer -->
       <div class="library-summary">
@@ -139,6 +154,8 @@
 import { ref, computed } from 'vue'
 import type { PaperItem } from '../services/library-api'
 import { useLibraryStore } from '../stores/library'
+import { useLibrarySearch } from '../composables/use-library-search'
+import LibraryPaperCard from './LibraryPaperCard.vue'
 
 const libraryStore = useLibraryStore()
 
@@ -158,31 +175,12 @@ const emit = defineEmits<{
   (e: 'select-all', ids: string[]): void
 }>()
 
-const searchText = ref('')
-const sortBy = ref<'time' | 'title' | 'pages'>('time')
 const showSortMenu = ref(false)
+const similarPapers = ref<PaperItem[]>([])
 
-const filteredPapers = computed(() => {
-  if (!searchText.value.trim()) return props.papers
-  const q = searchText.value.toLowerCase()
-  return props.papers.filter(
-    (paper) =>
-      paper.title.toLowerCase().includes(q) ||
-      paper.authors.toLowerCase().includes(q),
-  )
-})
+const search = useLibrarySearch(() => props.papers)
 
-const sortedPapers = computed(() => {
-  const list = [...filteredPapers.value]
-  if (sortBy.value === 'title') {
-    list.sort((a, b) => a.title.localeCompare(b.title))
-  } else if (sortBy.value === 'pages') {
-    list.sort((a, b) => (b.total_pages ?? 0) - (a.total_pages ?? 0))
-  } else {
-    list.sort((a, b) => new Date(b.import_time).getTime() - new Date(a.import_time).getTime())
-  }
-  return list
-})
+const filteredPapers = computed(() => search.results.value)
 
 const filteredIds = computed(() => filteredPapers.value.map((p) => p.paper_id))
 
@@ -204,34 +202,8 @@ function handleSelectAll() {
   }
 }
 
-function truncateAuthors(authors: string, maxLen = 30): string {
-  if (!authors) return '未知作者'
-  if (authors.length <= maxLen) return authors
-  return authors.slice(0, maxLen) + '...'
-}
-
-function relativeTime(iso: string): string {
-  if (!iso) return ''
-  const now = Date.now()
-  const then = new Date(iso).getTime()
-  const diffMs = now - then
-  if (diffMs < 0) return '刚刚'
-
-  const minutes = Math.floor(diffMs / 60000)
-  if (minutes < 1) return '刚刚'
-  if (minutes < 60) return `${minutes} 分钟前`
-
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours} 小时前`
-
-  const days = Math.floor(hours / 24)
-  if (days < 30) return `${days} 天前`
-
-  const months = Math.floor(days / 30)
-  if (months < 12) return `${months} 个月前`
-
-  const years = Math.floor(months / 12)
-  return `${years} 年前`
+function handleSimilar(paperId: string) {
+  similarPapers.value = search.findSimilar(paperId)
 }
 </script>
 
@@ -259,7 +231,7 @@ function relativeTime(iso: string): string {
 
 .library-search-input {
   width: 100%;
-  padding: var(--space-2) 36px var(--space-2) calc(var(--space-3) + 18px);
+  padding: var(--space-2) 72px var(--space-2) calc(var(--space-3) + 18px);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-sm);
   font-size: var(--font-size-sm);
@@ -275,6 +247,60 @@ function relativeTime(iso: string): string {
 
 .library-search-input::placeholder {
   color: var(--color-text-muted);
+}
+
+.search-actions {
+  position: absolute;
+  right: 4px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.search-clear {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.search-clear:hover {
+  color: var(--color-text-primary);
+  background: var(--color-surface-muted);
+}
+
+/* ─── Filters ─── */
+.library-filters {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.filter-select {
+  flex: 1;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  background: var(--color-surface-base);
+  outline: none;
+  cursor: pointer;
+  transition: border-color var(--duration-fast) ease;
+}
+
+.filter-select:focus {
+  border-color: var(--color-accent);
+}
+
+.filter-active {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
 }
 
 /* ─── Upload button ─── */
@@ -342,6 +368,7 @@ function relativeTime(iso: string): string {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  position: relative;
 }
 
 /* ─── Select all ─── */
@@ -361,82 +388,53 @@ function relativeTime(iso: string): string {
   user-select: none;
 }
 
-.library-item {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-3);
-  padding: var(--space-3);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: background 0.25s ease, box-shadow 0.25s ease;
-}
-
-.library-item:hover {
-  background: var(--color-surface-muted);
-}
-
-.library-item--selected {
-  background: var(--color-accent-soft);
-  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--color-accent) 25%, transparent);
-}
-
-.library-item--selected:hover {
-  background: var(--color-accent-soft);
+.library-result-count {
+  font-size: 11px;
+  color: var(--color-accent);
+  margin-left: auto;
 }
 
 .library-item-checkbox {
   flex-shrink: 0;
   width: 16px;
   height: 16px;
-  margin-top: 2px;
   accent-color: var(--color-accent);
   cursor: pointer;
 }
 
-.library-item-body {
-  flex: 1;
-  min-width: 0;
+/* ─── Similar panel ─── */
+.similar-panel {
+  margin-top: var(--space-2);
+  padding: var(--space-2);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-accent) 5%, var(--color-surface-card));
+}
+
+.similar-header {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-1) var(--space-2);
+  margin-bottom: var(--space-1);
 }
 
-.library-item-title {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.similar-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-accent);
 }
 
-.library-item-meta {
+.similar-close {
+  border: none;
+  background: transparent;
   font-size: 12px;
   color: var(--color-text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  cursor: pointer;
 }
 
-.library-item-remove {
-  flex-shrink: 0;
-  width: 24px;
-  height: 24px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  color: var(--color-text-muted);
-  opacity: 0;
-  transition: opacity var(--duration-fast) ease, color var(--duration-fast) ease, background var(--duration-fast) ease;
-}
-
-.library-item:hover .library-item-remove {
-  opacity: 1;
-}
-
-.library-item-remove:hover {
-  color: var(--color-error);
-  background: var(--color-surface-muted);
+.similar-close:hover {
+  color: var(--color-text-primary);
 }
 
 /* ─── Summary ─── */
@@ -455,8 +453,8 @@ function relativeTime(iso: string): string {
 }
 
 .sort-toggle {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;

@@ -11,6 +11,7 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, Request
 
 from app.data_layer.contracts.library_item import ImportTask, LibraryItem
+from app.data_layer.preprocessing.transformation.pdf_metadata import extract_pdf_metadata
 from app.service_layer.schemas.library import (
     ImportRequest,
     ImportResponse,
@@ -87,13 +88,15 @@ async def _run_import(container, task_id: str, file_path: Path):
             container.import_task_repo.update_status(
                 task_id, "completed", message=f"导入成功，{result.chunk_count} 个 chunk", paper_id=result.paper_id,
             )
-            # 同步到 library_repo
+            meta = extract_pdf_metadata(file_path)
             container.library_repo.upsert(LibraryItem(
                 item_id=result.paper_id,
-                title=file_path.stem,
+                title=meta.title or file_path.stem,
                 file_path=str(file_path),
                 file_type=file_path.suffix.lower(),
                 status="ready",
+                authors=meta.authors,
+                year=meta.year,
             ))
         else:
             container.import_task_repo.update_status(task_id, "failed", message=result.error or "导入失败")

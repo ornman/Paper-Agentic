@@ -28,7 +28,9 @@ class SQLiteLibraryRepo:
                     file_type TEXT NOT NULL DEFAULT '',
                     import_time TEXT NOT NULL DEFAULT '',
                     page_count INTEGER DEFAULT 0,
-                    status TEXT DEFAULT 'ready'
+                    status TEXT DEFAULT 'ready',
+                    authors TEXT DEFAULT '',
+                    year TEXT DEFAULT ''
                 )
                 """
             )
@@ -43,7 +45,8 @@ class SQLiteLibraryRepo:
             rows = conn.execute(
                 """
                 SELECT item_id, title, file_path, file_hash,
-                       file_type, import_time, page_count, status
+                       file_type, import_time, page_count, status,
+                       authors, year
                 FROM library_items
                 ORDER BY import_time DESC
                 """,
@@ -55,7 +58,8 @@ class SQLiteLibraryRepo:
             row = conn.execute(
                 """
                 SELECT item_id, title, file_path, file_hash,
-                       file_type, import_time, page_count, status
+                       file_type, import_time, page_count, status,
+                       authors, year
                 FROM library_items
                 WHERE item_id = ?
                 """,
@@ -72,7 +76,8 @@ class SQLiteLibraryRepo:
             row = conn.execute(
                 """
                 SELECT item_id, title, file_path, file_hash,
-                       file_type, import_time, page_count, status
+                       file_type, import_time, page_count, status,
+                       authors, year
                 FROM library_items
                 WHERE file_hash = ?
                 """,
@@ -90,8 +95,9 @@ class SQLiteLibraryRepo:
                 """
                 INSERT INTO library_items
                     (item_id, title, file_path, file_hash,
-                     file_type, import_time, page_count, status)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                     file_type, import_time, page_count, status,
+                     authors, year)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(item_id) DO UPDATE SET
                     title = excluded.title,
                     file_path = excluded.file_path,
@@ -99,7 +105,9 @@ class SQLiteLibraryRepo:
                     file_type = excluded.file_type,
                     import_time = excluded.import_time,
                     page_count = excluded.page_count,
-                    status = excluded.status
+                    status = excluded.status,
+                    authors = excluded.authors,
+                    year = excluded.year
                 """,
                 (
                     item.item_id,
@@ -110,6 +118,8 @@ class SQLiteLibraryRepo:
                     item.import_time,
                     item.page_count,
                     item.status,
+                    item.authors,
+                    item.year,
                 ),
             )
             conn.commit()
@@ -137,4 +147,6 @@ class SQLiteLibraryRepo:
             import_time=row[5],
             page_count=row[6],
             status=row[7],
+            authors=row[8] if len(row) > 8 else "",
+            year=row[9] if len(row) > 9 else "",
         )

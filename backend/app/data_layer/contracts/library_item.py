@@ -18,6 +18,8 @@ class LibraryItem:
     import_time: str = ""
     page_count: int = 0
     status: str = "ready"
+    authors: str = ""
+    year: str = ""
 
 
 @dataclass
