@@ -8,7 +8,10 @@
         class="user-edit-textarea"
         @keydown="handleEditKeydown"
       />
-      <span class="edit-hint">Enter 发送，Esc 取消</span>
+      <div class="edit-actions">
+        <button class="edit-cancel-btn" type="button" @click="isEditing = false">取消</button>
+        <button class="edit-submit-btn" type="button" :disabled="!editText.trim()" @click="submitEdit">发送</button>
+      </div>
     </div>
     <!-- 正常态 -->
     <div v-else class="user-bubble">{{ message.content }}</div>
@@ -62,16 +65,17 @@ function startEditing() {
 }
 
 function handleEditKeydown(e: KeyboardEvent) {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault()
-    const trimmed = editText.value.trim()
-    if (!trimmed) return
-    isEditing.value = false
-    emit('resubmit', props.message.id, trimmed)
-  } else if (e.key === 'Escape') {
+  if (e.key === 'Escape') {
     e.preventDefault()
     isEditing.value = false
   }
+}
+
+function submitEdit() {
+  const trimmed = editText.value.trim()
+  if (!trimmed) return
+  isEditing.value = false
+  emit('resubmit', props.message.id, trimmed)
 }
 
 async function handleCopy() {
@@ -128,10 +132,47 @@ async function handleCopy() {
   box-sizing: border-box;
 }
 
-.edit-hint {
-  font-size: 11px;
-  color: var(--color-text-muted);
+.edit-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   padding-right: 4px;
+}
+
+.edit-cancel-btn {
+  padding: 4px 12px;
+  border: 1px solid var(--color-border-subtle, #e2e2e2);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.edit-cancel-btn:hover {
+  background: var(--color-surface-muted);
+  color: var(--color-text-primary);
+}
+
+.edit-submit-btn {
+  padding: 4px 12px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--color-accent);
+  color: #fff;
+  font-size: 12px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.edit-submit-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.edit-submit-btn:not(:disabled):hover {
+  opacity: 0.85;
 }
 
 .user-actions {
