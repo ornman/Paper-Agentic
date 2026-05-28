@@ -65,11 +65,22 @@
       <!-- 3. 主题与界面 -->
       <section class="settings-card">
         <h2 class="settings-section-title">主题与界面</h2>
-        <div class="settings-field-row">
-          <span>深色模式</span>
-          <button class="toggle-btn" :class="{ active: theme.resolvedTheme.value === 'dark' }" @click="theme.toggle()">
-            <span class="toggle-knob"></span>
-          </button>
+        <div class="settings-field">
+          <label>外观主题</label>
+          <div class="theme-switcher">
+            <button class="theme-option" :class="{ active: theme.mode.value === 'system' }" @click="theme.setMode('system')">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+              随系统
+            </button>
+            <button class="theme-option" :class="{ active: theme.mode.value === 'light' }" @click="theme.setMode('light')">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+              浅色
+            </button>
+            <button class="theme-option" :class="{ active: theme.mode.value === 'dark' }" @click="theme.setMode('dark')">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+              深色
+            </button>
+          </div>
         </div>
         <div class="settings-field">
           <label>字体大小（{{ settingsStore.fontSize }}px）</label>
@@ -133,8 +144,10 @@ function handleClearCache() {
 
 <style scoped>
 .settings-layout {
-  min-height: 100vh;
+  height: 100%;
   background: var(--color-surface-base);
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .settings-topbar {
@@ -360,5 +373,39 @@ function handleClearCache() {
 
 .storage-btn-danger:hover {
   background: rgba(211, 47, 47, 0.06);
+}
+
+/* Theme switcher */
+.theme-switcher {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.theme-option {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 8px;
+  color: var(--color-text-secondary);
+  background: var(--color-surface-base);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.theme-option:hover {
+  background: var(--color-surface-muted);
+}
+
+.theme-option.active {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background: var(--color-accent-soft);
 }
 </style>
