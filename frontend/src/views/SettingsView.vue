@@ -13,7 +13,10 @@
     <main class="settings-main">
       <!-- 1. 模型配置 -->
       <section class="settings-card">
-        <h2 class="settings-section-title">模型配置</h2>
+        <div class="section-header">
+          <h2 class="settings-section-title">模型配置</h2>
+          <p class="section-desc">连接到大语言模型服务，配置 API 地址、密钥和模型参数</p>
+        </div>
         <div class="settings-field">
           <label>API URL</label>
           <input v-model="settingsStore.apiUrl" type="text" placeholder="https://api.deepseek.com/v1" @blur="handleApiBlur">
@@ -41,7 +44,10 @@
 
       <!-- 2. 对话行为 -->
       <section class="settings-card">
-        <h2 class="settings-section-title">对话行为</h2>
+        <div class="section-header">
+          <h2 class="settings-section-title">对话行为</h2>
+          <p class="section-desc">控制 AI 的回答方式，包括反思改进和文献检索增强</p>
+        </div>
         <div class="settings-field-row">
           <div>
             <span>反思模式</span>
@@ -64,7 +70,10 @@
 
       <!-- 3. 主题与界面 -->
       <section class="settings-card">
-        <h2 class="settings-section-title">主题与界面</h2>
+        <div class="section-header">
+          <h2 class="settings-section-title">主题与界面</h2>
+          <p class="section-desc">调整外观主题和字体大小，让界面更舒适</p>
+        </div>
         <div class="settings-field">
           <label>外观主题</label>
           <div class="theme-switcher">
@@ -90,7 +99,10 @@
 
       <!-- 4. 存储管理 -->
       <section class="settings-card">
-        <h2 class="settings-section-title">存储管理</h2>
+        <div class="section-header">
+          <h2 class="settings-section-title">存储管理</h2>
+          <p class="section-desc">查看本地存储用量，导出或清理缓存数据</p>
+        </div>
         <div class="storage-usage">
           <span>本地存储用量</span>
           <span class="storage-value">{{ storageUsage }}</span>
@@ -200,11 +212,21 @@ function handleClearCache() {
 .settings-section-title {
   font-size: 15px;
   font-weight: 600;
-  margin-bottom: 14px;
   color: var(--color-text-primary);
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.section-header {
+  margin-bottom: 14px;
+}
+
+.section-desc {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: 4px;
+  line-height: 1.4;
 }
 
 .settings-field {
