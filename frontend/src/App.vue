@@ -14,11 +14,11 @@
 
 .page-enter-from {
   opacity: 0;
-  transform: translateY(8px);
+  transform: translateX(20px);
 }
 
 .page-leave-to {
   opacity: 0;
-  transform: translateY(-4px);
+  transform: translateX(-8px);
 }
 </style>
