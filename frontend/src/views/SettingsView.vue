@@ -117,6 +117,9 @@
       <section class="settings-card">
         <div class="about-header">
           <span class="about-logo" v-html="logoSvg" @click="handleLogoClick" />
+          <div v-if="easterEggActive" class="easter-overlay" @click="easterEggActive = false">
+            <div ref="easterContainer" class="easter-lottie"></div>
+          </div>
           <div class="about-info">
             <h2 class="settings-section-title">论文助手</h2>
             <p class="about-version">v0.1.0 · MVP</p>
@@ -141,10 +144,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, watch, onMounted, nextTick } from 'vue'
 import { useSettingsStore } from '../stores/settings'
 import { useTheme } from '../composables/use-theme'
 import logoSvg from '../assets/icons/ai-science-spark.svg?raw'
+import easterEggData from '../assets/animations/easter-egg.json'
 
 const settingsStore = useSettingsStore()
 const theme = useTheme()
@@ -153,10 +157,12 @@ const storageUsage = ref('')
 
 const techTags = ['RAG', 'BM25 + Dense', 'VLM', 'MinerU', 'DeepSeek', 'Qwen3-Embedding']
 
-// easter egg: 连点 logo 5 次触发旋转动画
+// easter egg: 连点 logo 5 次触发 Lottie 动画
 const easterClickCount = ref(0)
 const easterEggActive = ref(false)
+const easterContainer = ref<HTMLElement | null>(null)
 let easterTimer: ReturnType<typeof setTimeout> | null = null
+let lottieAnim: { destroy: () => void } | null = null
 
 function handleLogoClick() {
   easterClickCount.value++
@@ -165,9 +171,26 @@ function handleLogoClick() {
   if (easterClickCount.value >= 5) {
     easterClickCount.value = 0
     easterEggActive.value = true
-    setTimeout(() => { easterEggActive.value = false }, 2000)
   }
 }
+
+watch(easterEggActive, async (active) => {
+  if (!active) {
+    lottieAnim?.destroy()
+    lottieAnim = null
+    return
+  }
+  await nextTick()
+  if (!easterContainer.value) return
+  const lottie = (await import('lottie-web')).default
+  lottieAnim = lottie.loadAnimation({
+    container: easterContainer.value,
+    renderer: 'svg',
+    loop: true,
+    autoplay: true,
+    animationData: easterEggData,
+  })
+})
 
 onMounted(() => {
   storageUsage.value = settingsStore.estimateStorageUsage()
@@ -544,5 +567,29 @@ function handleClearCache() {
 
 .about-link-divider {
   opacity: 0.4;
+}
+
+/* Easter egg overlay */
+.easter-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  cursor: pointer;
+  animation: easter-fade-in 0.3s ease;
+}
+
+@keyframes easter-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.easter-lottie {
+  width: 280px;
+  height: 280px;
 }
 </style>

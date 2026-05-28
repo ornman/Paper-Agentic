@@ -9,7 +9,7 @@
         </svg>
       </button>
       <span class="nav-logo clickable" v-html="logoSvg" @click="emit('new-chat')" />
-      <h1 class="page-title clickable" @click="emit('new-chat')">{{ title }}</h1>
+      <h1 class="page-title">{{ title }}</h1>
     </div>
     <div class="top-right">
       <!-- 新建对话 -->

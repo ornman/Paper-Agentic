@@ -11,6 +11,9 @@ importers:
       fuse.js:
         specifier: ^7.3.0
         version: 7.3.0
+      lottie-web:
+        specifier: ^5.13.0
+        version: 5.13.0
       pdfjs-dist:
         specifier: ^5.7.284
         version: 5.7.284
@@ -525,6 +528,9 @@ packages:
     resolution: {integrity: sha512-F/1DnUGPopORZi0ni+CvrCgHQ5FyEAHRLSApuYWMmrbSwoN2Mn/7k+Gl38gJnR7yyDZk6WLXwiGod1JOWNDKGw==}
     hasBin: true
 
+  lottie-web@5.13.0:
+    resolution: {integrity: sha512-+gfBXl6sxXMPe8tKQm7qzLnUy5DUPJPKIyRHwtpCpyUEYjHYRJC/5gjUvdkuO2c3JllrPtHXH5UJJK8LRYl5yQ==}
+
   magic-string@0.30.21:
     resolution: {integrity: sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==}
 
@@ -1008,6 +1014,8 @@ snapshots:
   fuse.js@7.3.0: {}
 
   he@1.2.0: {}
+
+  lottie-web@5.13.0: {}
 
   magic-string@0.30.21:
     dependencies:
