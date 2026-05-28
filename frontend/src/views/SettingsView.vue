@@ -121,7 +121,6 @@
             <div class="easter-content">
               <div ref="easterContainer" class="easter-lottie"></div>
               <span class="easter-text">REJECT BALDNESS</span>
-              <span class="easter-sub">拒绝头秃</span>
             </div>
           </div>
           <div class="about-info">
@@ -657,12 +656,5 @@ function handleClearCache() {
       0 5px 10px rgba(0,0,0,.25),
       0 20px 20px rgba(0,0,0,.15);
   }
-}
-
-.easter-sub {
-  font-size: 14px;
-  letter-spacing: 8px;
-  color: rgba(255,255,255,0.5);
-  font-weight: 500;
 }
 </style>
