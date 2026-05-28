@@ -1,7 +1,7 @@
 <template>
   <div class="empty-state">
-    <h1 class="empty-title">今天有什么可以帮到你？</h1>
-    <p class="empty-hint">输入你的问题，开始与论文对话</p>
+    <h1 class="empty-title">{{ greeting.title }}</h1>
+    <p class="empty-hint">{{ greeting.hint }}</p>
     <div class="prompt-grid">
       <button
         v-for="card in promptCards"
@@ -118,6 +118,14 @@ const allPromptCards: PromptCard[] = [
 
 // 随机选取 6 个展示（每次组件挂载重新随机）
 const promptCards = [...allPromptCards].sort(() => Math.random() - 0.5).slice(0, 6)
+
+// 轮询问候语
+const greetings = [
+  { title: '今天有什么可以帮到你？', hint: '输入你的问题，开始与论文对话' },
+  { title: '探索学术文献，从这里开始', hint: '输入研究问题，开启智能文献分析与学术写作辅助' },
+  { title: '准备好深入论文了吗？', hint: '选择下方快捷指令，或直接输入你的研究问题' },
+]
+const greeting = greetings[Math.floor(Math.random() * greetings.length)]
 </script>
 
 <style scoped>

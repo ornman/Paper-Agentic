@@ -12,13 +12,13 @@
       />
     </div>
 
-    <div v-if="loading" class="history-empty">加载中...</div>
+    <div v-if="loading" class="history-empty">正在加载...</div>
 
     <div v-else-if="sessions.length === 0" class="empty-state">
       <svg class="empty-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
       </svg>
-      <p class="empty-text">暂无历史记录</p>
+      <p class="empty-text">暂无会话记录</p>
     </div>
 
     <div v-else class="history-list">
@@ -79,7 +79,7 @@ const emit = defineEmits<{
 }>()
 
 function handleDelete(session: ConversationSession) {
-  if (confirm(`确定删除 "${session.title}" 会话？`)) {
+  if (confirm(`确认删除会话「${session.title}」？此操作不可撤销。`)) {
     emit('delete', session.session_id)
   }
 }

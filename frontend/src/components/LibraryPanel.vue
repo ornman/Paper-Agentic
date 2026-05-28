@@ -61,14 +61,14 @@
     </button>
 
     <!-- Loading -->
-    <div v-if="loading" class="library-empty">加载中...</div>
+    <div v-if="loading" class="library-empty">正在加载...</div>
 
     <!-- Error -->
     <div v-else-if="error" class="library-error">{{ error }}</div>
 
     <!-- Empty state -->
     <div v-else-if="papers.length === 0" class="library-empty-state">
-      <p class="library-empty-text">还没有导入论文</p>
+      <p class="library-empty-text">尚未导入论文</p>
       <button class="library-upload-btn library-upload-btn--prominent" type="button" @click="emit('upload')">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
