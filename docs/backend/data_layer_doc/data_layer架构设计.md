@@ -1,5 +1,13 @@
 # data_layer 架构设计
 
+> ⚠️ 最后更新: 待核实
+> 
+> **与代码的主要偏差：**
+> - PDF 解析已从 MarkItDown 切换为 MinerU（`mineru_adapter.py` / `mineru_client.py`）
+> - `transformation/` 目录实际包含: mineru_adapter, mineru_client, pdf_converter, pdf_metadata
+> - probe/routing 模块已计划移除（见 `后端架构待办.md` §12.2）
+> - 第 7 节代码映射中的文件路径反映旧目录结构，以实际代码为准
+
 ## 1. 文档定位
 
 这份文档是 data_layer 层的唯一活动架构文档。
