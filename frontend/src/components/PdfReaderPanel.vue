@@ -19,78 +19,21 @@
         @keydown.escape="emit('close')"
       >
         <!-- Toolbar -->
-        <div class="reader-toolbar">
-          <div class="reader-title" :title="paperTitle">{{ paperTitle }}</div>
-
-          <div class="reader-controls">
-            <button
-              class="reader-btn"
-              :disabled="renderer.currentPage.value <= 1"
-              aria-label="上一页"
-              @click="renderer.scrollToPage(renderer.currentPage.value - 1)"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-            </button>
-
-            <span class="reader-page-info">
-              <input
-                ref="pageInputRef"
-                class="reader-page-input"
-                type="number"
-                :value="renderer.currentPage.value"
-                :min="1"
-                :max="renderer.totalPages.value"
-                @keydown.enter="handlePageInput"
-                @blur="handlePageInput"
-              />
-              <span class="reader-page-sep">/</span>
-              <span>{{ renderer.totalPages.value }}</span>
-            </span>
-
-            <button
-              class="reader-btn"
-              :disabled="renderer.currentPage.value >= renderer.totalPages.value"
-              aria-label="下一页"
-              @click="renderer.scrollToPage(renderer.currentPage.value + 1)"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-            </button>
-
-            <span class="reader-divider" />
-
-            <button
-              class="reader-btn"
-              :disabled="scale <= 0.5"
-              aria-label="缩小"
-              @click="setScale(Math.max(0.5, scale - 0.25))"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            </button>
-
-            <span class="reader-scale-label">{{ Math.round(scale * 100) }}%</span>
-
-            <button
-              class="reader-btn"
-              :disabled="scale >= 3"
-              aria-label="放大"
-              @click="setScale(Math.min(3, scale + 0.25))"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            </button>
-          </div>
-
-          <button
-            class="reader-close-btn"
-            type="button"
-            aria-label="关闭阅读面板"
-            @click="emit('close')"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        </div>
+        <PdfToolbar
+          :title="paperTitle"
+          :current-page="renderer.currentPage.value"
+          :total-pages="renderer.totalPages.value"
+          :scale="scale"
+          :outline-open="outlineOpen"
+          :show-outline-button="hasOutline"
+          @close="emit('close')"
+          @prev="renderer.scrollToPage(renderer.currentPage.value - 1)"
+          @next="renderer.scrollToPage(renderer.currentPage.value + 1)"
+          @zoom-in="setScale(Math.min(3, scale + 0.25))"
+          @zoom-out="setScale(Math.max(0.5, scale - 0.25))"
+          @go-to-page="renderer.scrollToPage"
+          @toggle-outline="outlineOpen = !outlineOpen"
+        />
 
         <!-- PDF viewport -->
         <div ref="scrollContainerRef" class="reader-body">
@@ -133,6 +76,7 @@ import { usePdfjs } from '../composables/use-pdfjs'
 import { usePdfRenderer } from '../composables/use-pdf-renderer'
 import { buildPaperOpenUrl } from '../services/library-api'
 import PdfPage from './pdf-reader/PdfPage.vue'
+import PdfToolbar from './pdf-reader/PdfToolbar.vue'
 
 const { lib: pdfjsLib, cMapOptions } = usePdfjs()
 
@@ -147,13 +91,14 @@ const emit = defineEmits<{
   (e: 'close'): void
 }>()
 
-const pageInputRef = ref<HTMLInputElement | null>(null)
 const scrollContainerRef = ref<HTMLElement | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
 const paperTitle = ref('PDF 阅读器')
 const scale = ref(1.0)
 const containerWidth = ref(480)
+const outlineOpen = ref(false)
+const hasOutline = ref(false)
 
 let pdfDocProxy: PDFDocumentProxy | null = null
 
@@ -198,11 +143,6 @@ async function loadPdf() {
   } finally {
     loading.value = false
   }
-}
-
-function handlePageInput() {
-  const val = parseInt(pageInputRef.value?.value ?? '', 10)
-  if (!isNaN(val)) renderer.scrollToPage(val)
 }
 
 watch(() => props.visible, async (visible) => {
@@ -279,125 +219,19 @@ onBeforeUnmount(() => {
   opacity: 0;
 }
 
-/* ── Toolbar ── */
-.reader-toolbar {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  border-bottom: 1px solid var(--color-border-subtle);
-  flex-shrink: 0;
-}
-
-.reader-title {
-  font-size: var(--font-size-sm);
-  font-weight: 500;
-  color: var(--color-text-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 80px;
-  max-width: 300px;
-}
-
-.reader-controls {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  flex: 1;
-  justify-content: center;
-}
-
+/* ── Shared button style (error retry) ── */
 .reader-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  padding: 4px 12px;
   border-radius: var(--radius-sm);
   color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
   transition: background 0.15s, color 0.15s;
 }
 
-.reader-btn:hover:not(:disabled) {
-  background: var(--color-surface-muted);
-  color: var(--color-text-primary);
-}
-
-.reader-btn:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-
-.reader-page-info {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  font-variant-numeric: tabular-nums;
-}
-
-.reader-page-input {
-  width: 36px;
-  text-align: center;
-  font-size: var(--font-size-sm);
-  font-variant-numeric: tabular-nums;
-  color: var(--color-text-primary);
-  background: var(--color-surface-muted);
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
-  padding: 2px 0;
-  outline: none;
-  transition: border-color 0.15s;
-}
-
-.reader-page-input:focus {
-  border-color: var(--color-accent);
-}
-
-.reader-page-input::-webkit-inner-spin-button,
-.reader-page-input::-webkit-outer-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-.reader-page-input[type='number'] {
-  -moz-appearance: textfield;
-}
-
-.reader-page-sep {
-  color: var(--color-text-muted);
-}
-
-.reader-divider {
-  width: 1px;
-  height: 16px;
-  background: var(--color-border-subtle);
-  margin: 0 var(--space-1);
-}
-
-.reader-scale-label {
-  font-size: 11px;
-  color: var(--color-text-muted);
-  font-variant-numeric: tabular-nums;
-  min-width: 36px;
-  text-align: center;
-}
-
-.reader-close-btn {
-  width: 32px;
-  height: 32px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-sm);
-  color: var(--color-text-muted);
-  transition: background 0.15s, color 0.15s;
-  flex-shrink: 0;
-}
-
-.reader-close-btn:hover {
+.reader-btn:hover {
   background: var(--color-surface-muted);
   color: var(--color-text-primary);
 }
