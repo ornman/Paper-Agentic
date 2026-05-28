@@ -118,7 +118,11 @@
         <div class="about-header">
           <span class="about-logo" v-html="logoSvg" @click="handleLogoClick" />
           <div v-if="easterEggActive" class="easter-overlay" @click="easterEggActive = false">
-            <div ref="easterContainer" class="easter-lottie"></div>
+            <div class="easter-content">
+              <div ref="easterContainer" class="easter-lottie"></div>
+              <span class="easter-text">REJECT BALDNESS</span>
+              <span class="easter-sub">拒绝头秃</span>
+            </div>
           </div>
           <div class="about-info">
             <h2 class="settings-section-title">论文助手</h2>
@@ -577,10 +581,10 @@ function handleClearCache() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(6px);
   cursor: pointer;
-  animation: easter-fade-in 0.3s ease;
+  animation: easter-fade-in 0.4s ease;
 }
 
 @keyframes easter-fade-in {
@@ -588,8 +592,77 @@ function handleClearCache() {
   to { opacity: 1; }
 }
 
+.easter-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
 .easter-lottie {
-  width: 280px;
-  height: 280px;
+  width: 220px;
+  height: 220px;
+}
+
+.easter-text {
+  font-size: 36px;
+  font-weight: 900;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: #fff;
+  text-shadow:
+    0 1px 0 #ccc,
+    0 2px 0 #c9c9c9,
+    0 3px 0 #bbb,
+    0 4px 0 #b9b9b9,
+    0 5px 0 #aaa,
+    0 6px 1px rgba(0,0,0,.1),
+    0 0 5px rgba(24,94,234,.15),
+    0 1px 3px rgba(0,0,0,.3),
+    0 3px 5px rgba(0,0,0,.2),
+    0 5px 10px rgba(0,0,0,.25),
+    0 10px 10px rgba(0,0,0,.2),
+    0 20px 20px rgba(0,0,0,.15);
+  animation: easter-text-glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes easter-text-glow {
+  from {
+    text-shadow:
+      0 1px 0 #ccc,
+      0 2px 0 #c9c9c9,
+      0 3px 0 #bbb,
+      0 4px 0 #b9b9b9,
+      0 5px 0 #aaa,
+      0 6px 1px rgba(0,0,0,.1),
+      0 0 5px rgba(24,94,234,.15),
+      0 1px 3px rgba(0,0,0,.3),
+      0 3px 5px rgba(0,0,0,.2),
+      0 5px 10px rgba(0,0,0,.25),
+      0 10px 10px rgba(0,0,0,.2),
+      0 20px 20px rgba(0,0,0,.15);
+  }
+  to {
+    text-shadow:
+      0 1px 0 #ccc,
+      0 2px 0 #c9c9c9,
+      0 3px 0 #bbb,
+      0 4px 0 #b9b9b9,
+      0 5px 0 #aaa,
+      0 6px 1px rgba(0,0,0,.1),
+      0 0 20px rgba(24,94,234,.6),
+      0 0 40px rgba(24,94,234,.4),
+      0 0 60px rgba(24,94,234,.2),
+      0 1px 3px rgba(0,0,0,.3),
+      0 5px 10px rgba(0,0,0,.25),
+      0 20px 20px rgba(0,0,0,.15);
+  }
+}
+
+.easter-sub {
+  font-size: 14px;
+  letter-spacing: 8px;
+  color: rgba(255,255,255,0.5);
+  font-weight: 500;
 }
 </style>
