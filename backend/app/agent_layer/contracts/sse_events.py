@@ -9,6 +9,19 @@ from .content_block import ContentBlock
 from .source_card import SourceCard
 
 
+class StatusEvent(BaseModel):
+    event: Literal["status"] = "status"
+    phase: str
+    message: str
+    detail: dict | None = None
+
+    def to_sse_frame(self) -> str:
+        payload: dict = {"phase": self.phase, "message": self.message}
+        if self.detail:
+            payload["detail"] = self.detail
+        return f"event: status\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n"
+
+
 class ThinkingEvent(BaseModel):
     event: Literal["thinking"] = "thinking"
     text: str

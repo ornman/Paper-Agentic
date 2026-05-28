@@ -18,6 +18,7 @@ from app.agent_layer.contracts.sse_events import (
     MetadataEvent,
     ReflectionEvent,
     SourcesEvent,
+    StatusEvent,
     ThinkingEvent,
 )
 from app.agent_layer.runtime.token_budget import estimate_tokens
@@ -162,6 +163,7 @@ class TurnRunner:
             # 注意：FrozenTurnSnapshot 是 Pydantic BaseModel，默认 frozen=False 允许属性赋值。
             # 若后续改为 frozen=True，此处需要用 model_copy(update=...) 替代直接赋值。
             if remaining_ratio < 0.05 and snapshot.recent_window:
+                yield StatusEvent(phase="compacting", message="正在压缩对话历史...").to_sse_frame()
                 summary = await compact_conversation(
                     self._chat_model, snapshot.recent_window
                 )
@@ -199,6 +201,7 @@ class TurnRunner:
             context = ""
 
             if need_rag:
+                yield StatusEvent(phase="retrieving", message="正在查询文献库...").to_sse_frame()
                 max_reflection_rounds = 3
                 max_direction_switches = 2
                 direction_switches = 0
@@ -215,6 +218,7 @@ class TurnRunner:
                     if not snapshot.reflection_enabled or not context:
                         break
 
+                    yield StatusEvent(phase="reflecting", message="正在评估证据质量...").to_sse_frame()
                     judgment = await judge_evidence(self._chat_model, current_query, context, judge_model=self._reflection_model)
                     yield ReflectionEvent(
                         round=round_num,
@@ -232,13 +236,12 @@ class TurnRunner:
                         current_query = f"{query_text} {judgment.reason}"
 
                     if judgment.verdict == "insufficient":
-                        # 沿当前方向深挖：扩大检索范围
+                        yield StatusEvent(phase="retrieving", message="正在补充检索...").to_sse_frame()
                         current_topk = min(current_topk * 2, 50)
 
             messages = self._build_messages(snapshot, context)
 
-            if snapshot.thinking_enabled:
-                yield ThinkingEvent(text="", time_ms=0).to_sse_frame()
+            yield StatusEvent(phase="generating", message="正在生成回答...").to_sse_frame()
 
             full_text = ""
             model_override = snapshot.model_name or None
