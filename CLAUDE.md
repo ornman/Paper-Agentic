@@ -51,7 +51,7 @@
 
 ### 后端
 - **框架**: FastAPI (Python 3.13)
-- **LLM/VLM**: Kimi Coding API (kimi-for-coding)
+- **LLM/VLM**: DeepSeek API（可通过 `.env` 切换为任意 OpenAI 兼容 API）
 - **向量库**: Chromadb（纯 Python，SQLite 持久化）
 - **关键词检索**: BM25 + jieba
 - **Embedding**: 硅基流动 Qwen3-Embedding-4B (1536维)
@@ -123,12 +123,12 @@
 
 **PDF 导入流程**：
 ```
-用户上传 PDF → MinerU API 解析 → 清洗 → VLM 图片描述 → 混合切分 → Embedding → Qdrant 存储
+用户上传 PDF → MinerU API 解析 → 清洗 → VLM 图片描述 → 混合切分 → Embedding → Chromadb 存储
 ```
 
 **RAG 问答流程**：
 ```
-用户提问 → Query 改写 → Qdrant 检索 → Rerank → LLM 生成 → 流式返回
+用户提问 → Query 改写 → Chromadb 检索 → Rerank → LLM 生成 → 流式返回
 ```
 
 ### 2. 切分策略（核心）
@@ -160,7 +160,7 @@ class EmbeddingClient(ABC):
 class RerankClient(ABC):
     async def rerank(query, documents, top_k) -> list[tuple[int, float]]: ...
 
-# 当前实现：KimiVLMClient, KimiLLMClient, SiliconFlowEmbeddingClient, SiliconFlowRerankClient
+# 当前实现：DeepSeek LLMClient, SiliconFlowEmbeddingClient, SiliconFlowRerankClient
 # 未来可替换为：OpenAI、Azure、其他
 ```
 
@@ -245,12 +245,14 @@ pnpm build
 所有配置通过 `.env` 文件管理：
 
 ```env
-# Kimi Coding API（VLM + LLM）
-KIMI_API_KEY=your_key
-KIMI_BASE_URL=https://api.kimi.com/coding/v1
+# LLM 配置（支持任意 OpenAI 兼容 API）
+LLM_API_KEY=your_key
+LLM_BASE_URL=https://api.deepseek.com
+LLM_MODEL=deepseek-chat
 
 # 硅基流动（Embedding + Rerank）
-SILICONFLOW_API_KEY=your_key
+EMBEDDING_API_KEY=your_key
+EMBEDDING_BASE_URL=https://api.siliconflow.cn/v1
 
 # 固定模型契约（不可更改）
 EMBEDDING_MODEL=Qwen/Qwen3-Embedding-8B
@@ -305,7 +307,7 @@ grep -r "🔮 未来扩展" app/
 ### 已修复
 - [x] PDF 解析：从本地 PyMuPDF 改为 MinerU API
 - [x] 向量库：从 zvec（RocksDB）改为 Chromadb（SQLite），根治 Windows 锁问题
-- [x] Redis 依赖：移除 Redis，对话历史迁移到 SQLite
+- [x] Redis 依赖：对话历史主存储为 SQLite，Redis 用于编辑器上下文缓存和会话窗口（可选，缺失时降级到内存）
 - [x] 切分策略：实现混合语义切分
 - [x] VLM/LLM 接口：添加抽象层，可替换实现
 - [x] RRF 融合：Dense + BM25 融合检索
