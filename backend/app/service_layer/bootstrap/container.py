@@ -148,6 +148,15 @@ class AppContainer:
         self.library_repo.init()
         self.import_task_repo.init()
 
+        # ── Redis ──
+        from app.agent_layer.session.redis_runtime import build_redis_runtime
+        (
+            self.redis_client,
+            self.conversation_window,
+            self.editor_context_store,
+            self.redis_health,
+        ) = await build_redis_runtime(self.settings)
+
     async def close(self) -> None:
         await self.chat_model.close()
         await self.embedding_client.close()

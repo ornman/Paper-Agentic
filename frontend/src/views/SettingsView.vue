@@ -46,11 +46,9 @@
             class="history-item"
           >
             <div class="history-item-main">
-              <div class="history-item-preview">{{ conv.preview || '对话' }}</div>
+              <div class="history-item-preview">{{ conv.title || '对话' }}</div>
               <div class="history-item-meta">
-                <span>{{ conv.msg_count }} 条消息</span>
-                <span>·</span>
-                <span>{{ formatTime(conv.last_active) }}</span>
+                <span>{{ formatTime(conv.updated_at) }}</span>
               </div>
             </div>
           </div>
@@ -111,19 +109,12 @@
 import { ref, onMounted } from 'vue'
 import { useSettingsStore } from '../stores/settings'
 import { useLibraryStore } from '../stores/library'
-import { buildApiUrl } from '../services/api-client'
-
-interface ConversationSummary {
-  session_id: string
-  msg_count: number
-  last_active: string
-  preview: string
-}
+import { listSessions, type ConversationSession } from '../services/conversation-api'
 
 const settingsStore = useSettingsStore()
 const libraryStore = useLibraryStore()
 
-const conversations = ref<ConversationSummary[]>([])
+const conversations = ref<ConversationSession[]>([])
 const loadingHistory = ref(false)
 
 onMounted(() => {
@@ -134,10 +125,7 @@ onMounted(() => {
 async function loadConversations() {
   loadingHistory.value = true
   try {
-    const res = await fetch(buildApiUrl('/api/v1/conversations?limit=50'))
-    if (res.ok) {
-      conversations.value = await res.json()
-    }
+    conversations.value = await listSessions()
   } catch {
     // 静默
   } finally {

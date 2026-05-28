@@ -4,11 +4,12 @@
 
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useLogger } from './logger'
-import { updateSelection } from '../services/assistant-api'
+import { updateSelection, updateWrittenContext } from '../services/assistant-api'
 
 const log = useLogger('wps')
 const ERROR_LOG_INTERVAL = 30000
 let lastSelectionErrorLogAt = 0
+let lastDocContentErrorLogAt = 0
 
 declare global {
   interface Window {
@@ -22,6 +23,11 @@ declare global {
 }
 
 interface WPSApplication {
+  ActiveDocument: {
+    Content: {
+      Text: string
+    }
+  }
   ActiveWindow: {
     Selection: {
       Text: string
@@ -42,6 +48,15 @@ function logSelectionAccessFailure(error: unknown) {
   }
   lastSelectionErrorLogAt = now
   log.warn('获取选中文字失败', error instanceof Error ? error.message : String(error))
+}
+
+function logDocContentAccessFailure(error: unknown) {
+  const now = Date.now()
+  if (now - lastDocContentErrorLogAt < ERROR_LOG_INTERVAL) {
+    return
+  }
+  lastDocContentErrorLogAt = now
+  log.warn('获取文档全文失败', error instanceof Error ? error.message : String(error))
 }
 
 export function useWPSDetection() {
@@ -105,9 +120,27 @@ export function useWPSSelection() {
     }
   }
 
+  function getDocumentContent(): string {
+    if (!isWPSAvailable.value || !wpsAPI.value) {
+      return ''
+    }
+
+    try {
+      const doc = wpsAPI.value.ActiveDocument
+      if (!doc?.Content?.Text) {
+        return ''
+      }
+      return doc.Content.Text.trim()
+    } catch (error) {
+      logDocContentAccessFailure(error)
+      return ''
+    }
+  }
+
   return {
     selectedText,
     getSelectedText,
+    getDocumentContent,
     isWPSAvailable,
   }
 }
@@ -115,12 +148,14 @@ export function useWPSSelection() {
 const POLLING_INTERVAL = 5000
 
 export function useWPSPolling(autoFill = true, sessionIdGetter?: () => string) {
-  const { getSelectedText, isWPSAvailable } = useWPSSelection()
+  const { getSelectedText, getDocumentContent, isWPSAvailable } = useWPSSelection()
   const pollingTimer = ref<number | null>(null)
   const isPolling = ref(false)
   const lastSelection = ref('')
+  const lastDocContent = ref('')
 
   function doPoll() {
+    // ── 选区同步 ──
     const text = getSelectedText()
     if (text && text !== lastSelection.value) {
       if (autoFill && text.trim().length > 0) {
@@ -136,6 +171,18 @@ export function useWPSPolling(autoFill = true, sessionIdGetter?: () => string) {
         const sid = sessionIdGetter()
         if (sid && text.trim()) {
           updateSelection(sid, text).catch(() => {})
+        }
+      }
+    }
+
+    // ── 文档全文同步 ──
+    if (sessionIdGetter) {
+      const content = getDocumentContent()
+      if (content && content !== lastDocContent.value) {
+        lastDocContent.value = content
+        const sid = sessionIdGetter()
+        if (sid) {
+          updateWrittenContext(sid, content).catch(() => {})
         }
       }
     }
