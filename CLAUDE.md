@@ -54,8 +54,8 @@
 - **LLM/VLM**: DeepSeek API（可通过 `.env` 切换为任意 OpenAI 兼容 API）
 - **向量库**: Chromadb（纯 Python，SQLite 持久化）
 - **关键词检索**: BM25 + jieba
-- **Embedding**: 硅基流动 Qwen3-Embedding-4B (1536维)
-- **Rerank**: 硅基流动 Qwen3-Reranker-8B（已集成，未启用）
+- **Embedding**: 硅基流动 Qwen3-Embedding-8B (1536维)
+- **Rerank**: BAAI/bge-reranker-v2-m3（已集成，未启用）
 - **PDF 解析**: MinerU API（远程解析）
 
 ### 前端
@@ -80,21 +80,17 @@
 │   ├── wps-plugin/
 │   └── vite.config.ts
 ├── docs/                     # 全局文档
-│   ├── Decision-Snapshot/    # 四维度决策快照
-│   │   ├── 1-静态结构/       # 模块边界、存储模型、接口定义、代码组织
-│   │   ├── 2-动态行为/       # 业务时序、错误传播、状态机、并发调度
-│   │   ├── 3-物理部署/       # 依赖拓扑、资源配置、环境差异
-│   │   └── 4-演进与债务/     # 变更热点、架构适应度、失效模式、演进路线
-│   └── 账单/                 # 经费记录
+│   ├── backend/              # 后端文档
+│   │   ├── architecture.md   # 后端总纲（唯一活动真相源）
+│   │   ├── agent_layer_doc/  # Agent 层设计、审计、测试
+│   │   ├── data_layer_doc/   # 数据层设计、审计、测试
+│   │   ├── server_layer_doc/ # API 接口文档
+│   │   └── 代办/             # ADR、待办、迁移计划
+│   └── frontend/             # 前端文档
+│       └── 重构说明.md       # V2 前端架构说明
 ├── datasets/                 # 测试样本（自备 PDF，不入版本控制）
-│   ├── 中文文献-测试-PDF/    # 中文论文 PDF（集成测试用）
-│   ├── 外文文献-测试-PDF/    # 外文论文 PDF（集成测试用）
 │   └── README.md
-├── archives/                 # 历史版本与旧数据归档
-│   ├── legacy/
-│   └── packages/
-├── research/                 # 调研资料
-└── .tools/rag/               # 微 RAG 知识库
+├── log/                      # 运行日志（不入版本控制）
 ```
 
 ---
@@ -128,7 +124,7 @@
 
 **RAG 问答流程**：
 ```
-用户提问 → Query 改写 → Chromadb 检索 → Rerank → LLM 生成 → 流式返回
+用户提问 → Query 改写 → Dense + BM25 融合检索 → LLM 生成 → 流式返回
 ```
 
 ### 2. 切分策略（核心）
@@ -139,30 +135,16 @@
 | 超过 32k，单个都不超过 | 分开，不用重叠 |
 | 超过 32k，单个也超过 | 平均切分到 24k，首尾重叠接近 32k |
 
-### 3. 抽象接口（可替换）
+### 3. 可替换组件
 
-```python
-# VLMClient - 图片描述
-class VLMClient(ABC):
-    async def describe_image(image_path, prompt) -> str: ...
+代码中使用具体类，通过构造函数注入，可替换实现：
 
-# LLMClient - 聊天对话
-class LLMClient(ABC):
-    async def chat(messages) -> str: ...
-    async def chat_stream(messages): ...
-
-# EmbeddingClient - 向量化
-class EmbeddingClient(ABC):
-    async def embed(texts) -> list[list[float]]: ...
-    async def embed_single(text) -> list[float]: ...
-
-# RerankClient - 重排序
-class RerankClient(ABC):
-    async def rerank(query, documents, top_k) -> list[tuple[int, float]]: ...
-
-# 当前实现：DeepSeek LLMClient, SiliconFlowEmbeddingClient, SiliconFlowRerankClient
-# 未来可替换为：OpenAI、Azure、其他
-```
+| 组件 | 当前实现 | 文件位置 |
+|------|----------|----------|
+| ChatModel (LLM) | OpenAI 兼容 API (AsyncOpenAI) | `service_layer/config/chat_model.py` |
+| EmbeddingClient | 硅基流动 API | `data_layer/indexing/embedding_client.py` |
+| VLMClient | OpenAI 兼容 API (vision) | `data_layer/preprocessing/vlm_understanding/` |
+| RerankClient | BAAI/bge-reranker (未启用) | `data_layer/retrieval/` |
 
 ### 4. 前后端边界
 
@@ -201,10 +183,10 @@ uv run python main.py
 uv run uvicorn app.main:app --reload
 
 # 单元测试（纯逻辑，无外部依赖）
-uv run pytest tests/unit/ -v
+uv run pytest tests/agent_layer/unit tests/data_layer/unit tests/service_layer/unit -v
 
 # 集成测试（需真实 API）
-uv run pytest tests/integration/ -v -s
+uv run pytest tests/data_layer/integration -v -s
 
 # 全部测试
 uv run pytest tests/ -v
@@ -214,11 +196,11 @@ uv run pytest tests/ -v
 
 ```
 tests/
-├── unit/          # 单元测试（每次提交）
-├── integration/   # 集成测试（合并前/手动）
+├── agent_layer/   # Agent 层测试（unit / integration / e2e / soak）
+├── data_layer/    # 数据层测试（unit / integration）
+├── service_layer/ # 服务层测试（unit / integration）
 ├── fixtures/      # 测试输入（只读）
-├── output/        # 测试产出（.gitignore）
-└── _legacy/       # 旧代码（不运行）
+└── integration/   # 跨层集成测试
 ```
 
 详细规范见 `backend/tests/README.md`。
@@ -257,7 +239,7 @@ EMBEDDING_BASE_URL=https://api.siliconflow.cn/v1
 # 固定模型契约（不可更改）
 EMBEDDING_MODEL=Qwen/Qwen3-Embedding-8B
 EMBEDDING_DIMENSIONS=1536
-RERANK_MODEL=Qwen/Qwen3-Reranker-8B
+RERANK_MODEL=BAAI/bge-reranker-v2-m3
 
 # 切分策略参数
 CHUNK_MAX_CONTEXT=32000
@@ -271,34 +253,12 @@ CHUNK_OVERLAP_BUFFER=8000
 
 ---
 
-## 🔮 未来扩展标注规范
+## 未来扩展标注规范
 
-所有未来扩展点在代码中用 `🔮 未来扩展` 标记：
+代码中用 `# TODO:` 或函数签名的可选参数标注未来扩展点。关键扩展点：
 
-```python
-async def retrieve(
-    query: str,
-    resource_types: list[str] | None = None,  # 🔮 未来扩展：用户自选数据类型
-    selected_papers: list[str] | None = None,  # 🔮 未来扩展：用户自选文献
-) -> dict[str, Any]:
-    """
-    ═════════════════════════════════════════════════════════════════════
-    🔮 未来扩展：Collection 过滤逻辑
-    ═════════════════════════════════════════════════════════════════════
-
-    # 实现代码写在这里
-
-    产品价值：
-    - 提高准确性：用户知道答案在哪些文献里
-    - 增强掌控感：用户主动选择
-    - 减少干扰：排除不相关文献
-    """
-```
-
-**快速定位所有扩展点**：
-```bash
-grep -r "🔮 未来扩展" app/
-```
+- `retrieve()` 的 `paper_ids` 参数 — 用户自选文献过滤（后端已支持，前端待接入）
+- `retrieve()` 的 `resource_types` 参数 — 多模态资源类型过滤
 
 ---
 
@@ -326,5 +286,5 @@ grep -r "🔮 未来扩展" app/
 
 ## 参考实现
 
-- Novel_Agents RAG 工具: `D:/真项目/Novel_Agents/.tools/rag`
-- z_ai-mcp-server: `D:/开发区/L2Demo/z_ai-mcp-server-0.1.3`
+- Novel_Agents RAG 工具: `D:/真项目/Novel_Agents/.tools/rag`（外部参考，路径可能因机器不同）
+- z_ai-mcp-server: `D:/开发区/L2Demo/z_ai-mcp-server-0.1.3`（外部参考，路径可能因机器不同）
