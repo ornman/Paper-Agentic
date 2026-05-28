@@ -138,8 +138,9 @@ export default defineConfig({
   base: './',
   server: {
     port: 3893,
-    strictPort: true,
+    strictPort: false,
     host: true,
+    open: '/app.html',
     proxy: {
       '/api': {
         target: 'http://127.0.0.1:8000',

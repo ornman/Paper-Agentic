@@ -4,6 +4,7 @@
 
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useLogger } from './logger'
+import { updateSelection } from '../services/assistant-api'
 
 const log = useLogger('wps')
 const ERROR_LOG_INTERVAL = 30000
@@ -131,7 +132,7 @@ export function useWPSSelection() {
 
 const POLLING_INTERVAL = 5000
 
-export function useWPSPolling(autoFill = true) {
+export function useWPSPolling(autoFill = true, sessionIdGetter?: () => string) {
   const { getSelectedText, isWPSAvailable } = useWPSSelection()
   const pollingTimer = ref<number | null>(null)
   const isPolling = ref(false)
@@ -148,6 +149,13 @@ export function useWPSPolling(autoFill = true) {
         }
       }
       lastSelection.value = text
+
+      if (sessionIdGetter) {
+        const sid = sessionIdGetter()
+        if (sid && text.trim()) {
+          updateSelection(sid, text).catch(() => {})
+        }
+      }
     }
   }
 

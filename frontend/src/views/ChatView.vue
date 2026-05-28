@@ -1,6 +1,6 @@
 <template>
   <div class="chat-layout">
-    <TopBar @new-chat="handleNewChat" />
+    <TopBar @new-chat="handleNewChat" @open-history="handleOpenHistory" />
 
     <main class="chat-main">
       <!-- 消息区域 -->
@@ -69,6 +69,44 @@
           </div>
         </div>
       </Teleport>
+
+      <!-- 历史记录弹窗 -->
+      <Teleport to="body">
+        <div v-if="historyPanelOpen" class="paper-overlay" @click="historyPanelOpen = false">
+          <div class="paper-panel" @click.stop>
+            <div class="paper-panel-header">
+              <h3>历史记录</h3>
+              <button class="paper-close-btn" type="button" @click="historyPanelOpen = false">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            <div v-if="sessionsLoading" class="paper-empty">加载中...</div>
+            <div v-else-if="sessions.length === 0" class="paper-empty">暂无历史记录</div>
+            <div v-else class="paper-list">
+              <div
+                v-for="session in sessions"
+                :key="session.session_id"
+                class="session-item"
+                :class="{ active: session.session_id === store.sessionId }"
+                @click="switchToSession(session.session_id)"
+              >
+                <div class="session-info">
+                  <div class="session-title">{{ session.title }}</div>
+                  <div class="session-date">{{ formatDate(session.updated_at) }}</div>
+                </div>
+                <button
+                  class="session-delete-btn"
+                  type="button"
+                  @click.stop="handleDeleteSession(session.session_id)"
+                  title="删除此会话"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Teleport>
     </main>
 
     <!-- 引用悬停预览（全局，带 1s 延迟） -->
@@ -87,8 +125,11 @@
 import { ref, computed, nextTick, watch, onMounted } from 'vue'
 import type { SourceCard } from '../types/source'
 import { useConversationStore } from '../stores/conversation'
+import type { ConversationRecord, UserMessage, AssistantMessage } from '../stores/conversation'
 import { useLibraryStore } from '../stores/library'
 import { useUiStore } from '../stores/ui'
+import { listSessions, createSession, deleteSession, getMessages } from '../services/conversation-api'
+import type { ConversationSession } from '../services/conversation-api'
 import { useWPSPolling } from '../composables/wps'
 import TopBar from '../components/TopBar.vue'
 import MessageList from '../components/MessageList.vue'
@@ -101,10 +142,13 @@ const store = useConversationStore()
 const libraryStore = useLibraryStore()
 const uiStore = useUiStore()
 
-const { startPolling, isWPSAvailable } = useWPSPolling(true)
+const { startPolling, isWPSAvailable } = useWPSPolling(true, () => store.sessionId)
 
 const messagesContainer = ref<HTMLElement>()
 const paperPanelOpen = ref(false)
+const historyPanelOpen = ref(false)
+const sessions = ref<ConversationSession[]>([])
+const sessionsLoading = ref(false)
 
 const isBusy = computed(() => store.status === 'requesting' || store.status === 'thinking' || store.status === 'streaming')
 
@@ -182,10 +226,81 @@ async function handleSend(promptText: string) {
 }
 
 // ─── 新建对话 ───
-function handleNewChat() {
+async function handleNewChat() {
   if (isBusy.value && !confirm('当前对话正在进行中，确定要开始新对话吗？')) return
-  store.reset()
+  try {
+    const session = await createSession()
+    store.reset()
+    store.sessionId = session.session_id
+  } catch {
+    store.reset()
+  }
   libraryStore.clearSelectedPapers()
+}
+
+// ─── 历史记录 ───
+async function handleOpenHistory() {
+  historyPanelOpen.value = !historyPanelOpen.value
+  if (historyPanelOpen.value) {
+    sessionsLoading.value = true
+    try {
+      sessions.value = await listSessions()
+    } catch {
+      sessions.value = []
+    } finally {
+      sessionsLoading.value = false
+    }
+  }
+}
+
+// ─── 切换到某个会话 ───
+async function switchToSession(sessionId: string) {
+  try {
+    const msgs = await getMessages(sessionId)
+    store.reset()
+    store.sessionId = sessionId
+    const mapped: ConversationRecord[] = []
+    for (const msg of msgs) {
+      if (msg.role === 'user') {
+        mapped.push({
+          id: `user-${msg.created_at}`,
+          role: 'user',
+          content: msg.content,
+          createdAt: msg.created_at,
+        } as UserMessage)
+      } else if (msg.role === 'assistant') {
+        mapped.push({
+          id: `assistant-${msg.created_at}`,
+          role: 'assistant',
+          createdAt: msg.created_at,
+          thinking: '',
+          thinkingTimeMs: 0,
+          blocks: [{ type: 'paragraph', text: msg.content }],
+          sources: msg.sources_json ? JSON.parse(msg.sources_json) : [],
+        } as AssistantMessage)
+      }
+    }
+    store.messages = mapped
+  } catch {
+    store.reset()
+    store.sessionId = sessionId
+  }
+  historyPanelOpen.value = false
+  libraryStore.clearSelectedPapers()
+}
+
+// ─── 删除会话 ───
+async function handleDeleteSession(sessionId: string) {
+  try {
+    await deleteSession(sessionId)
+    sessions.value = sessions.value.filter((s) => s.session_id !== sessionId)
+    if (store.sessionId === sessionId) {
+      store.reset()
+      libraryStore.clearSelectedPapers()
+    }
+  } catch {
+    // 静默失败，保留列表原样
+  }
 }
 
 // ─── 打开 PDF ───
@@ -212,6 +327,17 @@ function togglePaperPanel() {
   if (paperPanelOpen.value) {
     libraryStore.loadPapers()
   }
+}
+
+// ─── 日期格式化 ───
+function formatDate(iso: string): string {
+  const d = new Date(iso)
+  const now = new Date()
+  const isToday = d.toDateString() === now.toDateString()
+  if (isToday) {
+    return d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+  }
+  return d.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
 // ─── 滚动到底部 ───
@@ -337,5 +463,63 @@ watch(() => store.status, (s) => {
 .paper-option-title {
   font-size: 13px;
   color: var(--color-text-primary);
+}
+
+/* 会话列表 */
+.session-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.session-item:hover {
+  background: var(--color-surface-muted);
+}
+
+.session-item.active {
+  background: var(--color-surface-muted);
+  font-weight: 500;
+}
+
+.session-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.session-title {
+  font-size: 13px;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.session-date {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.session-delete-btn {
+  flex-shrink: 0;
+  padding: 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+}
+
+.session-item:hover .session-delete-btn {
+  opacity: 1;
+}
+
+.session-delete-btn:hover {
+  color: var(--color-error, #e53e3e);
+  background: var(--color-surface-muted);
 }
 </style>

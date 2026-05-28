@@ -12,6 +12,9 @@ export interface PaperItem {
   total_pages: number
   import_time: string
   status: string
+  library_item_id: string
+  kind: string
+  file_size: number | null
 }
 
 export interface ImportStartResult {
@@ -49,7 +52,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export async function fetchPapers(): Promise<{ papers: PaperItem[] }> {
-  return request('/api/v1/papers')
+  const items = await request<PaperItem[]>('/api/v1/library/items')
+  return { papers: (items as unknown as PaperItem[]).map(item => ({ ...item, paper_id: item.library_item_id || item.paper_id })) }
 }
 
 export function buildPaperOpenUrl(paperId: string): string {
@@ -57,13 +61,13 @@ export function buildPaperOpenUrl(paperId: string): string {
 }
 
 export async function deletePaper(paperId: string): Promise<void> {
-  await request(`/api/v1/papers/${encodeURIComponent(paperId)}`, { method: 'DELETE' })
+  await request(`/api/v1/library/items/${encodeURIComponent(paperId)}`, { method: 'DELETE' })
 }
 
 export async function startImport(file: File): Promise<ImportStartResult> {
   const form = new FormData()
   form.append('file', file)
-  const result = await request<ImportStartResult>('/api/v1/import/start', { method: 'POST', body: form })
+  const result = await request<ImportStartResult>('/api/v1/library/import', { method: 'POST', body: form })
   if (!result?.task_id) {
     throw new ApiClientError('导入任务创建失败：缺少 task_id')
   }
@@ -71,7 +75,7 @@ export async function startImport(file: File): Promise<ImportStartResult> {
 }
 
 export async function fetchImportStatus(taskId: string): Promise<ImportStatus> {
-  const result = await request<ImportStatus>(`/api/v1/import/status/${encodeURIComponent(taskId)}`)
+  const result = await request<ImportStatus>(`/api/v1/library/import/${encodeURIComponent(taskId)}`)
   if (!result?.status) {
     throw new ApiClientError('导入状态读取失败：缺少 status')
   }
@@ -79,5 +83,5 @@ export async function fetchImportStatus(taskId: string): Promise<ImportStatus> {
 }
 
 export function createImportStream(taskId: string): EventSource {
-  return new EventSource(buildApiUrl(`/api/v1/import/stream/${encodeURIComponent(taskId)}`))
+  return new EventSource(buildApiUrl(`/api/v1/library/import/stream/${encodeURIComponent(taskId)}`))
 }
