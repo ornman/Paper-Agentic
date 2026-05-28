@@ -94,6 +94,7 @@
       :visible="uiStore.readerOpen"
       :paper-id="uiStore.readerPaperId ?? ''"
       :target-page="uiStore.readerTargetPage"
+      :highlight-text="uiStore.readerHighlightText ?? undefined"
       :demo-mode="demoActive"
       @close="uiStore.closeReader()"
     />

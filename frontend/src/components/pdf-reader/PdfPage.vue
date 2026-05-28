@@ -20,6 +20,7 @@ const props = defineProps<{
   pageNumber: number
   scale: number
   containerWidth: number
+  highlightText?: string
 }>()
 
 const emit = defineEmits<{
@@ -62,6 +63,10 @@ async function render() {
     await renderTask.promise
 
     await renderTextLayer(pageProxy, displayViewport)
+
+    if (props.highlightText) {
+      await highlightOnPage()
+    }
   } catch (e: unknown) {
     if (e instanceof Error && e.name === 'RenderingCancelledException') return
     console.error(`Page ${props.pageNumber} render error:`, e)
@@ -80,6 +85,39 @@ async function renderTextLayer(page: PDFPageProxy, viewport: { width: number; he
     viewport,
   })
   await textLayer.render()
+}
+
+async function highlightOnPage() {
+  if (!props.highlightText || !pageProxy || !containerRef.value) return
+
+  const textContent = await pageProxy.getTextContent()
+  const fullText = textContent.items
+    .map((item) => ('str' in item ? item.str : ''))
+    .join('')
+
+  const searchStr = props.highlightText.trim()
+  const idx = fullText.indexOf(searchStr)
+
+  if (idx === -1) {
+    containerRef.value.classList.add('pdf-page-flash')
+    setTimeout(() => containerRef.value?.classList.remove('pdf-page-flash'), 2000)
+    return
+  }
+
+  const overlay = document.createElement('div')
+  overlay.className = 'pdf-highlight-overlay'
+  overlay.style.position = 'absolute'
+  overlay.style.top = '0'
+  overlay.style.left = '0'
+  overlay.style.right = '0'
+  overlay.style.bottom = '0'
+  overlay.style.pointerEvents = 'none'
+  containerRef.value.appendChild(overlay)
+
+  setTimeout(() => {
+    overlay.classList.add('pdf-highlight-fadeout')
+    setTimeout(() => overlay.remove(), 3000)
+  }, 3000)
 }
 
 watch(
@@ -127,5 +165,33 @@ onBeforeUnmount(() => {
   position: absolute;
   white-space: pre;
   transform-origin: 0% 0%;
+}
+
+.pdf-highlight-overlay {
+  background: rgba(59, 130, 246, 0.15);
+  animation: highlight-pulse 0.3s ease-out;
+}
+
+@keyframes highlight-pulse {
+  from { background: rgba(59, 130, 246, 0.3); }
+  to { background: rgba(59, 130, 246, 0.15); }
+}
+
+.pdf-highlight-fadeout {
+  animation: highlight-fade 3s ease-out forwards;
+}
+
+@keyframes highlight-fade {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+.pdf-page-flash {
+  animation: page-flash-border 0.5s ease-out 3;
+}
+
+@keyframes page-flash-border {
+  0%, 100% { box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08); }
+  50% { box-shadow: 0 0 0 2px var(--color-accent); }
 }
 </style>

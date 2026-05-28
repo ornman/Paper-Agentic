@@ -66,6 +66,7 @@
                   :page-number="pageNum"
                   :scale="scale"
                   :container-width="containerWidth"
+                  :highlight-text="pageNum === highlightTargetPage ? highlightText : undefined"
                   @page-height="(h: number) => onPageHeight(pageNum, h)"
                 />
               </div>
@@ -95,12 +96,15 @@ const props = defineProps<{
   visible: boolean
   paperId: string
   targetPage?: number
+  highlightText?: string
   demoMode?: boolean
 }>()
 
 const emit = defineEmits<{
   (e: 'close'): void
 }>()
+
+const highlightTargetPage = computed(() => props.targetPage)
 
 const scrollContainerRef = ref<HTMLElement | null>(null)
 const loading = ref(false)

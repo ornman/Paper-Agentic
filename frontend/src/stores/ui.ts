@@ -19,10 +19,36 @@ export const useUiStore = defineStore('ui', () => {
     sidebarOpen.value = false
   }
 
+  /* ── PDF 阅读面板 ── */
+  const readerOpen = ref(false)
+  const readerPaperId = ref<string | null>(null)
+  const readerTargetPage = ref<number | undefined>(undefined)
+  const readerHighlightText = ref<string | null>(null)
+
+  function openReader(paperId: string, page?: number, highlightText?: string) {
+    readerPaperId.value = paperId
+    readerTargetPage.value = page
+    readerHighlightText.value = highlightText ?? null
+    readerOpen.value = true
+  }
+
+  function closeReader() {
+    readerOpen.value = false
+    readerPaperId.value = null
+    readerTargetPage.value = undefined
+    readerHighlightText.value = null
+  }
+
   return {
     sidebarOpen,
     sidebarTab,
     openSidebar,
     closeSidebar,
+    readerOpen,
+    readerPaperId,
+    readerTargetPage,
+    readerHighlightText,
+    openReader,
+    closeReader,
   }
 })
