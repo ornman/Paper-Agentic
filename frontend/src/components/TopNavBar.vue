@@ -8,8 +8,8 @@
           <line x1="3" y1="14" x2="17" y2="14"></line>
         </svg>
       </button>
-      <span class="nav-logo" v-html="logoSvg" />
-      <h1 class="page-title">{{ title }}</h1>
+      <span class="nav-logo clickable" v-html="logoSvg" @click="emit('new-chat')" />
+      <h1 class="page-title clickable" @click="emit('new-chat')">{{ title }}</h1>
     </div>
     <div class="top-right">
       <!-- 新建对话 -->
@@ -86,6 +86,16 @@ defineProps<{
 
 .icon-button:hover {
   background: var(--color-surface-muted);
+}
+
+.clickable {
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: opacity 0.15s ease;
+}
+
+.clickable:hover {
+  opacity: 0.7;
 }
 
 .page-title {
