@@ -132,5 +132,6 @@ export const useSettingsStore = defineStore('settings', () => {
     clearCache,
     exportData,
     estimateStorageUsage,
+    toggleThinking() { thinkingEnabled.value = !thinkingEnabled.value },
   }
 })

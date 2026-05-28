@@ -38,6 +38,7 @@ export const useLibraryStore = defineStore('library', () => {
   let lastProgressSignature = ''
 
   const selectedPaperCount = computed(() => selectedPaperIds.value.length)
+  const paperCount = computed(() => papers.value.length)
 
   async function loadPapers() {
     loading.value = true
@@ -225,6 +226,7 @@ export const useLibraryStore = defineStore('library', () => {
     error,
     selectedPaperIds,
     selectedPaperCount,
+    paperCount,
     importing,
     importFileName,
     importStep,
