@@ -25,9 +25,9 @@
           <div class="reader-controls">
             <button
               class="reader-btn"
-              :disabled="currentPage <= 1"
+              :disabled="renderer.currentPage.value <= 1"
               aria-label="上一页"
-              @click="goToPage(currentPage - 1)"
+              @click="renderer.scrollToPage(renderer.currentPage.value - 1)"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
             </button>
@@ -37,21 +37,21 @@
                 ref="pageInputRef"
                 class="reader-page-input"
                 type="number"
-                :value="currentPage"
+                :value="renderer.currentPage.value"
                 :min="1"
-                :max="totalPages"
+                :max="renderer.totalPages.value"
                 @keydown.enter="handlePageInput"
                 @blur="handlePageInput"
               />
               <span class="reader-page-sep">/</span>
-              <span>{{ totalPages }}</span>
+              <span>{{ renderer.totalPages.value }}</span>
             </span>
 
             <button
               class="reader-btn"
-              :disabled="currentPage >= totalPages"
+              :disabled="renderer.currentPage.value >= renderer.totalPages.value"
               aria-label="下一页"
-              @click="goToPage(currentPage + 1)"
+              @click="renderer.scrollToPage(renderer.currentPage.value + 1)"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
@@ -93,7 +93,7 @@
         </div>
 
         <!-- PDF viewport -->
-        <div class="reader-body" @scroll="onScroll">
+        <div ref="scrollContainerRef" class="reader-body">
           <div v-if="loading" class="reader-loading">
             <div class="reader-spinner" />
             <span>加载中…</span>
@@ -102,14 +102,23 @@
             <span>{{ error }}</span>
             <button class="reader-btn" @click="loadPdf">重试</button>
           </div>
-          <div v-else class="reader-pages" :style="{ width: pageWidth + 'px' }">
-            <canvas
-              v-for="p in renderedPages"
-              :key="p"
-              :ref="(el) => setCanvasRef(p, el as HTMLCanvasElement | null)"
-              class="reader-canvas"
-              :style="{ width: pageWidth + 'px' }"
-            />
+          <div v-else-if="pdfDocProxy" class="reader-pages">
+            <div
+              v-for="pageNum in renderer.totalPages.value"
+              :key="pageNum"
+              :data-page-number="pageNum"
+              class="reader-page-slot"
+              :style="{ height: renderer.pageHeights.value[pageNum - 1] ? renderer.pageHeights.value[pageNum - 1] + 'px' : 'auto' }"
+            >
+              <PdfPage
+                v-if="renderer.pagesToRender.value.includes(pageNum)"
+                :pdf-doc="pdfDocProxy"
+                :page-number="pageNum"
+                :scale="scale"
+                :container-width="containerWidth"
+                @page-height="(h: number) => onPageHeight(pageNum, h)"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -118,13 +127,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed, nextTick, onBeforeUnmount } from 'vue'
+import { ref, watch, nextTick, onBeforeUnmount, computed } from 'vue'
+import type { PDFDocumentProxy } from 'pdfjs-dist'
 import { usePdfjs } from '../composables/use-pdfjs'
+import { usePdfRenderer } from '../composables/use-pdf-renderer'
 import { buildPaperOpenUrl } from '../services/library-api'
+import PdfPage from './pdf-reader/PdfPage.vue'
 
 const { lib: pdfjsLib, cMapOptions } = usePdfjs()
-
-const BUFFER = 1
 
 const props = defineProps<{
   visible: boolean
@@ -138,33 +148,28 @@ const emit = defineEmits<{
 }>()
 
 const pageInputRef = ref<HTMLInputElement | null>(null)
+const scrollContainerRef = ref<HTMLElement | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
 const paperTitle = ref('PDF 阅读器')
-const currentPage = ref(1)
-const totalPages = ref(0)
 const scale = ref(1.0)
+const containerWidth = ref(480)
 
-let pdfDoc: pdfjsLib.PDFDocumentProxy | null = null
-const canvasRefs = new Map<number, HTMLCanvasElement>()
-const renderedSet = new Set<number>()
+let pdfDocProxy: PDFDocumentProxy | null = null
 
-const pageWidth = computed(() => {
-  return Math.floor(480 * scale.value)
-})
+const renderer = usePdfRenderer(
+  computed(() => pdfDocProxy),
+  scale,
+)
 
-const renderedPages = computed(() => {
-  if (totalPages.value === 0) return []
-  const pages: number[] = []
-  const start = Math.max(1, currentPage.value - BUFFER)
-  const end = Math.min(totalPages.value, currentPage.value + BUFFER)
-  for (let i = start; i <= end; i++) pages.push(i)
-  return pages
-})
+function onPageHeight(pageNum: number, height: number) {
+  if (renderer.pageHeights.value[pageNum - 1] !== height) {
+    renderer.pageHeights.value[pageNum - 1] = height
+  }
+}
 
-function setCanvasRef(page: number, el: HTMLCanvasElement | null) {
-  if (el) canvasRefs.set(page, el)
-  else canvasRefs.delete(page)
+function setScale(next: number) {
+  scale.value = next
 }
 
 async function loadPdf() {
@@ -172,21 +177,21 @@ async function loadPdf() {
 
   loading.value = true
   error.value = null
-  pdfDoc = null
-  totalPages.value = 0
-  currentPage.value = 1
-  canvasRefs.clear()
-  renderedSet.clear()
+  pdfDocProxy = null
+  renderer.totalPages.value = 0
+  renderer.currentPage.value = 1
 
   try {
     const isDemo = props.demoMode || props.paperId.startsWith('paper-')
     const url = isDemo ? '/demo-paper.pdf' : buildPaperOpenUrl(props.paperId)
     const loadingTask = pdfjsLib.getDocument({ url, ...cMapOptions })
-    pdfDoc = await loadingTask.promise
-    totalPages.value = pdfDoc.numPages
-    paperTitle.value = isDemo ? `Demo PDF` : `PDF (${props.paperId.slice(0, 8)}…)`
-    if (props.targetPage && props.targetPage >= 1 && props.targetPage <= pdfDoc.numPages) {
-      currentPage.value = props.targetPage
+    pdfDocProxy = await loadingTask.promise
+    paperTitle.value = isDemo ? 'Demo PDF' : `PDF (${props.paperId.slice(0, 8)}…)`
+
+    renderer.init(pdfDocProxy)
+
+    if (props.targetPage && props.targetPage >= 1 && props.targetPage <= pdfDocProxy.numPages) {
+      renderer.currentPage.value = props.targetPage
     }
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : 'PDF 加载失败'
@@ -195,75 +200,37 @@ async function loadPdf() {
   }
 }
 
-async function renderPage(pageNum: number) {
-  if (!pdfDoc || renderedSet.has(pageNum)) return
-  const canvas = canvasRefs.get(pageNum)
-  if (!canvas) return
-
-  renderedSet.add(pageNum)
-  const page = await pdfDoc.getPage(pageNum)
-  const viewport = page.getViewport({ scale: scale.value * (window.devicePixelRatio || 1) })
-
-  canvas.width = viewport.width
-  canvas.height = viewport.height
-  canvas.style.height = Math.floor(viewport.height / (window.devicePixelRatio || 1)) + 'px'
-
-  const ctx = canvas.getContext('2d')
-  if (!ctx) return
-  await page.render({ canvas, canvasContext: ctx, viewport }).promise
-}
-
-async function renderVisiblePages() {
-  for (const p of renderedPages.value) {
-    await renderPage(p)
-  }
-}
-
-function goToPage(page: number) {
-  if (page < 1 || page > totalPages.value) return
-  currentPage.value = page
-}
-
 function handlePageInput() {
   const val = parseInt(pageInputRef.value?.value ?? '', 10)
-  if (!isNaN(val)) goToPage(val)
-}
-
-function onScroll() {
-  // Determine current page from scroll position
-}
-
-function setScale(next: number) {
-  renderedSet.clear()
-  scale.value = next
+  if (!isNaN(val)) renderer.scrollToPage(val)
 }
 
 watch(() => props.visible, async (visible) => {
   if (visible && props.paperId) {
     await loadPdf()
     await nextTick()
-    await renderVisiblePages()
+    if (scrollContainerRef.value && pdfDocProxy) {
+      // Register all page-slot elements with the renderer before setting up observer
+      const slots = scrollContainerRef.value.querySelectorAll<HTMLElement>('[data-page-number]')
+      for (const slot of slots) {
+        const pageNum = Number(slot.getAttribute('data-page-number'))
+        if (!isNaN(pageNum)) renderer.registerPage(pageNum, slot)
+      }
+      renderer.setupObserver(scrollContainerRef.value)
+    }
+    if (props.targetPage && props.targetPage >= 1) {
+      await nextTick()
+      renderer.scrollToPage(props.targetPage)
+    }
   } else {
-    pdfDoc = null
-    totalPages.value = 0
-    canvasRefs.clear()
-    renderedSet.clear()
+    pdfDocProxy?.destroy()
+    pdfDocProxy = null
   }
 })
 
-watch(currentPage, async () => {
-  await nextTick()
-  await renderVisiblePages()
-})
-
-watch(scale, async () => {
-  await nextTick()
-  await renderVisiblePages()
-})
-
 onBeforeUnmount(() => {
-  pdfDoc?.destroy()
-  pdfDoc = null
+  pdfDocProxy?.destroy()
+  pdfDocProxy = null
 })
 </script>
 
@@ -451,6 +418,12 @@ onBeforeUnmount(() => {
   align-items: center;
   padding: var(--space-4) 0;
   gap: var(--space-3);
+}
+
+.reader-page-slot {
+  display: flex;
+  justify-content: center;
+  margin-bottom: var(--space-3);
 }
 
 .reader-canvas {
