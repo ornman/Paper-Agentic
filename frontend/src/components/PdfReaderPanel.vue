@@ -119,13 +119,10 @@
 
 <script setup lang="ts">
 import { ref, watch, computed, nextTick, onBeforeUnmount } from 'vue'
-import * as pdfjsLib from 'pdfjs-dist'
+import { usePdfjs } from '../composables/use-pdfjs'
 import { buildPaperOpenUrl } from '../services/library-api'
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url
-).toString()
+const { lib: pdfjsLib, cMapOptions } = usePdfjs()
 
 const BUFFER = 1
 
@@ -133,6 +130,7 @@ const props = defineProps<{
   visible: boolean
   paperId: string
   targetPage?: number
+  demoMode?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -181,11 +179,12 @@ async function loadPdf() {
   renderedSet.clear()
 
   try {
-    const url = buildPaperOpenUrl(props.paperId)
-    const loadingTask = pdfjsLib.getDocument(url)
+    const isDemo = props.demoMode || props.paperId.startsWith('paper-')
+    const url = isDemo ? '/demo-paper.pdf' : buildPaperOpenUrl(props.paperId)
+    const loadingTask = pdfjsLib.getDocument({ url, ...cMapOptions })
     pdfDoc = await loadingTask.promise
     totalPages.value = pdfDoc.numPages
-    paperTitle.value = `PDF (${props.paperId.slice(0, 8)}…)`
+    paperTitle.value = isDemo ? `Demo PDF` : `PDF (${props.paperId.slice(0, 8)}…)`
     if (props.targetPage && props.targetPage >= 1 && props.targetPage <= pdfDoc.numPages) {
       currentPage.value = props.targetPage
     }
@@ -293,29 +292,24 @@ onBeforeUnmount(() => {
 
 .reader-panel {
   position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   z-index: 210;
-  width: 520px;
-  max-width: 55vw;
   display: flex;
   flex-direction: column;
   background: var(--color-surface-card);
-  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.08), -1px 0 4px rgba(0, 0, 0, 0.04);
 }
 
 .reader-panel-enter-active {
-  transition: transform 300ms ease-out;
+  transition: opacity 200ms ease-out;
 }
 
 .reader-panel-leave-active {
-  transition: transform 250ms ease-in-out;
+  transition: opacity 150ms ease-in-out;
 }
 
 .reader-panel-enter-from,
 .reader-panel-leave-to {
-  transform: translateX(100%);
+  opacity: 0;
 }
 
 /* ── Toolbar ── */
@@ -336,7 +330,7 @@ onBeforeUnmount(() => {
   text-overflow: ellipsis;
   white-space: nowrap;
   min-width: 80px;
-  max-width: 140px;
+  max-width: 300px;
 }
 
 .reader-controls {
@@ -499,12 +493,5 @@ onBeforeUnmount(() => {
   height: 100%;
   color: var(--color-error);
   font-size: var(--font-size-sm);
-}
-
-@media (max-width: 420px) {
-  .reader-panel {
-    width: 100%;
-    max-width: 100%;
-  }
 }
 </style>
