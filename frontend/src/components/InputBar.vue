@@ -421,6 +421,14 @@ function autoResize(event: Event) {
   box-shadow: 0 2px 8px rgba(0, 148, 240, 0.25);
 }
 
+.send-btn :deep(svg) {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .send-btn:disabled {
   opacity: 0.35;
   cursor: not-allowed;
