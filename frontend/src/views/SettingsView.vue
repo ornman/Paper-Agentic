@@ -592,10 +592,10 @@ function handleClearCache() {
 }
 
 .easter-content {
-  position: relative;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  gap: 16px;
 }
 
 .easter-lottie {
@@ -604,13 +604,11 @@ function handleClearCache() {
 }
 
 .easter-text {
-  position: absolute;
-  font-size: 32px;
+  font-size: 36px;
   font-weight: 900;
   letter-spacing: 4px;
   text-transform: uppercase;
   color: #fff;
-  z-index: 1;
   text-shadow:
     0 1px 0 #ccc,
     0 2px 0 #c9c9c9,
