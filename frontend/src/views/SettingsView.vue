@@ -7,24 +7,29 @@
         </svg>
         返回
       </router-link>
-      <h1 class="settings-title">设置与历史</h1>
+      <h1 class="settings-title">设置</h1>
     </header>
 
     <main class="settings-main">
-      <!-- API 配置卡片 -->
+      <!-- 1. 模型配置 -->
       <section class="settings-card">
-        <h2 class="settings-section-title">API 配置</h2>
-        <div class="settings-field">
-          <label>API Key</label>
-          <input v-model="settingsStore.apiKey" type="password" placeholder="sk-..." autocomplete="off">
-        </div>
+        <h2 class="settings-section-title">模型配置</h2>
         <div class="settings-field">
           <label>API URL</label>
-          <input v-model="settingsStore.apiUrl" type="text" placeholder="https://api.deepseek.com/v1">
+          <input v-model="settingsStore.apiUrl" type="text" placeholder="https://api.deepseek.com/v1" @blur="handleApiBlur">
         </div>
         <div class="settings-field">
-          <label>当前模型</label>
-          <input v-model="settingsStore.selectedModel" type="text" placeholder="deepseek-chat">
+          <label>API Key</label>
+          <input v-model="settingsStore.apiKey" type="password" placeholder="sk-..." autocomplete="off" @blur="handleApiBlur">
+        </div>
+        <div class="settings-field">
+          <label>模型</label>
+          <div class="model-select-wrapper">
+            <select v-if="settingsStore.models.length > 0" v-model="settingsStore.selectedModel" class="model-select">
+              <option v-for="m in settingsStore.models" :key="m" :value="m">{{ m }}</option>
+            </select>
+            <input v-else v-model="settingsStore.selectedModel" type="text" placeholder="deepseek-chat">
+          </div>
         </div>
         <div class="settings-field-row">
           <span>思考模式</span>
@@ -34,71 +39,54 @@
         </div>
       </section>
 
-      <!-- 历史会话卡片 -->
+      <!-- 2. 对话行为 -->
       <section class="settings-card">
-        <h2 class="settings-section-title">历史会话</h2>
-        <div v-if="loadingHistory" class="settings-empty">加载中...</div>
-        <div v-else-if="conversations.length === 0" class="settings-empty">暂无历史会话</div>
-        <div v-else class="history-list">
-          <div
-            v-for="conv in conversations"
-            :key="conv.session_id"
-            class="history-item"
-          >
-            <div class="history-item-main">
-              <div class="history-item-preview">{{ conv.title || '对话' }}</div>
-              <div class="history-item-meta">
-                <span>{{ formatTime(conv.updated_at) }}</span>
-              </div>
-            </div>
+        <h2 class="settings-section-title">对话行为</h2>
+        <div class="settings-field-row">
+          <div>
+            <span>反思模式</span>
+            <div class="field-hint">生成回答后自动反思改进</div>
           </div>
+          <button class="toggle-btn" :class="{ active: settingsStore.reflectionEnabled }" @click="settingsStore.reflectionEnabled = !settingsStore.reflectionEnabled">
+            <span class="toggle-knob"></span>
+          </button>
+        </div>
+        <div class="settings-field-row">
+          <div>
+            <span>RAG 检索</span>
+            <div class="field-hint">基于文献库检索增强回答</div>
+          </div>
+          <button class="toggle-btn" :class="{ active: settingsStore.ragEnabled }" @click="settingsStore.ragEnabled = !settingsStore.ragEnabled">
+            <span class="toggle-knob"></span>
+          </button>
         </div>
       </section>
 
-      <!-- 文献库卡片 -->
+      <!-- 3. 主题与界面 -->
       <section class="settings-card">
-        <h2 class="settings-section-title">
-          文献库
-          <span class="paper-count-badge">{{ libraryStore.paperCount }} 篇</span>
-        </h2>
-
-        <div v-if="libraryStore.importing" class="import-status">
-          <div class="import-status-name">{{ libraryStore.importFileName }}</div>
-          <div class="import-status-bar">
-            <div class="import-status-fill" :style="{ width: libraryStore.importPercent + '%' }"></div>
-          </div>
-          <div class="import-status-step">{{ libraryStore.importStep }}</div>
+        <h2 class="settings-section-title">主题与界面</h2>
+        <div class="settings-field-row">
+          <span>深色模式</span>
+          <button class="toggle-btn" :class="{ active: theme.resolvedTheme.value === 'dark' }" @click="theme.toggle()">
+            <span class="toggle-knob"></span>
+          </button>
         </div>
-
-        <div v-if="libraryStore.importError" class="import-error-msg">
-          {{ libraryStore.importError }}
+        <div class="settings-field">
+          <label>字体大小（{{ settingsStore.fontSize }}px）</label>
+          <input type="range" :min="12" :max="20" :step="1" :value="settingsStore.fontSize" @input="settingsStore.fontSize = Number(($event.target as HTMLInputElement).value)" class="font-slider">
         </div>
+      </section>
 
-        <div v-if="libraryStore.loading" class="settings-empty">加载中...</div>
-        <div v-else-if="libraryStore.paperCount === 0" class="settings-empty">还没有导入论文</div>
-        <div v-else class="paper-list">
-          <div
-            v-for="paper in libraryStore.papers"
-            :key="paper.paper_id"
-            class="paper-item"
-          >
-            <div class="paper-item-info">
-              <div class="paper-item-title">{{ paper.title }}</div>
-              <div class="paper-item-meta">
-                <span v-if="paper.authors">{{ paper.authors }}</span>
-                <span v-if="paper.chunk_count">{{ paper.chunk_count }} 块</span>
-                <span v-if="paper.total_pages">{{ paper.total_pages }} 页</span>
-                <span>{{ formatTime(paper.import_time) }}</span>
-              </div>
-            </div>
-            <button
-              class="paper-delete-btn"
-              type="button"
-              @click="handleDeletePaper(paper.paper_id, paper.title, paper.chunk_count)"
-            >
-              删除
-            </button>
-          </div>
+      <!-- 4. 存储管理 -->
+      <section class="settings-card">
+        <h2 class="settings-section-title">存储管理</h2>
+        <div class="storage-usage">
+          <span>本地存储用量</span>
+          <span class="storage-value">{{ storageUsage }}</span>
+        </div>
+        <div class="storage-actions">
+          <button class="storage-btn" @click="handleExport">导出数据</button>
+          <button class="storage-btn storage-btn-danger" @click="handleClearCache">清理缓存</button>
         </div>
       </section>
     </main>
@@ -108,57 +96,38 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useSettingsStore } from '../stores/settings'
-import { useLibraryStore } from '../stores/library'
-import { listSessions, type ConversationSession } from '../services/conversation-api'
+import { useTheme } from '../composables/use-theme'
 
 const settingsStore = useSettingsStore()
-const libraryStore = useLibraryStore()
+const theme = useTheme()
 
-const conversations = ref<ConversationSession[]>([])
-const loadingHistory = ref(false)
+const storageUsage = ref('')
 
 onMounted(() => {
-  loadConversations()
-  libraryStore.loadPapers()
+  storageUsage.value = settingsStore.estimateStorageUsage()
 })
 
-async function loadConversations() {
-  loadingHistory.value = true
-  try {
-    conversations.value = await listSessions()
-  } catch {
-    // 静默
-  } finally {
-    loadingHistory.value = false
+function handleApiBlur() {
+  if (settingsStore.apiUrl && settingsStore.apiKey) {
+    settingsStore.fetchModels()
   }
 }
 
-async function handleDeletePaper(paperId: string, title: string, chunkCount: number) {
-  if (!confirm(`删除《${title}》及其 ${chunkCount} 个文本块？此操作不可恢复。`)) return
-  try {
-    await libraryStore.removePaper(paperId)
-  } catch {
-    // 静默
-  }
+function handleExport() {
+  const data = settingsStore.exportData()
+  const blob = new Blob([data], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `paper-assistant-export-${new Date().toISOString().slice(0, 10)}.json`
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
-function formatTime(iso: string): string {
-  if (!iso) return ''
-  try {
-    const d = new Date(iso)
-    const now = new Date()
-    const diffMs = now.getTime() - d.getTime()
-    const diffMin = Math.floor(diffMs / 60000)
-    if (diffMin < 1) return '刚刚'
-    if (diffMin < 60) return `${diffMin} 分钟前`
-    const diffHour = Math.floor(diffMin / 60)
-    if (diffHour < 24) return `${diffHour} 小时前`
-    const diffDay = Math.floor(diffHour / 24)
-    if (diffDay < 7) return `${diffDay} 天前`
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-  } catch {
-    return ''
-  }
+function handleClearCache() {
+  if (!confirm('确定清理缓存？将保留 API 配置和偏好设置。')) return
+  settingsStore.clearCache()
+  storageUsage.value = settingsStore.estimateStorageUsage()
 }
 </script>
 
@@ -225,12 +194,6 @@ function formatTime(iso: string): string {
   gap: 8px;
 }
 
-.paper-count-badge {
-  font-size: 12px;
-  font-weight: 400;
-  color: var(--color-text-muted);
-}
-
 .settings-field {
   margin-bottom: 12px;
 }
@@ -243,7 +206,8 @@ function formatTime(iso: string): string {
   margin-bottom: 4px;
 }
 
-.settings-field input {
+.settings-field input[type="text"],
+.settings-field input[type="password"] {
   width: 100%;
   padding: 10px 12px;
   border: 1px solid var(--color-border-strong);
@@ -259,6 +223,32 @@ function formatTime(iso: string): string {
   border-color: var(--color-accent);
 }
 
+.model-select-wrapper select,
+.model-select-wrapper input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--color-text-primary);
+  background: var(--color-surface-base);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.model-select-wrapper select:focus,
+.model-select-wrapper input:focus {
+  border-color: var(--color-accent);
+}
+
+.model-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%238e99a8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+
 .settings-field-row {
   display: flex;
   justify-content: space-between;
@@ -266,6 +256,12 @@ function formatTime(iso: string): string {
   padding: 8px 0;
   font-size: 13px;
   color: var(--color-text-primary);
+}
+
+.field-hint {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin-top: 2px;
 }
 
 .toggle-btn {
@@ -276,6 +272,7 @@ function formatTime(iso: string): string {
   position: relative;
   cursor: pointer;
   transition: background 0.2s;
+  flex-shrink: 0;
 }
 
 .toggle-btn.active {
@@ -298,148 +295,70 @@ function formatTime(iso: string): string {
   left: 22px;
 }
 
-.settings-empty {
-  text-align: center;
-  padding: 24px;
-  font-size: 13px;
-  color: var(--color-text-muted);
-}
-
-/* 历史列表 */
-.history-list {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.history-item {
-  display: flex;
-  align-items: center;
-  padding: 10px 12px;
-  border-radius: 8px;
-  transition: background 0.1s;
-}
-
-.history-item:hover {
-  background: var(--color-surface-muted);
-}
-
-.history-item-main {
-  flex: 1;
-}
-
-.history-item-preview {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--color-text-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.history-item-meta {
-  display: flex;
-  gap: 6px;
-  margin-top: 2px;
-  font-size: 11px;
-  color: var(--color-text-muted);
-}
-
-/* 文献列表 */
-.paper-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.paper-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 12px;
-  border-radius: 8px;
-  transition: background 0.1s;
-}
-
-.paper-item:hover {
-  background: var(--color-surface-muted);
-}
-
-.paper-item-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.paper-item-title {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--color-text-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.paper-item-meta {
-  display: flex;
-  gap: 8px;
-  margin-top: 2px;
-  font-size: 11px;
-  color: var(--color-text-muted);
-}
-
-.paper-delete-btn {
-  padding: 4px 10px;
-  font-size: 12px;
-  color: #d32f2f;
-  border-radius: 6px;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.paper-delete-btn:hover {
-  background: rgba(211, 47, 47, 0.08);
-}
-
-/* 导入状态 */
-.import-status {
-  margin-bottom: 12px;
-  padding: 10px 12px;
-  background: var(--color-surface-muted);
-  border-radius: 8px;
-}
-
-.import-status-name {
-  font-size: 13px;
-  font-weight: 500;
-  margin-bottom: 6px;
-}
-
-.import-status-bar {
+.font-slider {
+  width: 100%;
   height: 4px;
+  appearance: none;
   background: var(--color-border-subtle);
   border-radius: 2px;
-  overflow: hidden;
-  margin-bottom: 4px;
+  outline: none;
+  margin-top: 4px;
 }
 
-.import-status-fill {
-  height: 100%;
+.font-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
   background: var(--color-accent);
-  border-radius: 2px;
-  transition: width 0.3s;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
 }
 
-.import-status-step {
-  font-size: 11px;
-  color: var(--color-text-muted);
+/* Storage */
+.storage-usage {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  font-size: 13px;
+  color: var(--color-text-primary);
 }
 
-.import-error-msg {
+.storage-value {
+  font-weight: 500;
+  color: var(--color-accent);
+}
+
+.storage-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.storage-btn {
+  flex: 1;
   padding: 8px 12px;
-  margin-bottom: 12px;
   font-size: 12px;
-  color: #d32f2f;
-  background: rgba(211, 47, 47, 0.06);
+  font-weight: 500;
+  border: 1px solid var(--color-border-strong);
   border-radius: 8px;
+  color: var(--color-text-primary);
+  background: var(--color-surface-base);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.storage-btn:hover {
+  background: var(--color-surface-muted);
+}
+
+.storage-btn-danger {
+  color: #d32f2f;
+  border-color: rgba(211, 47, 47, 0.2);
+}
+
+.storage-btn-danger:hover {
+  background: rgba(211, 47, 47, 0.06);
 }
 </style>

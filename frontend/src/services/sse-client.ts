@@ -16,6 +16,8 @@ export interface AskRequestPayload {
   model?: string
   /** 是否开启思考模式 */
   thinking?: boolean
+  /** 是否开启反思模式 */
+  reflection?: boolean
 }
 
 export interface AskStreamHandlers {

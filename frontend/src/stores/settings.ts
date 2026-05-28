@@ -9,11 +9,9 @@ export const useSettingsStore = defineStore('settings', () => {
   const selectedModel = ref(localStorage.getItem('selectedModel') || '')
   const thinkingEnabled = ref(localStorage.getItem('thinkingEnabled') !== 'false')
 
-  // ── RAG params ──
-  const chunkSize = ref(Number(localStorage.getItem('chunkSize')) || 500)
-  const retrievalCount = ref(Number(localStorage.getItem('retrievalCount')) || 5)
-  const temperature = ref(Number(localStorage.getItem('temperature')) || 0.7)
-  const contextLength = ref(Number(localStorage.getItem('contextLength')) || 4096)
+  // ── Conversation behavior ──
+  const reflectionEnabled = ref(localStorage.getItem('reflectionEnabled') === 'true')
+  const ragEnabled = ref(localStorage.getItem('ragEnabled') !== 'false')
 
   // ── Font size ──
   const fontSize = ref(Number(localStorage.getItem('fontSize')) || 14)
@@ -29,10 +27,8 @@ export const useSettingsStore = defineStore('settings', () => {
     if (v) persist('selectedModel', v)
   })
   watch(thinkingEnabled, (v) => persist('thinkingEnabled', v))
-  watch(chunkSize, (v) => persist('chunkSize', v))
-  watch(retrievalCount, (v) => persist('retrievalCount', v))
-  watch(temperature, (v) => persist('temperature', v))
-  watch(contextLength, (v) => persist('contextLength', v))
+  watch(reflectionEnabled, (v) => persist('reflectionEnabled', v))
+  watch(ragEnabled, (v) => persist('ragEnabled', v))
   watch(fontSize, (v) => {
     persist('fontSize', v)
     document.documentElement.style.setProperty('--font-size-base', `${v}px`)
@@ -71,8 +67,8 @@ export const useSettingsStore = defineStore('settings', () => {
   function clearCache() {
     const keysToKeep = [
       'apiUrl', 'apiKey', 'selectedModel', 'models',
-      'thinkingEnabled', 'fontSize', 'chunkSize',
-      'retrievalCount', 'temperature', 'contextLength', 'theme-mode',
+      'thinkingEnabled', 'reflectionEnabled', 'ragEnabled',
+      'fontSize', 'theme-mode',
     ]
     const saved: Record<string, string> = {}
     keysToKeep.forEach((k) => {
@@ -123,10 +119,8 @@ export const useSettingsStore = defineStore('settings', () => {
     models,
     selectedModel,
     thinkingEnabled,
-    chunkSize,
-    retrievalCount,
-    temperature,
-    contextLength,
+    reflectionEnabled,
+    ragEnabled,
     fontSize,
     fetchModels,
     clearCache,

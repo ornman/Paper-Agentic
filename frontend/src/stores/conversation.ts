@@ -188,9 +188,10 @@ export const useConversationStore = defineStore('conversation', () => {
       session_id: promptContent.session_id,
       prompt: promptContent.prompt,
       paper_ids: promptContent.paper_ids ?? [],
-      enable_rag: promptContent.enable_rag ?? (promptContent.paper_ids && promptContent.paper_ids.length > 0),
+      enable_rag: promptContent.enable_rag ?? settings.ragEnabled,
       model: settings.selectedModel,
       thinking: settings.thinkingEnabled,
+      reflection: settings.reflectionEnabled,
     }
 
     try {
