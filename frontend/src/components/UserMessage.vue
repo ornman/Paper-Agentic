@@ -5,10 +5,10 @@
 </template>
 
 <script setup lang="ts">
-import type { ConversationUserActionMessage } from '../stores/conversation'
+import type { UserMessage as UserMessageType } from '../stores/conversation'
 
 defineProps<{
-  message: ConversationUserActionMessage
+  message: UserMessageType
 }>()
 </script>
 
@@ -16,19 +16,19 @@ defineProps<{
 .user-message {
   display: flex;
   justify-content: flex-end;
+  margin: 12px 0;
 }
 
 .user-bubble {
-  max-width: 75%;
-  padding: var(--space-3) var(--space-4);
-  background: #0066cc;
+  max-width: 80%;
+  padding: 10px 16px;
+  background: var(--color-accent);
   color: #ffffff;
-  border-radius: var(--radius-lg);
-  border-bottom-right-radius: 6px;
+  border-radius: 18px 18px 6px 18px;
   font-size: var(--font-size-body);
-  line-height: 1.6;
+  line-height: 1.65;
   word-break: break-word;
   white-space: pre-wrap;
-  box-shadow: 0 2px 8px rgba(0, 102, 204, 0.25);
+  box-shadow: 0 2px 8px rgba(0, 102, 204, 0.2);
 }
 </style>

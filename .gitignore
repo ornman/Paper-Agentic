@@ -27,11 +27,60 @@ CLAUDE.md
 .tools/wps-debug/__pycache__/
 
 # ========================================
-# 调研资料（可选提交）
+# 调研资料（不提交）
 # ========================================
 
 # 参考项目（体积大）
-# research/references/
+reference/external/
+reference/competitor/
+WPS_PATH/
+
+# ========================================
+# Python 通用
+# ========================================
+
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+
+# 虚拟环境
+.venv/
+venv/
+ENV/
+env/
+
+# 环境变量
+.env
+.env.local
+.env.*.local
+
+# 数据与缓存
+*.db
+*.sqlite3
+data/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# ========================================
+# Node.js 通用
+# ========================================
+
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
 # ========================================
 # 通用忽略
@@ -72,15 +121,17 @@ conversation_continuity_results.json
 rag_quality_with_content.json
 datasets/test_meta_papers/
 
+# 测试 PDF 数据（自备，不入版本控制）
+backend/tests/fixtures/pdfs_en/*.pdf
+backend/tests/fixtures/pdfs_zh/*.pdf
+
 # ========================================
 # WPS 调试文件
 # ========================================
 调试/
 .tools/log/
 
+# ========================================
 # 本地归档数据（仅本地保留，不提交）
-archives/legacy/MVP/data/papers/
-archives/legacy/v1_stale_data/project_root_data/
-
-# MVP 提取数据
-archives/legacy/extracted_assets/
+# ========================================
+_archive/

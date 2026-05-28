@@ -9,8 +9,8 @@
 ├── backend/                  # FastAPI 后端
 ├── frontend/                 # Vue 3 + TypeScript + WPS 插件壳
 ├── docs/                     # 项目文档与决策记录
-├── datasets/
-│   └── test_meta_papers/     # 样本/测试语料
+├── datasets/                 # 测试样本（自备，不入版本控制）
+│   └── README.md
 ├── archives/
 │   ├── legacy/               # 历史版本与旧数据
 │   └── packages/             # 历史压缩包
@@ -70,7 +70,7 @@ PDF 上传
 ## 主要目录约定
 
 - `backend/data/`：运行态数据目录，承载 `app.db`、`chroma_db/`、`bm25_index/`、`papers/`、`parsed/`、`uploads/`、`backups/`
-- `datasets/test_meta_papers/`：联调用测试 PDF
+- `datasets/`：测试 PDF 存放目录（自备，不入版本控制）
 - `archives/legacy/`：MVP、旧布局数据、提取产物
 - `archives/packages/`：历史压缩包
 

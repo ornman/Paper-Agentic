@@ -2,24 +2,20 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
 export const useUiStore = defineStore('ui', () => {
-  const sidebarOpen = ref(true)
+  /** 模型选择器面板是否展开 */
+  const modelPanelOpen = ref(false)
 
-  function toggleSidebar() {
-    sidebarOpen.value = !sidebarOpen.value
+  function toggleModelPanel() {
+    modelPanelOpen.value = !modelPanelOpen.value
   }
 
-  function openSidebar() {
-    sidebarOpen.value = true
-  }
-
-  function closeSidebar() {
-    sidebarOpen.value = false
+  function closeModelPanel() {
+    modelPanelOpen.value = false
   }
 
   return {
-    sidebarOpen,
-    toggleSidebar,
-    openSidebar,
-    closeSidebar,
+    modelPanelOpen,
+    toggleModelPanel,
+    closeModelPanel,
   }
 })

@@ -1,0 +1,558 @@
+{
+  "started_at": "2026-05-27T14:48:16.976524+00:00",
+  "finished_at": "2026-05-27T14:49:18.120317+00:00",
+  "duration_seconds": 61.1,
+  "total_requests": 30,
+  "successful_requests": 28,
+  "failed_requests": 2,
+  "success_rate": 0.9333,
+  "avg_response_time_ms": 29.6,
+  "p50_response_time_ms": 31.9,
+  "p95_response_time_ms": 32.9,
+  "p99_response_time_ms": 33.2,
+  "max_response_time_ms": 33.3,
+  "error_distribution": {
+    "Mock LLM fault injection": 2
+  },
+  "avg_blocks_per_response": 1,
+  "avg_sources_per_response": 1,
+  "thinking_usage_rate": 0.0,
+  "requests": [
+    {
+      "request_id": "1825d441",
+      "session_id": "soak-fault-001",
+      "prompt_preview": "帮我改写这段摘要，使其更学术化",
+      "started_at": 5050.5157976,
+      "finished_at": 5050.5430065,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 27.208900000005087
+    },
+    {
+      "request_id": "8e514799",
+      "session_id": "soak-fault-001",
+      "prompt_preview": "什么是卷积神经网络？",
+      "started_at": 5052.5541642,
+      "finished_at": 5052.5858608,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 31.69660000003205
+    },
+    {
+      "request_id": "c7b7892e",
+      "session_id": "soak-fault-001",
+      "prompt_preview": "深度学习和传统机器学习有什么区别？",
+      "started_at": 5054.5921467,
+      "finished_at": 5054.6242716,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 32.12489999987156
+    },
+    {
+      "request_id": "835e701e",
+      "session_id": "soak-fault-001",
+      "prompt_preview": "这篇论文有什么局限性？",
+      "started_at": 5056.6349859,
+      "finished_at": 5056.6678444,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 32.85849999974744
+    },
+    {
+      "request_id": "eb468179",
+      "session_id": "soak-fault-001",
+      "prompt_preview": "什么是机器学习？",
+      "started_at": 5058.6769947,
+      "finished_at": 5058.7080552,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 31.060499999512103
+    },
+    {
+      "request_id": "4e995789",
+      "session_id": "soak-fault-001",
+      "prompt_preview": "什么是机器学习？",
+      "started_at": 5060.7178876,
+      "finished_at": 5060.7498232,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 31.935599999997066
+    },
+    {
+      "request_id": "579ad197",
+      "session_id": "soak-fault-001",
+      "prompt_preview": "帮我改写这段摘要，使其更学术化",
+      "started_at": 5062.7567629,
+      "finished_at": 5062.7887777,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 32.014800000069954
+    },
+    {
+      "request_id": "1db74a36",
+      "session_id": "soak-fault-001",
+      "prompt_preview": "什么是卷积神经网络？",
+      "started_at": 5064.8011204,
+      "finished_at": 5064.8330109,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 31.890499999462918
+    },
+    {
+      "request_id": "92d35f16",
+      "session_id": "soak-fault-001",
+      "prompt_preview": "什么是过拟合？如何避免？",
+      "started_at": 5066.8361099,
+      "finished_at": 5066.8690745,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 32.96460000001389
+    },
+    {
+      "request_id": "b715a36c",
+      "session_id": "soak-fault-001",
+      "prompt_preview": "这个方法的创新点在哪里？",
+      "started_at": 5068.8756987,
+      "finished_at": 5068.9082089,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 32.51020000061544
+    },
+    {
+      "request_id": "fc917153",
+      "session_id": "soak-fault-001",
+      "prompt_preview": "对比一下这两篇论文的方法",
+      "started_at": 5070.919035,
+      "finished_at": 5070.9510049,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 31.96990000014921
+    },
+    {
+      "request_id": "a314593a",
+      "session_id": "soak-fault-001",
+      "prompt_preview": "帮我改写这段摘要，使其更学术化",
+      "started_at": 5072.9570401,
+      "finished_at": 5072.9889327,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 31.892599999991944
+    },
+    {
+      "request_id": "3bb59156",
+      "session_id": "soak-fault-001",
+      "prompt_preview": "实验结果说明了什么？",
+      "started_at": 5075.0025288,
+      "finished_at": 5075.0340231,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 31.494300000304065
+    },
+    {
+      "request_id": "22396afb",
+      "session_id": "soak-fault-001",
+      "prompt_preview": "这个实验设计是否合理？",
+      "started_at": 5077.04518,
+      "finished_at": 5077.0771629,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 31.9829000000027
+    },
+    {
+      "request_id": "eb48dc1d",
+      "session_id": "soak-fault-001",
+      "prompt_preview": "实验结果说明了什么？",
+      "started_at": 5079.0862102,
+      "finished_at": 5079.1169574,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 30.747199999495933
+    },
+    {
+      "request_id": "8b76c1f1",
+      "session_id": "soak-fault-001",
+      "prompt_preview": "什么是卷积神经网络？",
+      "started_at": 5081.129067,
+      "finished_at": 5081.1600247,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 30.957699999817123
+    },
+    {
+      "request_id": "1beb0871",
+      "session_id": "soak-fault-001",
+      "prompt_preview": "什么是 GPT？它和 BERT 有什么区别？",
+      "started_at": 5083.1734784,
+      "finished_at": 5083.2043191,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 30.840700000226207
+    },
+    {
+      "request_id": "3c9c64e2",
+      "session_id": "soak-fault-001",
+      "prompt_preview": "实验结果说明了什么？",
+      "started_at": 5085.2102446,
+      "finished_at": 5085.2115464,
+      "success": false,
+      "error_message": "Mock LLM fault injection",
+      "event_types": [
+        "error"
+      ],
+      "block_count": 0,
+      "source_count": 0,
+      "has_thinking": false,
+      "response_time_ms": 1.3017999999647145
+    },
+    {
+      "request_id": "e71645b6",
+      "session_id": "soak-fault-001",
+      "prompt_preview": "什么是机器学习？",
+      "started_at": 5087.2216958,
+      "finished_at": 5087.2538938,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 32.19799999988027
+    },
+    {
+      "request_id": "5f800159",
+      "session_id": "soak-fault-001",
+      "prompt_preview": "什么是机器学习？",
+      "started_at": 5089.2551393,
+      "finished_at": 5089.2562757,
+      "success": false,
+      "error_message": "Mock LLM fault injection",
+      "event_types": [
+        "error"
+      ],
+      "block_count": 0,
+      "source_count": 0,
+      "has_thinking": false,
+      "response_time_ms": 1.1363999992681784
+    },
+    {
+      "request_id": "d74af2f5",
+      "session_id": "soak-fault-001",
+      "prompt_preview": "什么是注意力机制？",
+      "started_at": 5091.2564312,
+      "finished_at": 5091.2888135,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 32.38229999988107
+    },
+    {
+      "request_id": "3ccdc3f1",
+      "session_id": "soak-fault-001",
+      "prompt_preview": "帮我总结一下相关工作部分",
+      "started_at": 5093.2955839,
+      "finished_at": 5093.328927,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 33.34309999991092
+    },
+    {
+      "request_id": "39cdf66e",
+      "session_id": "soak-fault-001",
+      "prompt_preview": "这个实验设计是否合理？",
+      "started_at": 5095.3365039,
+      "finished_at": 5095.3687334,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 32.22949999963021
+    },
+    {
+      "request_id": "5144db9f",
+      "session_id": "soak-fault-001",
+      "prompt_preview": "这篇论文的主要贡献是什么？",
+      "started_at": 5097.3749802,
+      "finished_at": 5097.4055199,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 30.53970000019035
+    },
+    {
+      "request_id": "68b13248",
+      "session_id": "soak-fault-001",
+      "prompt_preview": "什么是卷积神经网络？",
+      "started_at": 5099.4104501,
+      "finished_at": 5099.442002,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 31.551899999612942
+    },
+    {
+      "request_id": "02ba123b",
+      "session_id": "soak-fault-001",
+      "prompt_preview": "什么是机器学习？",
+      "started_at": 5101.4468278,
+      "finished_at": 5101.4784201,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 31.592299999829265
+    },
+    {
+      "request_id": "11ed1a4b",
+      "session_id": "soak-fault-001",
+      "prompt_preview": "这篇论文有什么局限性？",
+      "started_at": 5103.485986,
+      "finished_at": 5103.5178232,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 31.837200000154553
+    },
+    {
+      "request_id": "2082c368",
+      "session_id": "soak-fault-001",
+      "prompt_preview": "Transformer 架构的核心思想是什么？",
+      "started_at": 5105.5292014,
+      "finished_at": 5105.5607154,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 31.51400000024296
+    },
+    {
+      "request_id": "878df598",
+      "session_id": "soak-fault-001",
+      "prompt_preview": "实验结果说明了什么？",
+      "started_at": 5107.5689133,
+      "finished_at": 5107.6007136,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 31.80030000021361
+    },
+    {
+      "request_id": "4c221e20",
+      "session_id": "soak-fault-001",
+      "prompt_preview": "什么是 GPT？它和 BERT 有什么区别？",
+      "started_at": 5109.6126843,
+      "finished_at": 5109.6445661,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 31.88179999960994
+    }
+  ]
+}

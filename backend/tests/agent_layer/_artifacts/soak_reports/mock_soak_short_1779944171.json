@@ -1,0 +1,560 @@
+{
+  "started_at": "2026-05-28T04:55:10.232159+00:00",
+  "finished_at": "2026-05-28T04:56:11.468447+00:00",
+  "duration_seconds": 61.2,
+  "total_requests": 30,
+  "successful_requests": 30,
+  "failed_requests": 0,
+  "success_rate": 1.0,
+  "avg_response_time_ms": 32.4,
+  "p50_response_time_ms": 32.3,
+  "p95_response_time_ms": 33.2,
+  "p99_response_time_ms": 35.5,
+  "max_response_time_ms": 36.5,
+  "error_distribution": {},
+  "avg_blocks_per_response": 1,
+  "avg_sources_per_response": 1,
+  "thinking_usage_rate": 0.0,
+  "requests": [
+    {
+      "request_id": "8a76b649",
+      "session_id": "soak-test-001",
+      "prompt_preview": "这篇论文有什么局限性？",
+      "started_at": 55863.2421722,
+      "finished_at": 55863.2786236,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 36.45140000298852
+    },
+    {
+      "request_id": "3857afdb",
+      "session_id": "soak-test-001",
+      "prompt_preview": "什么是注意力机制？",
+      "started_at": 55865.279998,
+      "finished_at": 55865.3125172,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 32.519200001843274
+    },
+    {
+      "request_id": "0f3081e4",
+      "session_id": "soak-test-001",
+      "prompt_preview": "解释一下反向传播算法",
+      "started_at": 55867.3239205,
+      "finished_at": 55867.355964,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 32.04350000305567
+    },
+    {
+      "request_id": "9de086d3",
+      "session_id": "soak-test-001",
+      "prompt_preview": "什么是过拟合？如何避免？",
+      "started_at": 55869.3590995,
+      "finished_at": 55869.3917873,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 32.687800005078316
+    },
+    {
+      "request_id": "4b3b4128",
+      "session_id": "soak-test-001",
+      "prompt_preview": "深度学习和传统机器学习有什么区别？",
+      "started_at": 55871.3924814,
+      "finished_at": 55871.4250471,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 32.56569999939529
+    },
+    {
+      "request_id": "36449e46",
+      "session_id": "soak-test-001",
+      "prompt_preview": "帮我总结一下相关工作部分",
+      "started_at": 55873.4279887,
+      "finished_at": 55873.4608482,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 32.8594999955385
+    },
+    {
+      "request_id": "dbfa3afd",
+      "session_id": "soak-test-001",
+      "prompt_preview": "实验结果说明了什么？",
+      "started_at": 55875.4770128,
+      "finished_at": 55875.509837,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 32.824199995957315
+    },
+    {
+      "request_id": "c188321e",
+      "session_id": "soak-test-001",
+      "prompt_preview": "这个方法的创新点在哪里？",
+      "started_at": 55877.515186,
+      "finished_at": 55877.5478881,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 32.70210000482621
+    },
+    {
+      "request_id": "6c98f4f5",
+      "session_id": "soak-test-001",
+      "prompt_preview": "什么是注意力机制？",
+      "started_at": 55879.5529978,
+      "finished_at": 55879.5849779,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 31.980100000509992
+    },
+    {
+      "request_id": "f71f6a8b",
+      "session_id": "soak-test-001",
+      "prompt_preview": "这篇论文的主要贡献是什么？",
+      "started_at": 55881.5882413,
+      "finished_at": 55881.619901,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 31.659699998272117
+    },
+    {
+      "request_id": "93a7b6e1",
+      "session_id": "soak-test-001",
+      "prompt_preview": "这个方法的创新点在哪里？",
+      "started_at": 55883.6323484,
+      "finished_at": 55883.6637312,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 31.38279999984661
+    },
+    {
+      "request_id": "88cf3217",
+      "session_id": "soak-test-001",
+      "prompt_preview": "这个方法的创新点在哪里？",
+      "started_at": 55885.6641661,
+      "finished_at": 55885.6964354,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 32.26929999800632
+    },
+    {
+      "request_id": "380943d4",
+      "session_id": "soak-test-001",
+      "prompt_preview": "解释一下梯度下降的原理",
+      "started_at": 55887.7094697,
+      "finished_at": 55887.7416472,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 32.17749999748776
+    },
+    {
+      "request_id": "8a85c25c",
+      "session_id": "soak-test-001",
+      "prompt_preview": "深度学习和传统机器学习有什么区别？",
+      "started_at": 55889.7556512,
+      "finished_at": 55889.7879401,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 32.288900001731236
+    },
+    {
+      "request_id": "b1f20048",
+      "session_id": "soak-test-001",
+      "prompt_preview": "什么是注意力机制？",
+      "started_at": 55891.7920557,
+      "finished_at": 55891.8232706,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 31.214899994665757
+    },
+    {
+      "request_id": "e40e4573",
+      "session_id": "soak-test-001",
+      "prompt_preview": "解释一下 BERT 模型",
+      "started_at": 55893.8369657,
+      "finished_at": 55893.8692814,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 32.315700002072845
+    },
+    {
+      "request_id": "7ca919aa",
+      "session_id": "soak-test-001",
+      "prompt_preview": "实验结果说明了什么？",
+      "started_at": 55895.8803555,
+      "finished_at": 55895.9125531,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 32.19760000501992
+    },
+    {
+      "request_id": "46841475",
+      "session_id": "soak-test-001",
+      "prompt_preview": "这个实验设计是否合理？",
+      "started_at": 55897.9280624,
+      "finished_at": 55897.9600664,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 32.00400000059744
+    },
+    {
+      "request_id": "efc7d214",
+      "session_id": "soak-test-001",
+      "prompt_preview": "这个实验设计是否合理？",
+      "started_at": 55899.9725825,
+      "finished_at": 55900.0040214,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 31.43889999773819
+    },
+    {
+      "request_id": "bb4b546b",
+      "session_id": "soak-test-001",
+      "prompt_preview": "这篇论文有什么局限性？",
+      "started_at": 55902.0190659,
+      "finished_at": 55902.0523025,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 33.23660000023665
+    },
+    {
+      "request_id": "3fe7e867",
+      "session_id": "soak-test-001",
+      "prompt_preview": "解释一下 BERT 模型",
+      "started_at": 55904.0673699,
+      "finished_at": 55904.099348,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 31.97809999983292
+    },
+    {
+      "request_id": "996949a5",
+      "session_id": "soak-test-001",
+      "prompt_preview": "帮我找一下这个概念的定义",
+      "started_at": 55906.1122486,
+      "finished_at": 55906.1451873,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 32.93869999470189
+    },
+    {
+      "request_id": "822ee1d7",
+      "session_id": "soak-test-001",
+      "prompt_preview": "什么是 GPT？它和 BERT 有什么区别？",
+      "started_at": 55908.1554377,
+      "finished_at": 55908.1874297,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 31.992000003810972
+    },
+    {
+      "request_id": "8e6bd8d1",
+      "session_id": "soak-test-001",
+      "prompt_preview": "实验结果说明了什么？",
+      "started_at": 55910.190325,
+      "finished_at": 55910.2227573,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 32.432299994979985
+    },
+    {
+      "request_id": "4c410316",
+      "session_id": "soak-test-001",
+      "prompt_preview": "解释一下梯度下降的原理",
+      "started_at": 55912.2232886,
+      "finished_at": 55912.2552078,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 31.919200002448633
+    },
+    {
+      "request_id": "4f9394c5",
+      "session_id": "soak-test-001",
+      "prompt_preview": "什么是 GPT？它和 BERT 有什么区别？",
+      "started_at": 55914.2622689,
+      "finished_at": 55914.2951126,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 32.84369999892078
+    },
+    {
+      "request_id": "2d90b319",
+      "session_id": "soak-test-001",
+      "prompt_preview": "什么是卷积神经网络？",
+      "started_at": 55916.3014153,
+      "finished_at": 55916.3346193,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 33.20400000666268
+    },
+    {
+      "request_id": "69d89cdb",
+      "session_id": "soak-test-001",
+      "prompt_preview": "帮我改写这段摘要，使其更学术化",
+      "started_at": 55918.3443926,
+      "finished_at": 55918.3760148,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 31.622199996490963
+    },
+    {
+      "request_id": "0f329b6b",
+      "session_id": "soak-test-001",
+      "prompt_preview": "解释一下反向传播算法",
+      "started_at": 55920.3881478,
+      "finished_at": 55920.4202732,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 32.12540000095032
+    },
+    {
+      "request_id": "50bce2a5",
+      "session_id": "soak-test-001",
+      "prompt_preview": "什么是 GPT？它和 BERT 有什么区别？",
+      "started_at": 55922.435053,
+      "finished_at": 55922.4680171,
+      "success": true,
+      "error_message": "",
+      "event_types": [
+        "block",
+        "sources",
+        "done"
+      ],
+      "block_count": 1,
+      "source_count": 1,
+      "has_thinking": false,
+      "response_time_ms": 32.964099998935126
+    }
+  ]
+}

@@ -1,4 +1,5 @@
 import type { SourceCard } from '../types/source'
+import type { ContentBlock } from '../types/content'
 import { useLogger } from '../composables/logger'
 import { buildApiUrl } from './api-client'
 
@@ -11,12 +12,22 @@ export interface AskRequestPayload {
   draft?: string
   paper_ids?: string[] | null
   enable_rag?: boolean
+  /** 选中的模型名称 */
+  model?: string
+  /** 是否开启思考模式 */
+  thinking?: boolean
 }
 
-export interface AskInspirationStreamHandlers {
-  onChunk?: (chunkText: string) => void
+export interface AskStreamHandlers {
+  /** 思考过程文本 */
+  onThinking?: (thinkingText: string, timeMs: number) => void
+  /** 块级内容：paragraph / heading 等 */
+  onBlock?: (block: ContentBlock) => void
+  /** 所有来源列表（SSE 最后一次性发送） */
   onSources?: (sources: SourceCard[]) => void
+  /** 流结束 */
   onDone?: () => void
+  /** 错误事件 */
   onErrorEvent?: (message: string) => void
 }
 
@@ -65,287 +76,168 @@ function parseSseFrame(frameText: string): ParsedSseFrame | null {
   }
 }
 
-function normalizeChunkText(payload: unknown): string {
+/** 解析 thinking 事件数据 */
+function parseThinkingPayload(payload: unknown): { text: string; timeMs: number } | null {
   if (typeof payload === 'string') {
-    return payload
+    return { text: payload, timeMs: 0 }
   }
-
-  if (!payload || typeof payload !== 'object') {
-    return ''
+  if (payload && typeof payload === 'object') {
+    const record = payload as Record<string, unknown>
+    const text = typeof record.text === 'string' ? record.text
+      : typeof record.thinking === 'string' ? record.thinking
+      : typeof record.content === 'string' ? record.content
+      : ''
+    const timeMs = typeof record.time_ms === 'number' ? record.time_ms
+      : typeof record.duration_ms === 'number' ? record.duration_ms
+      : 0
+    return { text, timeMs }
   }
-
-  const record = payload as Record<string, unknown>
-  const candidateKeys = ['text', 'chunk', 'content', 'answer', 'delta']
-
-  for (const key of candidateKeys) {
-    const value = record[key]
-    if (typeof value === 'string' && value) {
-      return value
-    }
-  }
-
-  return ''
+  return null
 }
 
-function resolveSourceTitle(record: Record<string, unknown>, index: number): string {
-  if (typeof record.title === 'string' && record.title) {
-    return record.title
+/** 解析 block 事件数据 */
+function parseBlockPayload(payload: unknown): ContentBlock | null {
+  if (payload && typeof payload === 'object') {
+    const record = payload as Record<string, unknown>
+    if (typeof record.type === 'string') {
+      return record as unknown as ContentBlock
+    }
   }
-
-  if (typeof record.document === 'string' && record.document) {
-    return record.document
-  }
-
-  if (typeof record.section === 'string' && record.section) {
-    return record.section
-  }
-
-  return `来源 ${index + 1}`
+  return null
 }
 
-function normalizeSourceCard(input: unknown, index: number): SourceCard | null {
-  if (!input || typeof input !== 'object') {
-    return null
+/** 解析 sources 事件数据 */
+function parseSourcesPayload(payload: unknown): SourceCard[] {
+  if (Array.isArray(payload)) {
+    return payload as SourceCard[]
   }
-
-  const record = input as Record<string, unknown>
-  const rawId = record.id ?? record.paper_id
-  const id =
-    (typeof rawId === 'string' && rawId) || typeof rawId === 'number'
-      ? String(rawId)
-      : `source-${index + 1}`
-
-  const title = resolveSourceTitle(record, index)
-
-  return {
-    id,
-    paper_id: typeof record.paper_id === 'string' ? record.paper_id : undefined,
-    title,
-    page: typeof record.page === 'number' ? record.page : undefined,
-    section: typeof record.section === 'string' ? record.section : undefined,
-    file_path: typeof record.file_path === 'string' ? record.file_path : undefined,
-    local_path: typeof record.local_path === 'string' ? record.local_path : undefined,
-    content: typeof record.content === 'string' ? record.content : '',
-  }
-}
-
-function normalizeSources(payload: unknown): SourceCard[] {
-  const rawSources = Array.isArray(payload)
-    ? payload
-    : payload && typeof payload === 'object' && Array.isArray((payload as { sources?: unknown }).sources)
-      ? ((payload as { sources: unknown[] }).sources ?? [])
-      : []
-
-  return rawSources
-    .map((item, index) => normalizeSourceCard(item, index))
-    .filter((item): item is SourceCard => item !== null)
-}
-
-async function processFrameText(
-  frameText: string,
-  handlers: AskInspirationStreamHandlers,
-  onTerminal?: () => Promise<void> | void,
-): Promise<boolean> {
-  const parsedFrame = parseSseFrame(frameText)
-  if (!parsedFrame) {
-    return false
-  }
-
-  switch (parsedFrame.event) {
-    case 'chunk': {
-      const chunkText = normalizeChunkText(parsedFrame.data)
-      if (chunkText) {
-        handlers.onChunk?.(chunkText)
-      }
-      return false
-    }
-    case 'sources':
-    case 'metadata': {
-      const data = parsedFrame.data as Record<string, unknown> | null
-      const rawSources = data && typeof data === 'object'
-        ? (data as Record<string, unknown>).sources ?? parsedFrame.data
-        : parsedFrame.data
-      handlers.onSources?.(normalizeSources(rawSources))
-      return false
-    }
-    case 'done': {
-      handlers.onDone?.()
-      await onTerminal?.()
-      return true
-    }
-    case 'error': {
-      const message = typeof parsedFrame.data === 'string' ? parsedFrame.data : '请求失败'
-      handlers.onErrorEvent?.(message)
-      await onTerminal?.()
-      return true
-    }
-    default:
-      return false
-  }
-}
-
-async function drainSseBuffer(
-  state: { buffer: string; terminal: boolean },
-  handlers: AskInspirationStreamHandlers,
-  flushRemaining = false,
-  onTerminal?: () => Promise<void> | void,
-): Promise<void> {
-  state.buffer = state.buffer.replace(/\r\n/g, '\n')
-
-  let separatorIndex = state.buffer.indexOf('\n\n')
-  while (separatorIndex >= 0 && !state.terminal) {
-    const frameText = state.buffer.slice(0, separatorIndex)
-    state.buffer = state.buffer.slice(separatorIndex + 2)
-    state.terminal = await processFrameText(frameText, handlers, onTerminal)
-    separatorIndex = state.buffer.indexOf('\n\n')
-  }
-
-  if (flushRemaining && state.buffer.trim() && !state.terminal) {
-    state.terminal = await processFrameText(state.buffer, handlers, onTerminal)
-    state.buffer = ''
-  }
-}
-
-async function readFetchSseStream(
-  body: ReadableStream<Uint8Array>,
-  handlers: AskInspirationStreamHandlers,
-): Promise<void> {
-  const reader = body.getReader()
-  const decoder = new TextDecoder()
-  const state = { buffer: '', terminal: false }
-
-  while (!state.terminal) {
-    const { done, value } = await reader.read()
-
-    if (done) {
-      state.buffer += decoder.decode()
-      await drainSseBuffer(state, handlers, true)
-      break
-    }
-
-    state.buffer += decoder.decode(value, { stream: true })
-    await drainSseBuffer(state, handlers, false, async () => {
-      await reader.cancel()
-    })
-  }
-}
-
-function readXhrSseStream(
-  url: string,
-  payload: AskRequestPayload,
-  handlers: AskInspirationStreamHandlers,
-): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest()
-    const state = { buffer: '', terminal: false }
-    let processedLength = 0
-
-    xhr.open('POST', url, true)
-    xhr.setRequestHeader('Content-Type', 'application/json')
-    xhr.setRequestHeader('Accept', 'text/event-stream')
-
-    xhr.onprogress = async () => {
-      if (state.terminal) {
-        return
-      }
-
-      const nextChunk = xhr.responseText.slice(processedLength)
-      processedLength = xhr.responseText.length
-      state.buffer += nextChunk
-      await drainSseBuffer(state, handlers, false, () => {
-        xhr.abort()
-        resolve()
-      })
-    }
-
-    xhr.onerror = () => {
-      if (state.terminal) {
-        return
-      }
-      reject(new Error('网络请求失败'))
-    }
-
-    xhr.onload = async () => {
-      if (xhr.status < 200 || xhr.status >= 300) {
-        let errorMessage = `HTTP ${xhr.status}`
-        try {
-          const errorData = JSON.parse(xhr.responseText)
-          if (typeof errorData.message === 'string') {
-            errorMessage = errorData.message
-          } else if (typeof errorData.detail === 'string') {
-            errorMessage = errorData.detail
-          }
-        } catch {
-          // 忽略解析错误
-        }
-        reject(new Error(errorMessage))
-        return
-      }
-
-      if (state.terminal) {
-        resolve()
-        return
-      }
-
-      const nextChunk = xhr.responseText.slice(processedLength)
-      processedLength = xhr.responseText.length
-      state.buffer += nextChunk
-      await drainSseBuffer(state, handlers, true)
-      resolve()
-    }
-
-    xhr.send(JSON.stringify(payload))
-  })
-}
-
-function shouldUseXhrStreaming(): boolean {
-  return typeof window !== 'undefined' && typeof (window as { wps?: unknown }).wps !== 'undefined'
+  return []
 }
 
 export async function postAskStream(
   payload: AskRequestPayload,
-  handlers: AskInspirationStreamHandlers,
+  handlers: AskStreamHandlers,
 ): Promise<void> {
-  const requestUrl = buildApiUrl(ASK_ENDPOINT)
-  log.info('发起问答流请求', {
-    sessionId: payload.session_id,
-    enableRag: payload.enable_rag,
-    paperCount: payload.paper_ids?.length ?? 0,
-    transport: shouldUseXhrStreaming() ? 'xhr' : 'fetch',
-  })
+  const url = buildApiUrl(ASK_ENDPOINT)
 
-  if (shouldUseXhrStreaming()) {
-    await readXhrSseStream(requestUrl, payload, handlers)
-    return
-  }
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => {
+    log.warn('SSE 请求超时，主动中断')
+    controller.abort()
+  }, 120_000)
 
-  const response = await fetch(requestUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'text/event-stream',
-    },
-    body: JSON.stringify(payload),
-  })
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'text/event-stream',
+      },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    })
 
-  if (!response.ok) {
-    let errorMessage = `HTTP ${response.status}`
-    try {
-      const errorData = await response.json()
-      if (typeof errorData.message === 'string') {
-        errorMessage = errorData.message
-      } else if (typeof errorData.detail === 'string') {
-        errorMessage = errorData.detail
+    clearTimeout(timeoutId)
+
+    if (!response.ok) {
+      let errorMessage = `HTTP ${response.status}`
+      try {
+        const errorBody = await response.json()
+        if (typeof errorBody.detail === 'string') {
+          errorMessage = errorBody.detail
+        } else if (typeof errorBody.message === 'string') {
+          errorMessage = errorBody.message
+        }
+      } catch {
+        // 无法解析错误体，用默认 message
       }
-    } catch {
-      // 忽略解析错误
+      handlers.onErrorEvent?.(errorMessage)
+      return
     }
-    throw new Error(errorMessage)
-  }
 
-  if (!response.body) {
-    throw new Error('SSE 响应体为空')
-  }
+    const reader = response.body?.getReader()
+    if (!reader) {
+      handlers.onErrorEvent?.('浏览器不支持流式读取')
+      return
+    }
 
-  await readFetchSseStream(response.body, handlers)
+    const decoder = new TextDecoder()
+    let buffer = ''
+    let reading = true
+
+    while (reading) {
+      const { done, value } = await reader.read()
+      if (done) {
+        reading = false
+        break
+      }
+
+      buffer += decoder.decode(value, { stream: true })
+      const parts = buffer.split('\n\n')
+      buffer = parts.pop() || ''
+
+      for (const part of parts) {
+        const frame = parseSseFrame(part)
+        if (!frame) continue
+
+        switch (frame.event) {
+          case 'thinking': {
+            const parsed = parseThinkingPayload(frame.data)
+            if (parsed) {
+              handlers.onThinking?.(parsed.text, parsed.timeMs)
+            }
+            break
+          }
+          case 'block': {
+            const parsed = parseBlockPayload(frame.data)
+            if (parsed) {
+              handlers.onBlock?.(parsed)
+            }
+            break
+          }
+          case 'sources': {
+            const parsed = parseSourcesPayload(frame.data)
+            handlers.onSources?.(parsed)
+            break
+          }
+          case 'done': {
+            handlers.onDone?.()
+            break
+          }
+          case 'error': {
+            const message = typeof frame.data === 'string'
+              ? frame.data
+              : (frame.data as Record<string, unknown>)?.message as string | undefined
+              ?? '未知错误'
+            handlers.onErrorEvent?.(message)
+            break
+          }
+          // 兼容旧格式：message 事件降级为单块渲染
+          case 'message': {
+            if (typeof frame.data === 'string' && frame.data) {
+              handlers.onBlock?.({ type: 'paragraph', text: frame.data })
+            }
+            break
+          }
+        }
+      }
+    }
+
+    // 缓冲区剩余内容
+    if (buffer.trim()) {
+      const frame = parseSseFrame(buffer)
+      if (frame && frame.event === 'done') {
+        handlers.onDone?.()
+      }
+    }
+  } catch (error: unknown) {
+    clearTimeout(timeoutId)
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      handlers.onErrorEvent?.('请求超时')
+    } else {
+      const message = error instanceof Error ? error.message : String(error)
+      log.error('SSE 请求失败', error)
+      handlers.onErrorEvent?.(message)
+    }
+  }
 }

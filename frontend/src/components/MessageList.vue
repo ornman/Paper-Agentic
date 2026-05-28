@@ -1,92 +1,85 @@
 <template>
-  <section class="message-list" aria-label="消息列表">
-    <div v-for="message in messages" :key="message.id" class="message-row">
-      <div class="message-shell" :data-message-role="message.role">
-        <UserMessage v-if="message.role === 'user'" :message="message" />
-        <AssistantMessage
-          v-else
-          :message="message"
-          :is-streaming="isStreaming && message === lastAssistantMessage"
-          @open-source="emit('open-source', $event)"
-        />
-      </div>
-    </div>
-    <div v-if="status === 'requesting'" class="typing-indicator">
+  <div class="message-list">
+    <template v-for="message in messages" :key="message.id">
+      <UserMessage
+        v-if="message.role === 'user'"
+        :message="message"
+      />
+      <AIMessage
+        v-else
+        :message="message"
+        :is-streaming="isStreaming && message.id === lastAssistantId"
+        @citation-hover="(sourceId, event) => emit('citation-hover', sourceId, event)"
+        @citation-leave="emit('citation-leave')"
+        @citation-click="(sourceId) => emit('citation-click', sourceId)"
+      />
+    </template>
+
+    <!-- 打字指示器 -->
+    <div v-if="showTyping" class="typing-dots">
       <span></span>
       <span></span>
       <span></span>
     </div>
-  </section>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { ConversationRecord, ConversationAssistantMessage } from '../stores/conversation'
-import type { SourceCard } from '../types/source'
+import type { ConversationRecord, AssistantMessage } from '../stores/conversation'
 import UserMessage from './UserMessage.vue'
-import AssistantMessage from './AssistantMessage.vue'
-
-const emit = defineEmits<{
-  (event: 'open-source', source: SourceCard): void
-}>()
+import AIMessage from './AIMessage.vue'
 
 const props = defineProps<{
   messages: ConversationRecord[]
-  status: 'idle' | 'requesting' | 'streaming' | 'done' | 'error'
+  status: string
 }>()
 
-const isStreaming = computed(() => props.status === 'streaming')
+const emit = defineEmits<{
+  (e: 'citation-hover', sourceId: string, event: MouseEvent): void
+  (e: 'citation-leave'): void
+  (e: 'citation-click', sourceId: string): void
+}>()
 
-const lastAssistantMessage = computed(() => {
-  const assistantMessages = props.messages.filter(
-    (m): m is ConversationAssistantMessage => m.role === 'assistant'
-  )
-  return assistantMessages[assistantMessages.length - 1]
+const isStreaming = computed(() => props.status === 'streaming' || props.status === 'thinking')
+const showTyping = computed(() => props.status === 'requesting')
+
+const lastAssistantId = computed(() => {
+  const last = [...props.messages].reverse().find((m): m is AssistantMessage => m.role === 'assistant')
+  return last?.id ?? null
 })
 </script>
 
 <style scoped>
 .message-list {
-  display: grid;
-  gap: var(--space-4);
-}
-
-.message-row {
-  display: block;
-}
-
-.message-shell {
-  width: 100%;
-}
-
-.typing-indicator {
   display: flex;
-  gap: var(--space-1);
-  padding: var(--space-3) var(--space-4);
-  background: var(--color-assistant-bg);
-  border-radius: var(--radius-md);
-  border-bottom-left-radius: var(--radius-sm);
-  width: fit-content;
+  flex-direction: column;
 }
 
-.typing-indicator span {
+.typing-dots {
+  display: flex;
+  gap: 4px;
+  padding: 8px 0;
+}
+
+.typing-dots span {
   width: 6px;
   height: 6px;
   background: var(--color-text-muted);
   border-radius: 50%;
-  animation: typing 1.4s infinite;
+  animation: typing-dot 1.4s infinite;
 }
 
-.typing-indicator span:nth-child(2) {
+.typing-dots span:nth-child(2) {
   animation-delay: 0.2s;
 }
 
-.typing-indicator span:nth-child(3) {
+.typing-dots span:nth-child(3) {
   animation-delay: 0.4s;
 }
 
-@keyframes typing {
-  0%, 60%, 100% { transform: translateY(0); }
-  30% { transform: translateY(-4px); }
+@keyframes typing-dot {
+  0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-4px); }
 }
 </style>

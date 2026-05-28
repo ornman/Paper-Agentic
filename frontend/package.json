@@ -10,7 +10,8 @@
   },
   "dependencies": {
     "pinia": "^2.1.0",
-    "vue": "^3.4.0"
+    "vue": "^3.4.0",
+    "vue-router": "4.6.4"
   },
   "devDependencies": {
     "@playwright/test": "^1.54.2",

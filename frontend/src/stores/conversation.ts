@@ -1,42 +1,49 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { SourceCard } from '../types/source'
-import { ApiClientError, postJson } from '../services/api-client'
+import type { ContentBlock } from '../types/content'
 import { postAskStream } from '../services/sse-client'
 import type { AskRequestPayload } from '../services/sse-client'
 import { useLogger } from '../composables/logger'
+import { useSettingsStore } from './settings'
 
 const log = useLogger('api')
 
-export type ConversationStatus = 'idle' | 'requesting' | 'streaming' | 'done' | 'error'
+export type ConversationStatus = 'idle' | 'requesting' | 'thinking' | 'streaming' | 'done' | 'error'
 
-export interface ConversationUserActionMessage {
+/** 用户消息 */
+export interface UserMessage {
   id: string
   role: 'user'
-  kind: 'action' | 'prompt'
   content: string
   createdAt: string
 }
 
-export interface ConversationAssistantMessage {
+/** AI 消息 */
+export interface AssistantMessage {
   id: string
   role: 'assistant'
-  kind: 'answer'
-  content: string
   createdAt: string
-  sources?: SourceCard[]
+  /** 思考过程文本（可折叠展示） */
+  thinking: string
+  /** 思考耗时（毫秒） */
+  thinkingTimeMs: number
+  /** 块级内容 */
+  blocks: ContentBlock[]
+  /** 本轮引用来源 */
+  sources: SourceCard[]
 }
 
-export type ConversationRecord = ConversationUserActionMessage | ConversationAssistantMessage
+export type ConversationRecord = UserMessage | AssistantMessage
 
 let messageSequence = 0
 
-function createMessageId(prefix: 'user' | 'assistant') {
+function createMessageId(prefix: 'user' | 'assistant'): string {
   messageSequence += 1
   return `${prefix}-${Date.now()}-${messageSequence}`
 }
 
-function createSessionId() {
+function createSessionId(): string {
   const uuid = globalThis.crypto?.randomUUID?.()
   if (uuid) {
     return `v1-session-${uuid}`
@@ -44,15 +51,8 @@ function createSessionId() {
   return `v1-session-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
 }
 
-function cloneSources(sources: readonly SourceCard[] | undefined): SourceCard[] | undefined {
-  if (!sources) return undefined
+function cloneSources(sources: SourceCard[]): SourceCard[] {
   return sources.map((source) => ({ ...source }))
-}
-
-function extractConversationTitle(messages: Array<{ role: string; content: string }>): string {
-  const firstUserMessage = messages.find((message) => message.role === 'user' && message.content.trim())
-  if (!firstUserMessage) return ''
-  return firstUserMessage.content.trim().slice(0, 20)
 }
 
 export const useConversationStore = defineStore('conversation', () => {
@@ -60,212 +60,137 @@ export const useConversationStore = defineStore('conversation', () => {
   const errorMessage = ref<string | null>(null)
   const messages = ref<ConversationRecord[]>([])
   const sessionId = ref<string>(createSessionId())
-  const title = ref<string>('AIForScience')
 
-  const activeAssistantMessageId = ref<string | null>(null)
-  const pendingAssistantSources = ref<SourceCard[] | null>(null)
+  // 当前正在流式输出的 assistant 消息
+  const activeAssistantId = ref<string | null>(null)
 
-  function startRequest() {
-    status.value = 'requesting'
-    errorMessage.value = null
-    activeAssistantMessageId.value = null
-    pendingAssistantSources.value = null
+  function getActiveAssistant(): AssistantMessage | null {
+    if (!activeAssistantId.value) return null
+    return messages.value.find(
+      (m) => m.role === 'assistant' && m.id === activeAssistantId.value,
+    ) as AssistantMessage | null
   }
 
-  function startStreaming() {
-    status.value = 'streaming'
-    errorMessage.value = null
-  }
+  function ensureActiveAssistant(): AssistantMessage {
+    const existing = getActiveAssistant()
+    if (existing) return existing
 
-  function finishResponse() {
-    status.value = 'done'
-    errorMessage.value = null
-  }
-
-  function markError(message: string) {
-    status.value = 'error'
-    errorMessage.value = message
-  }
-
-  function appendUserActionMessage(payload: { content: string; kind?: 'action' | 'prompt'; createdAt?: string }) {
-    const nextMessage: ConversationUserActionMessage = {
-      id: createMessageId('user'),
-      role: 'user',
-      kind: payload.kind ?? 'action',
-      content: payload.content,
-      createdAt: payload.createdAt ?? new Date().toISOString(),
-    }
-    messages.value = [...messages.value, nextMessage]
-  }
-
-  function createStreamingAssistantMessage(createdAt?: string): string {
-    const nextMessage: ConversationAssistantMessage = {
-      id: createMessageId('assistant'),
+    const id = createMessageId('assistant')
+    const msg: AssistantMessage = {
+      id,
       role: 'assistant',
-      kind: 'answer',
-      content: '',
-      createdAt: createdAt ?? new Date().toISOString(),
-      sources: cloneSources(pendingAssistantSources.value ?? undefined),
+      createdAt: new Date().toISOString(),
+      thinking: '',
+      thinkingTimeMs: 0,
+      blocks: [],
+      sources: [],
     }
-    activeAssistantMessageId.value = nextMessage.id
-    pendingAssistantSources.value = null
-    messages.value = [...messages.value, nextMessage]
-    return nextMessage.id
-  }
-
-  function updateAssistantMessage(
-    messageId: string,
-    updater: (message: ConversationAssistantMessage) => ConversationAssistantMessage,
-  ) {
-    messages.value = messages.value.map((message) => {
-      if (message.id !== messageId || message.role !== 'assistant') {
-        return message
-      }
-      return updater(message)
-    })
-  }
-
-  function ensureStreamingAssistantMessage(): string {
-    if (activeAssistantMessageId.value) {
-      return activeAssistantMessageId.value
-    }
-    return createStreamingAssistantMessage()
-  }
-
-  function appendAssistantChunk(chunkText: string) {
-    if (!chunkText) return
-    const messageId = ensureStreamingAssistantMessage()
-    updateAssistantMessage(messageId, (message) => ({
-      ...message,
-      content: `${message.content}${chunkText}`,
-    }))
-  }
-
-  function attachAssistantSources(sources: SourceCard[]) {
-    if (sources.length === 0) return
-    if (!activeAssistantMessageId.value) {
-      pendingAssistantSources.value = cloneSources(sources) ?? null
-      return
-    }
-    const messageId = activeAssistantMessageId.value
-    updateAssistantMessage(messageId, (message) => ({
-      ...message,
-      sources: cloneSources(sources),
-    }))
-  }
-
-  async function sendPrompt(payload: AskRequestPayload) {
-    startRequest()
-    const isFirstMessage = messages.value.length === 0
-    appendUserActionMessage({
-      content: payload.prompt,
-      kind: 'prompt',
-    })
-    log.info('发送问题', {
-      sessionId: payload.session_id,
-      enableRag: payload.enable_rag,
-      paperCount: payload.paper_ids?.length ?? 0,
-    })
-
-    try {
-      let chunkCount = 0
-      await postAskStream(payload, {
-        onChunk(chunkText) {
-          if (status.value !== 'streaming') {
-            startStreaming()
-            log.info('收到首个流式分片', { sessionId: payload.session_id })
-          }
-          chunkCount += 1
-          appendAssistantChunk(chunkText)
-        },
-        onSources(sources) {
-          if (status.value !== 'streaming') {
-            startStreaming()
-          }
-          log.info('收到来源数据', { count: sources.length, sessionId: payload.session_id })
-          attachAssistantSources(sources)
-        },
-        onDone() {
-          log.info('流式响应完成', { sessionId: payload.session_id, chunkCount })
-          finishResponse()
-          activeAssistantMessageId.value = null
-          pendingAssistantSources.value = null
-        },
-        onErrorEvent(message) {
-          log.warn('流式响应事件错误', { sessionId: payload.session_id, message })
-          markError(message)
-          activeAssistantMessageId.value = null
-          pendingAssistantSources.value = null
-        },
-      })
-
-      if (status.value !== 'error') {
-        finishResponse()
-        activeAssistantMessageId.value = null
-        pendingAssistantSources.value = null
-      }
-
-      if (isFirstMessage && payload.prompt.trim()) {
-        try {
-          const result = await postJson<{ title: string }>('/api/v1/query/generate-title', {
-            message: payload.prompt,
-          })
-          if (result.title) {
-            title.value = result.title
-          }
-        } catch {
-          title.value = payload.prompt.slice(0, 20)
-        }
-      }
-    } catch (error) {
-      const message =
-        error instanceof ApiClientError || error instanceof Error
-          ? error.message
-          : '发送失败，请稍后重试'
-      log.error('发送问题失败', error, { sessionId: payload.session_id })
-      markError(message)
-      activeAssistantMessageId.value = null
-      pendingAssistantSources.value = null
-    }
+    messages.value.push(msg)
+    activeAssistantId.value = id
+    return msg
   }
 
   function reset() {
     status.value = 'idle'
     errorMessage.value = null
     messages.value = []
-    activeAssistantMessageId.value = null
-    pendingAssistantSources.value = null
     sessionId.value = createSessionId()
-    title.value = 'AIForScience'
+    activeAssistantId.value = null
   }
 
-  function loadHistory(data: { session_id: string; title?: string; messages: Array<{ role: string; content: string }> }) {
-    status.value = 'idle'
+  /** 发送用户提问并开始 SSE 流 */
+  async function sendPrompt(promptContent: {
+    session_id: string
+    prompt: string
+    paper_ids?: string[]
+    enable_rag?: boolean
+  }) {
+    status.value = 'requesting'
     errorMessage.value = null
-    activeAssistantMessageId.value = null
-    pendingAssistantSources.value = null
-    sessionId.value = data.session_id
-    title.value = data.title?.trim() || extractConversationTitle(data.messages) || 'AIForScience'
 
-    messages.value = data.messages.map((message) => {
-      if (message.role === 'user') {
-        return {
-          id: createMessageId('user'),
-          role: 'user' as const,
-          kind: 'prompt' as const,
-          content: message.content,
-          createdAt: new Date().toISOString(),
-        }
-      }
+    // 添加用户消息
+    const userMsg: UserMessage = {
+      id: createMessageId('user'),
+      role: 'user',
+      content: promptContent.prompt,
+      createdAt: new Date().toISOString(),
+    }
+    messages.value.push(userMsg)
 
-      return {
-        id: createMessageId('assistant'),
-        role: 'assistant' as const,
-        kind: 'answer' as const,
-        content: message.content,
-        createdAt: new Date().toISOString(),
-      }
-    })
+    // 预创建 assistant 消息
+    activeAssistantId.value = null
+
+    const settings = useSettingsStore()
+
+    const payload: AskRequestPayload = {
+      session_id: promptContent.session_id,
+      prompt: promptContent.prompt,
+      paper_ids: promptContent.paper_ids ?? [],
+      enable_rag: promptContent.enable_rag ?? (promptContent.paper_ids && promptContent.paper_ids.length > 0),
+      model: settings.selectedModel,
+      thinking: settings.thinkingEnabled,
+    }
+
+    try {
+      await postAskStream(payload, {
+        onThinking(text, timeMs) {
+          if (status.value === 'requesting') {
+            status.value = 'thinking'
+          }
+          const msg = ensureActiveAssistant()
+          msg.thinking += text
+          msg.thinkingTimeMs = timeMs
+        },
+        onBlock(block) {
+          if (status.value === 'thinking' || status.value === 'requesting') {
+            status.value = 'streaming'
+          }
+          const msg = ensureActiveAssistant()
+          msg.blocks.push(block)
+        },
+        onSources(sources) {
+          const msg = getActiveAssistant()
+          if (msg) {
+            msg.sources = cloneSources(sources)
+          }
+        },
+        onDone() {
+          status.value = 'done'
+          activeAssistantId.value = null
+        },
+        onErrorEvent(message) {
+          log.error('对话请求失败', new Error(message))
+          errorMessage.value = message
+          status.value = 'error'
+          // 移除非法的空 assistant 消息
+          const lastMsg = messages.value[messages.value.length - 1]
+          if (lastMsg && lastMsg.role === 'assistant' && (lastMsg as AssistantMessage).blocks.length === 0 && !(lastMsg as AssistantMessage).thinking) {
+            messages.value.pop()
+          }
+          activeAssistantId.value = null
+        },
+      })
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error)
+      log.error('对话请求异常', error)
+      errorMessage.value = message
+      status.value = 'error'
+      activeAssistantId.value = null
+    }
+  }
+
+  /** 获取当前 assistant 消息的全部来源 */
+  function currentSources(): SourceCard[] {
+    const lastAssistant = [...messages.value]
+      .reverse()
+      .find((m): m is AssistantMessage => m.role === 'assistant')
+    return lastAssistant?.sources ?? []
+  }
+
+  /** 最新一条 assistant 消息 */
+  function lastAssistantMessage(): AssistantMessage | null {
+    const reversed = [...messages.value].reverse()
+    return reversed.find((m): m is AssistantMessage => m.role === 'assistant') ?? null
   }
 
   return {
@@ -273,14 +198,9 @@ export const useConversationStore = defineStore('conversation', () => {
     errorMessage,
     messages,
     sessionId,
-    title,
-    startRequest,
-    startStreaming,
-    finishResponse,
-    markError,
-    appendUserActionMessage,
-    sendPrompt,
     reset,
-    loadHistory,
+    sendPrompt,
+    currentSources,
+    lastAssistantMessage,
   }
 })
