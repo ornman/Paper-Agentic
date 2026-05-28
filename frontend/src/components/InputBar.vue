@@ -33,7 +33,6 @@
           class="composer-textarea"
           :placeholder="placeholderText"
           rows="1"
-          :disabled="isBusy"
           aria-label="输入消息"
           @keydown.enter.exact.prevent="handleSend"
           @input="autoResize"
@@ -149,7 +148,7 @@ const badgeHover = ref(false)
 const showExpandHint = ref(false)
 
 const placeholderText = computed(() => {
-  if (props.isBusy) return 'AI 正在思考...'
+  if (props.isBusy) return '发送新消息将打断当前回答...'
   if (props.selectedPaperCount > 0) return `基于 ${props.selectedPaperCount} 篇文献回答...`
   return '输入你的问题...'
 })

@@ -13,6 +13,7 @@
               :messages="store.messages"
               :status="store.status"
               :error-message="store.errorMessage ?? undefined"
+              :phase-message="store.phaseMessage"
               @citation-hover="handleCitationHover"
               @citation-leave="handleCitationLeave"
               @citation-click="handleCitationClick"
@@ -223,6 +224,10 @@ function startHideTimer() {
 
 // ─── 发送 ───
 async function handleSend(promptText: string) {
+  // Auto-abort if currently busy
+  if (isBusy.value) {
+    store.abortStreaming()
+  }
   // Create backend session on first message (non-demo mode)
   if (!demoActive.value && store.messages.length === 0) {
     try {
@@ -319,7 +324,7 @@ async function probeBackend(): Promise<boolean> {
 
 // ─── 新建对话 ───
 async function handleNewChat() {
-  if (isBusy.value && !confirm('当前对话正在进行中，确定要开始新对话吗？')) return
+  if (isBusy.value && !confirm('当前对话正在进行中，确认开始新对话？')) return
   // Just reset locally — don't create a backend session until user actually sends a message
   store.reset()
   resetCounter.value++

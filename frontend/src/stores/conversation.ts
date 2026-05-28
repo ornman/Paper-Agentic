@@ -69,6 +69,9 @@ export const useConversationStore = defineStore('conversation', () => {
   const abortController = ref<AbortController | null>(null)
   let demoCancelFn: (() => void) | null = null
 
+  // 当前阶段提示文字（如 "正在查询文献库..."）
+  const phaseMessage = ref<string>('')
+
   function getActiveAssistant(): AssistantMessage | null {
     if (!activeAssistantId.value) return null
     return messages.value.find(
@@ -110,6 +113,7 @@ export const useConversationStore = defineStore('conversation', () => {
     messages.value = []
     sessionId.value = createSessionId()
     activeAssistantId.value = null
+    phaseMessage.value = ''
   }
 
   /** Abort the current streaming response */
@@ -129,6 +133,7 @@ export const useConversationStore = defineStore('conversation', () => {
     }
     status.value = 'done'
     activeAssistantId.value = null
+    phaseMessage.value = ''
   }
 
   /** 发送用户提问并开始 SSE 流 */
@@ -140,6 +145,7 @@ export const useConversationStore = defineStore('conversation', () => {
   }) {
     status.value = 'requesting'
     errorMessage.value = null
+    phaseMessage.value = ''
 
     // 添加用户消息
     const userMsg: UserMessage = {
@@ -159,6 +165,9 @@ export const useConversationStore = defineStore('conversation', () => {
     if (isDemoMode()) {
       activeAssistantId.value = null
       const { cancel } = mockSendPrompt(promptContent.prompt, promptContent.paper_ids ?? [], {
+        onStatus(_phase, message) {
+          phaseMessage.value = message
+        },
         onThinking(text, timeMs) {
           if (status.value === 'requesting') status.value = 'thinking'
           const msg = ensureActiveAssistant()
@@ -167,6 +176,7 @@ export const useConversationStore = defineStore('conversation', () => {
         },
         onBlock(block) {
           if (status.value === 'thinking' || status.value === 'requesting') status.value = 'streaming'
+          phaseMessage.value = ''
           const msg = ensureActiveAssistant()
           msg.blocks.push(block)
         },
@@ -177,6 +187,7 @@ export const useConversationStore = defineStore('conversation', () => {
         onDone() {
           status.value = 'done'
           activeAssistantId.value = null
+          phaseMessage.value = ''
           demoCancelFn = null
         },
       })
@@ -198,6 +209,9 @@ export const useConversationStore = defineStore('conversation', () => {
       abortController.value = new AbortController()
       const signal = abortController.value.signal
       await postAskStream(payload, {
+        onStatus(_phase, message) {
+          phaseMessage.value = message
+        },
         onThinking(text, timeMs) {
           if (status.value === 'requesting') {
             status.value = 'thinking'
@@ -210,6 +224,7 @@ export const useConversationStore = defineStore('conversation', () => {
           if (status.value === 'thinking' || status.value === 'requesting') {
             status.value = 'streaming'
           }
+          phaseMessage.value = ''
           const msg = ensureActiveAssistant()
           msg.blocks.push(block)
         },
@@ -222,6 +237,7 @@ export const useConversationStore = defineStore('conversation', () => {
         onDone() {
           status.value = 'done'
           activeAssistantId.value = null
+          phaseMessage.value = ''
         },
         onErrorEvent(message) {
           log.error('对话请求失败', new Error(message))
@@ -295,6 +311,7 @@ export const useConversationStore = defineStore('conversation', () => {
     errorMessage,
     messages,
     sessionId,
+    phaseMessage,
     reset,
     sendPrompt,
     abortStreaming,

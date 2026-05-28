@@ -11,6 +11,7 @@
         v-else
         :message="message"
         :is-streaming="isStreaming && message.id === lastAssistantId"
+        :phase-message="isStreaming && message.id === lastAssistantId ? phaseMessage : ''"
         @citation-hover="onCitationHover"
         @citation-leave="emit('citation-leave')"
         @citation-click="onCitationClick"
@@ -47,6 +48,7 @@ const props = defineProps<{
   messages: ConversationRecord[]
   status: string
   errorMessage?: string
+  phaseMessage?: string
 }>()
 
 const emit = defineEmits<{

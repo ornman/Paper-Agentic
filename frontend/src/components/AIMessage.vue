@@ -20,6 +20,13 @@
       </div>
     </div>
 
+    <!-- Phase status indicator (shown during streaming before content arrives) -->
+    <div v-if="isStreaming && phaseMessage && message.blocks.length === 0" class="phase-indicator">
+      <span class="phase-spinner"></span>
+      <span class="phase-text">{{ phaseMessage }}</span>
+      <span class="phase-timer">{{ phaseElapsed }}s</span>
+    </div>
+
     <!-- Content blocks -->
     <div
       class="content-blocks"
@@ -115,13 +122,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import type { AssistantMessage } from '../stores/conversation'
 import { renderInlineMarkdown } from '../utils/markdown-inline'
 
 const props = defineProps<{
   message: AssistantMessage
   isStreaming: boolean
+  phaseMessage?: string
 }>()
 
 const emit = defineEmits<{
@@ -136,6 +144,20 @@ const emit = defineEmits<{
 
 const thinkingExpanded = ref(false)
 const copyLabel = ref('复制')
+
+// Phase timer
+const phaseElapsed = ref(0)
+let phaseTimer: ReturnType<typeof setInterval> | null = null
+
+watch(() => props.phaseMessage, (msg) => {
+  if (msg) {
+    phaseElapsed.value = 0
+    if (phaseTimer) clearInterval(phaseTimer)
+    phaseTimer = setInterval(() => { phaseElapsed.value += 1 }, 1000)
+  } else {
+    if (phaseTimer) { clearInterval(phaseTimer); phaseTimer = null }
+  }
+})
 
 /** Deduplicated sources keyed by paper_id (or id as fallback), numbered [1], [2], … */
 const numberedSources = computed(() => {
@@ -345,6 +367,42 @@ function onContentMouseLeave(event: MouseEvent): void {
 }
 
 /* ── Content blocks ── */
+
+/* ── Phase indicator ── */
+
+.phase-indicator {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-accent-soft);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-accent);
+}
+
+.phase-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--color-accent-soft);
+  border-top-color: var(--color-accent);
+  border-radius: 50%;
+  animation: phase-spin 0.8s linear infinite;
+}
+
+@keyframes phase-spin {
+  to { transform: rotate(360deg); }
+}
+
+.phase-text {
+  flex: 1;
+}
+
+.phase-timer {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.6;
+  font-size: 12px;
+}
 
 .content-blocks {
   display: flex;

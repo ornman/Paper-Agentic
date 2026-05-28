@@ -276,6 +276,7 @@ export function mockSendPrompt(
     onBlock: (block: ContentBlock) => void
     onSources: (sources: SourceCard[]) => void
     onDone: () => void
+    onStatus?: (phase: string, message: string) => void
   },
 ): { cancel: () => void } {
   let cancelled = false
@@ -290,6 +291,10 @@ export function mockSendPrompt(
     }, delay)
     timers.push(t)
   }
+
+  // Phase 0: Status events
+  schedule(() => handlers.onStatus?.('retrieving', '正在查询文献库...'), 200)
+  schedule(() => handlers.onStatus?.('generating', '正在生成回答...'), 1800)
 
   // Phase 1: Thinking
   if (response.thinking) {

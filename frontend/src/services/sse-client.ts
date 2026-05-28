@@ -31,6 +31,8 @@ export interface AskStreamHandlers {
   onDone?: () => void
   /** 错误事件 */
   onErrorEvent?: (message: string) => void
+  /** 状态阶段指示 */
+  onStatus?: (phase: string, message: string) => void
 }
 
 interface ParsedSseFrame {
@@ -116,6 +118,17 @@ function parseSourcesPayload(payload: unknown): SourceCard[] {
   return []
 }
 
+/** 解析 status 事件数据 */
+function parseStatusPayload(payload: unknown): { phase: string; message: string } | null {
+  if (payload && typeof payload === 'object') {
+    const record = payload as Record<string, unknown>
+    if (typeof record.phase === 'string' && typeof record.message === 'string') {
+      return { phase: record.phase, message: record.message }
+    }
+  }
+  return null
+}
+
 export async function postAskStream(
   payload: AskRequestPayload,
   handlers: AskStreamHandlers,
@@ -193,6 +206,13 @@ export async function postAskStream(
         if (!frame) continue
 
         switch (frame.event) {
+          case 'status': {
+            const parsed = parseStatusPayload(frame.data)
+            if (parsed) {
+              handlers.onStatus?.(parsed.phase, parsed.message)
+            }
+            break
+          }
           case 'thinking': {
             const parsed = parseThinkingPayload(frame.data)
             if (parsed) {
