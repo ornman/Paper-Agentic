@@ -27,7 +27,6 @@ export const useLibraryStore = defineStore('library', () => {
   const papers = ref<PaperItem[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
-  const searchQuery = ref('')
   const selectedPaperIds = ref<string[]>([])
 
   const importing = ref(false)
@@ -38,17 +37,6 @@ export const useLibraryStore = defineStore('library', () => {
   let hasLoadedPapersAfterImport = false
   let lastProgressSignature = ''
 
-  const filteredPapers = computed(() => {
-    if (!searchQuery.value.trim()) return papers.value
-    const q = searchQuery.value.toLowerCase()
-    return papers.value.filter(
-      (paper) =>
-        paper.title.toLowerCase().includes(q) ||
-        paper.authors.toLowerCase().includes(q),
-    )
-  })
-
-  const paperCount = computed(() => papers.value.length)
   const selectedPaperCount = computed(() => selectedPaperIds.value.length)
 
   async function loadPapers() {
@@ -86,12 +74,8 @@ export const useLibraryStore = defineStore('library', () => {
     selectedPaperIds.value = [...new Set(nextPaperIds)]
   }
 
-  function isPaperSelected(paperId: string) {
-    return selectedPaperIds.value.includes(paperId)
-  }
-
   function togglePaperSelection(paperId: string) {
-    if (isPaperSelected(paperId)) {
+    if (selectedPaperIds.value.includes(paperId)) {
       selectedPaperIds.value = selectedPaperIds.value.filter((id) => id !== paperId)
       return
     }
@@ -231,40 +215,6 @@ export const useLibraryStore = defineStore('library', () => {
     }
   }
 
-  async function importFiles(files: File[]) {
-    const pdfFiles = files.filter((file) => file.name.toLowerCase().endsWith('.pdf'))
-    if (pdfFiles.length === 0) {
-      return [] as string[]
-    }
-
-    await loadPapers()
-    clearImportError()
-
-    const duplicateFileNames: string[] = []
-    const seenNames = new Set<string>()
-    const filesToImport = pdfFiles.filter((file) => {
-      const normalizedName = file.name.trim().toLowerCase()
-      if (seenNames.has(normalizedName)) {
-        duplicateFileNames.push(file.name)
-        return false
-      }
-      seenNames.add(normalizedName)
-      return true
-    })
-
-    if (duplicateFileNames.length > 0) {
-      const uniqueDuplicateTitles = [...new Set(duplicateFileNames)]
-      setImportError(`本次选择中存在重名文件：${uniqueDuplicateTitles.join('、')}`)
-      log.warn('拦截本次选择中的重名文件', { count: uniqueDuplicateTitles.length, titles: uniqueDuplicateTitles })
-    }
-
-    for (const file of filesToImport) {
-      await importFile(file)
-    }
-
-    return [...new Set(duplicateFileNames)]
-  }
-
   function clearImportError() {
     importError.value = null
   }
@@ -273,10 +223,7 @@ export const useLibraryStore = defineStore('library', () => {
     papers,
     loading,
     error,
-    searchQuery,
     selectedPaperIds,
-    filteredPapers,
-    paperCount,
     selectedPaperCount,
     importing,
     importFileName,
@@ -286,11 +233,9 @@ export const useLibraryStore = defineStore('library', () => {
     loadPapers,
     removePaper,
     setSelectedPaperIds,
-    isPaperSelected,
     togglePaperSelection,
     clearSelectedPapers,
     importFile,
-    importFiles,
     clearImportError,
     setImportError,
   }

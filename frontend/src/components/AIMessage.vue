@@ -21,12 +21,15 @@
     </div>
 
     <!-- Content blocks -->
-    <div class="content-blocks">
+    <div
+      class="content-blocks"
+      @click="onContentClick"
+      @mouseenter.capture="onContentMouseEnter"
+      @mouseleave.capture="onContentMouseLeave"
+    >
       <template v-for="(block, index) in message.blocks" :key="index">
         <!-- Paragraph -->
-        <p v-if="block.type === 'paragraph'" class="block-paragraph">
-          {{ block.text }}
-        </p>
+        <p v-if="block.type === 'paragraph'" class="block-paragraph" v-html="renderParagraphWithCitations(block.text)"></p>
 
         <!-- Heading -->
         <h2 v-else-if="block.type === 'heading' && block.level === 2" class="block-heading">
@@ -38,7 +41,10 @@
 
         <!-- Code block -->
         <div v-else-if="block.type === 'code'" class="block-code-wrapper">
-          <div v-if="block.language" class="code-lang">{{ block.language }}</div>
+          <div class="code-header">
+            <span v-if="block.language" class="code-lang">{{ block.language }}</span>
+            <button class="code-copy-btn" type="button" @click="copyCode(block.text!, $event)">复制</button>
+          </div>
           <pre class="block-code"><code>{{ block.text }}</code></pre>
         </div>
 
@@ -53,9 +59,7 @@
         </blockquote>
 
         <!-- Fallback: render as paragraph -->
-        <p v-else-if="block.text" class="block-paragraph">
-          {{ block.text }}
-        </p>
+        <p v-else-if="block.text" class="block-paragraph" v-html="renderParagraphWithCitations(block.text)"></p>
       </template>
 
       <!-- Streaming cursor -->
@@ -63,30 +67,58 @@
     </div>
 
     <!-- Source citation badges -->
-    <div v-if="message.sources.length > 0" class="sources-section">
+    <div v-if="numberedSources.length > 0" class="sources-section">
       <span class="sources-label">引用来源</span>
       <div class="sources-badges">
         <button
-          v-for="source in message.sources"
+          v-for="{ source, num } in numberedSources"
           :key="source.id"
           class="source-badge"
+          :aria-label="'引用来源 ' + source.title"
           @mouseenter="emit('citation-hover', source.id, $event)"
           @mouseleave="emit('citation-leave')"
           @click="emit('citation-click', source.id)"
         >
+          <span class="source-num">[{{ num }}]</span>
           {{ source.title }}
           <span v-if="source.page != null" class="source-page">p.{{ source.page }}</span>
         </button>
       </div>
     </div>
+
+    <!-- AI message action bar -->
+    <div class="message-actions">
+      <button class="action-item" type="button" @click="handleCopy">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="4.5" y="4.5" width="8" height="8" rx="1.5"/><path d="M9.5 4.5V3a1.5 1.5 0 0 0-1.5-1.5H3A1.5 1.5 0 0 0 1.5 3v5A1.5 1.5 0 0 0 3 9.5h1.5"/></svg>
+        <span>{{ copyLabel }}</span>
+      </button>
+      <button class="action-item" type="button" @click="emit('regenerate', message.id)">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M1.5 7a5.5 5.5 0 0 1 9.3-3.95M12.5 7a5.5 5.5 0 0 1-9.3 3.95"/><path d="M10.5 1v2.5H13"/><path d="M3.5 13v-2.5H1"/></svg>
+        <span>重新生成</span>
+      </button>
+      <button v-if="isStreaming" class="action-item" type="button" @click="emit('stop')">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="2" y="2" width="10" height="10" rx="1.5"/></svg>
+        <span>停止</span>
+      </button>
+      <template v-if="!isStreaming">
+        <button class="action-item" type="button" @click="handleFollowUp">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M2 7h10M9 4l3 3-3 3"/></svg>
+          <span>追问</span>
+        </button>
+        <button class="action-item action-item--danger" type="button" @click="emit('delete', message.id)">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M2 3.5h10"/><path d="M5.5 3.5V2.5a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v1"/><path d="M3 3.5l.5 8a1 1 0 0 0 1 1h5a1 1 0 0 0 1-1l.5-8"/></svg>
+          <span>删除</span>
+        </button>
+      </template>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import type { AssistantMessage } from '../stores/conversation'
 
-defineProps<{
+const props = defineProps<{
   message: AssistantMessage
   isStreaming: boolean
 }>()
@@ -95,9 +127,28 @@ const emit = defineEmits<{
   (e: 'citation-hover', sourceId: string, event: MouseEvent): void
   (e: 'citation-leave'): void
   (e: 'citation-click', sourceId: string): void
+  (e: 'regenerate', messageId: string): void
+  (e: 'stop'): void
+  (e: 'delete', messageId: string): void
+  (e: 'follow-up', text: string): void
 }>()
 
 const thinkingExpanded = ref(false)
+const copyLabel = ref('复制')
+
+/** Deduplicated sources keyed by paper_id (or id as fallback), numbered [1], [2], … */
+const numberedSources = computed(() => {
+  const seen = new Map<string, { source: AssistantMessage['sources'][number]; num: number }>()
+  let num = 0
+  for (const s of props.message.sources) {
+    const key = s.paper_id ?? s.id
+    if (!seen.has(key)) {
+      num += 1
+      seen.set(key, { source: s, num })
+    }
+  }
+  return [...seen.values()]
+})
 
 function formatThinkingTime(ms: number): string {
   if (ms < 1000) return `${ms}ms`
@@ -106,6 +157,118 @@ function formatThinkingTime(ms: number): string {
   const minutes = Math.floor(seconds / 60)
   const remaining = seconds % 60
   return `${minutes}m${remaining}s`
+}
+
+/**
+ * Insert inline citation markers into paragraph text.
+ * Strategy: After sentence-ending punctuation (。！？；.!?) or at paragraph end,
+ * insert clickable <sup>[N]</sup> markers. Sources are assigned round-robin,
+ * max 2 markers per paragraph.
+ */
+function renderParagraphWithCitations(text: string | undefined): string {
+  if (!text) return ''
+  if (numberedSources.value.length === 0) return escapeHtml(text)
+
+  const escaped = escapeHtml(text)
+
+  // Find all sentence-end positions
+  const sentenceEndRe = /[。！？；.!?]/g
+  const endPositions: number[] = []
+  let m: RegExpExecArray | null
+  while ((m = sentenceEndRe.exec(escaped)) !== null) {
+    endPositions.push(m.index + m[0].length)
+  }
+
+  if (endPositions.length === 0) {
+    // No sentence endings — place one marker at the end
+    const { source, num } = numberedSources.value[0]
+    const marker = `<sup class="cite-marker" data-source-id="${escapeHtml(source.id)}">[${num}]</sup>`
+    return escaped + marker
+  }
+
+  // Assign sources round-robin, max 2 per paragraph
+  const maxMarkers = Math.min(2, numberedSources.value.length)
+  const markers: Array<{ pos: number; html: string }> = []
+
+  for (let i = 0; i < maxMarkers; i++) {
+    const endIdx = endPositions[Math.min(i, endPositions.length - 1)]
+    const { source, num } = numberedSources.value[i % numberedSources.value.length]
+    const markerHtml = `<sup class="cite-marker" data-source-id="${escapeHtml(source.id)}">[${num}]</sup>`
+    markers.push({ pos: endIdx, html: markerHtml })
+  }
+
+  // Insert markers back-to-front to preserve positions
+  let result = escaped
+  for (let i = markers.length - 1; i >= 0; i--) {
+    const { pos, html } = markers[i]
+    result = result.slice(0, pos) + html + result.slice(pos)
+  }
+
+  return result
+}
+
+/** Copy code block content to clipboard */
+async function copyCode(text: string, event: Event) {
+  await navigator.clipboard.writeText(text)
+  const btn = (event.target as HTMLElement)
+  btn.textContent = '已复制'
+  setTimeout(() => { btn.textContent = '复制' }, 2000)
+}
+
+/** Copy AI message text to clipboard */
+async function handleCopy() {
+  const text = props.message.blocks
+    .map((b) => b.text ?? (b.items ? b.items.join('\n') : ''))
+    .filter(Boolean)
+    .join('\n\n')
+  await navigator.clipboard.writeText(text)
+  copyLabel.value = '已复制'
+  setTimeout(() => { copyLabel.value = '复制' }, 2000)
+}
+
+/** Summarize AI response and emit for follow-up */
+function handleFollowUp() {
+  const firstParagraph = props.message.blocks.find((b) => b.type === 'paragraph' && b.text)
+  const summary = firstParagraph?.text?.slice(0, 100) ?? ''
+  emit('follow-up', summary)
+}
+
+/** Minimal HTML escaper so template v-html is safe for plain-text content */
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+/** Handle clicks on inline citation markers via event delegation */
+function onContentClick(event: MouseEvent): void {
+  const target = (event.target as HTMLElement).closest('.cite-marker')
+  if (!target) return
+  const sourceId = (target as HTMLElement).dataset.sourceId
+  if (sourceId) {
+    event.preventDefault()
+    emit('citation-click', sourceId)
+  }
+}
+
+/** Handle hover on inline citation markers */
+function onContentMouseEnter(event: MouseEvent): void {
+  const target = (event.target as HTMLElement).closest('.cite-marker')
+  if (!target) return
+  const sourceId = (target as HTMLElement).dataset.sourceId
+  if (sourceId) {
+    emit('citation-hover', sourceId, event)
+  }
+}
+
+function onContentMouseLeave(event: MouseEvent): void {
+  const target = (event.target as HTMLElement).closest('.cite-marker')
+  if (target) {
+    emit('citation-leave')
+  }
 }
 </script>
 
@@ -215,18 +378,40 @@ function formatThinkingTime(ms: number): string {
   border: 1px solid var(--color-border-subtle);
 }
 
-.code-lang {
-  position: absolute;
-  top: 0;
-  right: 0;
+.code-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: var(--space-1) var(--space-2);
+  background: var(--color-border-subtle);
+}
+
+.code-header .code-lang {
+  position: static;
+  background: none;
+  border-radius: 0;
+  padding: 0;
   font-size: 11px;
   color: var(--color-text-muted);
-  background: var(--color-border-subtle);
-  border-bottom-left-radius: var(--radius-sm);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   line-height: 1;
+}
+
+.code-copy-btn {
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  transition: color var(--duration-fast) ease, background var(--duration-fast) ease;
+}
+
+.code-copy-btn:hover {
+  color: var(--color-accent);
+  background: var(--color-accent-soft);
 }
 
 .block-code {
@@ -302,6 +487,39 @@ function formatThinkingTime(ms: number): string {
   color: var(--color-text-muted);
 }
 
+.message-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border-subtle);
+  flex-wrap: wrap;
+}
+
+.action-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  transition: color var(--duration-fast) ease, background var(--duration-fast) ease;
+}
+
+.action-item:hover {
+  color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+
+.action-item--danger:hover {
+  color: var(--color-error, #c53030);
+  background: color-mix(in srgb, var(--color-error, #c53030) 10%, transparent);
+}
+
 .sources-badges {
   display: flex;
   flex-wrap: wrap;
@@ -321,7 +539,7 @@ function formatThinkingTime(ms: number): string {
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
   line-height: 1.4;
-  max-width: 220px;
+  max-width: 280px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -335,5 +553,47 @@ function formatThinkingTime(ms: number): string {
 .source-page {
   font-variant-numeric: tabular-nums;
   opacity: 0.75;
+}
+
+.source-num {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  margin-right: 2px;
+}
+
+/* ── Inline citation markers ── */
+
+:deep(.cite-marker) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: super;
+  font-size: 0.65em;
+  font-weight: 600;
+  line-height: 1;
+  min-width: 1.5em;
+  height: 1.5em;
+  padding: 0 0.3em;
+  margin-left: 1px;
+  margin-right: 1px;
+  color: var(--color-accent);
+  background: var(--color-accent-soft);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, transform 0.15s;
+}
+
+:deep(.cite-marker:hover) {
+  background: var(--color-accent);
+  color: #fff;
+  transform: scale(1.1);
+}
+
+@media (max-width: 420px) {
+  .ai-message {
+    max-width: 100%;
+    padding: var(--space-3);
+  }
 }
 </style>

@@ -1,23 +1,26 @@
 /* ═════════════════════════════════════════
    论文助手 — 设计系统
-   基于 Anthropic frontend-design 原则
-   护眼暖色调，独特排版，克制美学
+   冷色学术风 · 蓝灰系 + 深蓝强调
+   浅色/深色双主题
    ═════════════════════════════════════════ */
 
 :root {
-  /* ── 色彩 ── */
-  --color-surface-base: #f4f1ea;       /* 页面底色，护眼暖白 */
-  --color-surface-muted: #ebe7dd;      /* 次级背景 */
-  --color-surface-card: #faf8f3;       /* 卡片/面板底色 */
-  --color-border-subtle: #e0ddd5;      /* 浅分割线 */
-  --color-border-strong: #d4d0c8;      /* 强调分割线 */
-  --color-text-primary: #2c2a25;       /* 主文字 */
-  --color-text-secondary: #6b6963;     /* 辅文字 */
-  --color-text-muted: #a39f96;         /* 弱化文字 */
-  --color-accent: #0066cc;             /* 强调色（链接、按钮） */
-  --color-accent-soft: #d6e4ff;        /* 强调色浅底 */
-  --color-error: #d32f2f;              /* 错误 */
-  --color-success: #2e7d32;            /* 成功 */
+  /* ── 浅色模式色彩 ── */
+  --color-surface-base:    #f5f7fa;
+  --color-surface-muted:   #e8ecf1;
+  --color-surface-card:    #ffffff;
+  --color-border-subtle:   #e2e6ed;
+  --color-border-strong:   #cdd3dc;
+  --color-text-primary:    #1a2332;
+  --color-text-secondary:  #5a6577;
+  --color-text-muted:      #8e99a8;
+  --color-accent:          #2b5ea7;
+  --color-accent-soft:     #d6e4f5;
+  --color-error:           #c53030;
+  --color-error-bg:        #fff5f5;
+  --color-error-border:    #fed7d7;
+  --color-success:         #2f855a;
+  --color-warning:         #c05621;
 
   /* ── 间距 ── */
   --space-1: 4px;
@@ -28,10 +31,10 @@
   --space-6: 24px;
 
   /* ── 圆角 ── */
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-xl: 18px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-full: 9999px;
 
   /* ── 字体 ── */
   --font-size-base: 14px;
@@ -41,8 +44,8 @@
 
   --font-family-base:
     "PingFang SC",
-    "Noto Sans SC",
     "Microsoft YaHei",
+    "Segoe UI",
     system-ui,
     -apple-system,
     sans-serif;
@@ -54,6 +57,45 @@
     "Consolas",
     "Monaco",
     monospace;
+
+  /* ── 过渡 ── */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 350ms;
+
+  /* ── 阴影 ── */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 12px 48px rgba(0, 0, 0, 0.12);
+  --shadow-drawer: 0 8px 32px rgba(0, 0, 0, 0.15);
+}
+
+/* ── 深色模式 ── */
+[data-theme="dark"] {
+  --color-surface-base:    #1a1f2e;
+  --color-surface-muted:   #242a3d;
+  --color-surface-card:    #2a3147;
+  --color-border-subtle:   #353c52;
+  --color-border-strong:   #454d66;
+  --color-text-primary:    #e8ecf1;
+  --color-text-secondary:  #a0a9b8;
+  --color-text-muted:      #6b7588;
+  --color-accent:          #5b93e5;
+  --color-accent-soft:     #2a3d5e;
+  --color-error:           #fc8181;
+  --color-error-bg:        #3b1a1a;
+  --color-error-border:    #5a2020;
+  --color-success:         #68d391;
+  --color-warning:         #f6ad55;
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 12px 48px rgba(0, 0, 0, 0.4);
+  --shadow-drawer: 0 8px 32px rgba(0, 0, 0, 0.5);
 }
 
 /* ── Reset ── */
@@ -113,7 +155,7 @@ button {
   color: inherit;
 }
 
-input, textarea {
+input, textarea, select {
   font-family: inherit;
   color: inherit;
 }
@@ -133,6 +175,33 @@ a:hover {
   color: var(--color-text-primary);
 }
 
+/* ── 过渡工具类 ── */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity var(--duration-normal) var(--ease-in-out);
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.slide-up-enter-active {
+  transition: opacity var(--duration-normal) var(--ease-out-expo),
+              transform var(--duration-normal) var(--ease-out-expo);
+}
+.slide-up-leave-active {
+  transition: opacity var(--duration-fast) var(--ease-in-out),
+              transform var(--duration-fast) var(--ease-in-out);
+}
+.slide-up-enter-from {
+  opacity: 0;
+  transform: translateY(12px);
+}
+.slide-up-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
 /* ── 辅助类 ── */
 .sr-only {
   position: absolute;
@@ -144,4 +213,17 @@ a:hover {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* ── WPS 窄屏适配 (≤420px) ── */
+@media (max-width: 420px) {
+  :root {
+    --space-4: 12px;
+    --space-5: 16px;
+    --space-6: 20px;
+  }
+
+  body {
+    font-size: 13px;
+  }
 }

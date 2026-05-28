@@ -35,12 +35,6 @@ interface WPSApplication {
   }
 }
 
-interface SelectionInfo {
-  text: string
-  start: number
-  end: number
-}
-
 function logSelectionAccessFailure(error: unknown) {
   const now = Date.now()
   if (now - lastSelectionErrorLogAt < ERROR_LOG_INTERVAL) {
@@ -82,7 +76,6 @@ export function useWPSDetection() {
 export function useWPSSelection() {
   const { wpsAPI, isWPSAvailable } = useWPSDetection()
   const selectedText = ref('')
-  const selectionInfo = ref<SelectionInfo | null>(null)
 
   function getSelectedText(): string {
     if (!isWPSAvailable.value || !wpsAPI.value) {
@@ -100,21 +93,11 @@ export function useWPSSelection() {
       if (range && range.Text) {
         const text = range.Text.trim()
         selectedText.value = text
-        selectionInfo.value = {
-          text,
-          start: 0,
-          end: text.length,
-        }
         return text
       }
 
       const text = (selection.Text || '').trim()
       selectedText.value = text
-      selectionInfo.value = {
-        text,
-        start: 0,
-        end: text.length,
-      }
       return text
     } catch (error) {
       logSelectionAccessFailure(error)
@@ -124,7 +107,6 @@ export function useWPSSelection() {
 
   return {
     selectedText,
-    selectionInfo,
     getSelectedText,
     isWPSAvailable,
   }
@@ -188,89 +170,6 @@ export function useWPSPolling(autoFill = true, sessionIdGetter?: () => string) {
     startPolling,
     stopPolling,
     getSelectedText,
-    isWPSAvailable,
-  }
-}
-
-export async function openExternalUrl(url: string): Promise<void> {
-  if (typeof window !== 'undefined') {
-    const shellExecute = window.wps?.OAAssist?.ShellExecute
-      ?? (globalThis as { wps?: { OAAssist?: { ShellExecute?: (url: string, params?: string) => void } } }).wps?.OAAssist?.ShellExecute
-
-    if (typeof shellExecute === 'function') {
-      shellExecute(url, '')
-      return
-    }
-
-    window.open(url, '_blank', 'noopener,noreferrer')
-    return
-  }
-
-  throw new Error('当前环境不支持打开外部链接')
-}
-
-export function useWPSSelectionChange() {
-  const { wpsAPI, isWPSAvailable } = useWPSDetection()
-  const currentSelection = ref('')
-
-  function handleSelectionChange(selection: any) {
-    try {
-      const text = selection.Text || ''
-      if (text && text !== currentSelection.value) {
-        currentSelection.value = text
-        const inputElement = document.querySelector('textarea.composer-input') as HTMLTextAreaElement | null
-        if (inputElement && !inputElement.disabled && text.trim().length > 0) {
-          inputElement.value = text
-          inputElement.dispatchEvent(new Event('input', { bubbles: true }))
-        }
-      }
-    } catch (error) {
-      logSelectionAccessFailure(error)
-    }
-  }
-
-  function bindSelectionChange() {
-    if (!isWPSAvailable.value || !wpsAPI.value) {
-      return false
-    }
-
-    try {
-      const app = wpsAPI.value
-      if (!app.ActiveWindow) {
-        return false
-      }
-
-      app.ActiveWindow.SelectionChange = handleSelectionChange
-      return true
-    } catch (error) {
-      logSelectionAccessFailure(error)
-      return false
-    }
-  }
-
-  function unbindSelectionChange() {
-    if (!isWPSAvailable.value || !wpsAPI.value) {
-      return
-    }
-
-    try {
-      const app = wpsAPI.value
-      if (app && app.ActiveWindow) {
-        app.ActiveWindow.SelectionChange = null
-      }
-    } catch (error) {
-      logSelectionAccessFailure(error)
-    }
-  }
-
-  onUnmounted(() => {
-    unbindSelectionChange()
-  })
-
-  return {
-    bindSelectionChange,
-    unbindSelectionChange,
-    currentSelection,
     isWPSAvailable,
   }
 }

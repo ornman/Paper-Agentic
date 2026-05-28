@@ -32,10 +32,6 @@ export async function createSession(): Promise<ConversationSession> {
   return request('/api/v1/conversations', { method: 'POST' })
 }
 
-export async function getSession(sessionId: string): Promise<ConversationSession> {
-  return request(`/api/v1/conversations/${encodeURIComponent(sessionId)}`)
-}
-
 export async function deleteSession(sessionId: string): Promise<void> {
   await request(`/api/v1/conversations/${encodeURIComponent(sessionId)}`, { method: 'DELETE' })
 }

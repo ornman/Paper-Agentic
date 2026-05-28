@@ -117,6 +117,7 @@ function parseSourcesPayload(payload: unknown): SourceCard[] {
 export async function postAskStream(
   payload: AskRequestPayload,
   handlers: AskStreamHandlers,
+  externalSignal?: AbortSignal,
 ): Promise<void> {
   const url = buildApiUrl(ASK_ENDPOINT)
 
@@ -125,6 +126,15 @@ export async function postAskStream(
     log.warn('SSE 请求超时，主动中断')
     controller.abort()
   }, 120_000)
+
+  // Forward external abort to our controller
+  if (externalSignal) {
+    if (externalSignal.aborted) {
+      controller.abort()
+    } else {
+      externalSignal.addEventListener('abort', () => controller.abort(), { once: true })
+    }
+  }
 
   try {
     const response = await fetch(url, {

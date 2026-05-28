@@ -6,110 +6,79 @@
       <!-- 消息区域 -->
       <div class="chat-messages" ref="messagesContainer">
         <div class="chat-messages-inner">
-          <MessageList
-            :messages="store.messages"
-            :status="store.status"
-            @citation-hover="handleCitationHover"
-            @citation-leave="handleCitationLeave"
-            @citation-click="handleCitationClick"
-          />
-          <EmptyState v-if="store.messages.length === 0 && store.status === 'idle'" />
+          <Transition name="fade" mode="out-in">
+            <MessageList
+              v-if="store.messages.length > 0"
+              :key="'messages'"
+              :messages="store.messages"
+              :status="store.status"
+              :error-message="store.errorMessage ?? undefined"
+              @citation-hover="handleCitationHover"
+              @citation-leave="handleCitationLeave"
+              @citation-click="handleCitationClick"
+              @retry="handleRetry"
+              @regenerate="handleRegenerate"
+              @stop="store.abortStreaming()"
+              @delete-message="handleDeleteMessage"
+              @edit-message="handleEditMessage"
+              @follow-up="handleFollowUp"
+            />
+            <EmptyState
+              v-else
+              :key="'empty'"
+              @select-prompt="handleSelectPrompt"
+            />
+          </Transition>
         </div>
       </div>
-
-      <!-- 底部引用来源面板（最新 assistant 消息的来源） -->
-      <SourcePanel
-        v-if="lastSources.length > 0"
-        :sources="lastSources"
-        @open-source="handleOpenSource"
-      />
 
       <!-- 输入区域 -->
       <InputBar
         :is-busy="isBusy"
-        :model-panel-open="uiStore.modelPanelOpen"
         :selected-paper-count="libraryStore.selectedPaperCount"
+        :selected-paper-names="selectedPaperNames"
+        :thinking-enabled="thinkingEnabled"
         @send="handleSend"
+        @stop="store.abortStreaming()"
         @upload-pdf="handleUploadPdf"
         @toggle-papers="togglePaperPanel"
         @clear-papers="libraryStore.clearSelectedPapers()"
-        @toggle-model="uiStore.toggleModelPanel"
-        @close-model="uiStore.closeModelPanel"
+        @toggle-thinking="thinkingEnabled = !thinkingEnabled"
       />
-
-      <!-- 文献选择弹窗 -->
-      <Teleport to="body">
-        <div v-if="paperPanelOpen" class="paper-overlay" @click="paperPanelOpen = false">
-          <div class="paper-panel" @click.stop>
-            <div class="paper-panel-header">
-              <h3>选择文献</h3>
-              <button class="paper-close-btn" type="button" @click="paperPanelOpen = false">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              </button>
-            </div>
-
-            <div v-if="libraryStore.loading" class="paper-loading">加载中...</div>
-            <div v-else-if="libraryStore.error" class="paper-error">{{ libraryStore.error }}</div>
-            <div v-else-if="libraryStore.paperCount === 0" class="paper-empty">还没有导入论文</div>
-            <div v-else class="paper-list">
-              <label
-                v-for="paper in libraryStore.papers"
-                :key="paper.paper_id"
-                class="paper-option"
-              >
-                <input
-                  type="checkbox"
-                  :value="paper.paper_id"
-                  :checked="libraryStore.selectedPaperIds.includes(paper.paper_id)"
-                  @change="libraryStore.togglePaperSelection(paper.paper_id)"
-                >
-                <span class="paper-option-title">{{ paper.title }}</span>
-              </label>
-            </div>
-          </div>
-        </div>
-      </Teleport>
-
-      <!-- 历史记录弹窗 -->
-      <Teleport to="body">
-        <div v-if="historyPanelOpen" class="paper-overlay" @click="historyPanelOpen = false">
-          <div class="paper-panel" @click.stop>
-            <div class="paper-panel-header">
-              <h3>历史记录</h3>
-              <button class="paper-close-btn" type="button" @click="historyPanelOpen = false">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              </button>
-            </div>
-            <div v-if="sessionsLoading" class="paper-empty">加载中...</div>
-            <div v-else-if="sessions.length === 0" class="paper-empty">暂无历史记录</div>
-            <div v-else class="paper-list">
-              <div
-                v-for="session in sessions"
-                :key="session.session_id"
-                class="session-item"
-                :class="{ active: session.session_id === store.sessionId }"
-                @click="switchToSession(session.session_id)"
-              >
-                <div class="session-info">
-                  <div class="session-title">{{ session.title }}</div>
-                  <div class="session-date">{{ formatDate(session.updated_at) }}</div>
-                </div>
-                <button
-                  class="session-delete-btn"
-                  type="button"
-                  @click.stop="handleDeleteSession(session.session_id)"
-                  title="删除此会话"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </Teleport>
     </main>
 
-    <!-- 引用悬停预览（全局，带 1s 延迟） -->
+    <!-- 侧栏抽屉 -->
+    <SidebarDrawer
+      :visible="uiStore.sidebarOpen"
+      :active-tab="uiStore.sidebarTab"
+      @close="uiStore.closeSidebar()"
+      @update:active-tab="uiStore.sidebarTab = $event"
+    >
+      <template #history>
+        <HistoryPanel
+          :sessions="sessions"
+          :loading="sessionsLoading"
+          :active-session-id="store.sessionId"
+          @select="switchToSession"
+          @delete="handleDeleteSession"
+        />
+      </template>
+
+      <template #library>
+        <LibraryPanel
+          :papers="libraryStore.papers"
+          :loading="libraryStore.loading"
+          :error="libraryStore.error"
+          :selected-ids="libraryStore.selectedPaperIds"
+          @toggle="libraryStore.togglePaperSelection($event)"
+          @upload="triggerFileUpload"
+          @remove="handleRemovePaper"
+          @select-all="libraryStore.setSelectedPaperIds($event)"
+        />
+      </template>
+    </SidebarDrawer>
+
+    <!-- 引用悬停预览（全局，带 300ms 延迟） -->
     <CitationPreview
       :visible="previewVisible"
       :source="previewSource"
@@ -122,21 +91,26 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, watch, onMounted } from 'vue'
+import { ref, computed, nextTick, watch, onMounted, onUnmounted } from 'vue'
 import type { SourceCard } from '../types/source'
 import { useConversationStore } from '../stores/conversation'
 import type { ConversationRecord, UserMessage, AssistantMessage } from '../stores/conversation'
 import { useLibraryStore } from '../stores/library'
 import { useUiStore } from '../stores/ui'
 import { listSessions, createSession, deleteSession, getMessages } from '../services/conversation-api'
+import { fetchPapers } from '../services/library-api'
 import type { ConversationSession } from '../services/conversation-api'
 import { useWPSPolling } from '../composables/wps'
+import { isDemoMode, DEMO_PAPERS, DEMO_SESSIONS } from '../demo'
 import TopBar from '../components/TopBar.vue'
 import MessageList from '../components/MessageList.vue'
 import EmptyState from '../components/EmptyState.vue'
-import SourcePanel from '../components/SourcePanel.vue'
+
 import InputBar from '../components/InputBar.vue'
 import CitationPreview from '../components/CitationPreview.vue'
+import SidebarDrawer from '../components/SidebarDrawer.vue'
+import HistoryPanel from '../components/HistoryPanel.vue'
+import LibraryPanel from '../components/LibraryPanel.vue'
 
 const store = useConversationStore()
 const libraryStore = useLibraryStore()
@@ -145,22 +119,30 @@ const uiStore = useUiStore()
 const { startPolling, isWPSAvailable } = useWPSPolling(true, () => store.sessionId)
 
 const messagesContainer = ref<HTMLElement>()
-const paperPanelOpen = ref(false)
-const historyPanelOpen = ref(false)
+const thinkingEnabled = ref(false)
 const sessions = ref<ConversationSession[]>([])
 const sessionsLoading = ref(false)
 
 const isBusy = computed(() => store.status === 'requesting' || store.status === 'thinking' || store.status === 'streaming')
 
-// 最新 assistant 消息的来源
-const lastSources = computed<SourceCard[]>(() => {
-  const reversed = [...store.messages].reverse()
-  const last = reversed.find((m) => m.role === 'assistant')
-  if (!last || last.role !== 'assistant') return []
-  return last.sources
+const selectedPaperNames = computed(() =>
+  libraryStore.selectedPaperIds
+    .map(id => libraryStore.papers.find(p => p.paper_id === id)?.title)
+    .filter(Boolean) as string[]
+)
+
+// 所有 assistant 消息的来源（用于引用查找）
+const allSources = computed<SourceCard[]>(() => {
+  const sources: SourceCard[] = []
+  for (const msg of store.messages) {
+    if (msg.role === 'assistant') {
+      sources.push(...msg.sources)
+    }
+  }
+  return sources
 })
 
-// ─── 引用悬停预览（1s 延迟）───
+// ─── 引用悬停预览（300ms 延迟）───
 const previewVisible = ref(false)
 const previewSource = ref<SourceCard | null>(null)
 const previewX = ref(0)
@@ -172,15 +154,15 @@ function handleCitationHover(sourceId: string, event: MouseEvent) {
   cancelHoverTimer()
   cancelHideTimer()
 
-  // 1 秒后显示预览
+  // 300ms 后显示预览
   hoverTimer = setTimeout(() => {
-    const src = lastSources.value.find((s) => s.id === sourceId)
+    const src = allSources.value.find((s) => s.id === sourceId)
     if (!src) return
     previewSource.value = src
     previewX.value = event.clientX
     previewY.value = event.clientY
     previewVisible.value = true
-  }, 1000)
+  }, 300)
 }
 
 function handleCitationLeave() {
@@ -189,8 +171,13 @@ function handleCitationLeave() {
 }
 
 function handleCitationClick(sourceId: string) {
-  const src = lastSources.value.find((s) => s.id === sourceId)
+  const src = allSources.value.find((s) => s.id === sourceId)
   if (!src) return
+  // Demo mode or no real file path: show citation preview popup
+  if (demoActive.value || !src.file_path) {
+    showCitationPreview(src)
+    return
+  }
   handleOpenSource(src)
 }
 
@@ -217,6 +204,15 @@ function startHideTimer() {
 
 // ─── 发送 ───
 async function handleSend(promptText: string) {
+  // Create backend session on first message (non-demo mode)
+  if (!demoActive.value && store.messages.length === 0) {
+    try {
+      const session = await createSession()
+      store.sessionId = session.session_id
+    } catch {
+      // Fallback to local session ID
+    }
+  }
   await store.sendPrompt({
     session_id: store.sessionId,
     prompt: promptText,
@@ -225,36 +221,128 @@ async function handleSend(promptText: string) {
   })
 }
 
+function handleSelectPrompt(promptText: string) {
+  handleSend(promptText)
+}
+
+// ─── 重试：重新发送最后一条用户消息 ───
+function handleRetry() {
+  const lastUserMsg = [...store.messages].reverse().find(m => m.role === 'user')
+  if (!lastUserMsg) return
+  store.sendPrompt({
+    session_id: store.sessionId,
+    prompt: lastUserMsg.content,
+    paper_ids: libraryStore.selectedPaperIds,
+    enable_rag: libraryStore.selectedPaperIds.length > 0,
+  })
+}
+
+// ─── 消息操作 ───
+function handleRegenerate(messageId: string) {
+  // Find the user message before this AI message
+  const idx = store.messages.findIndex(m => m.id === messageId)
+  if (idx > 0 && store.messages[idx - 1].role === 'user') {
+    store.regenerateAfterUser(store.messages[idx - 1].id)
+  }
+}
+
+function handleDeleteMessage(messageId: string) {
+  const msg = store.messages.find(m => m.id === messageId)
+  if (!msg) return
+  if (msg.role === 'user') {
+    store.deleteMessagePair(messageId)
+  } else {
+    store.deleteMessage(messageId)
+  }
+}
+
+function handleEditMessage(_messageId: string, text: string) {
+  // Fill the input bar with the message content for editing
+  // We'll emit to InputBar via a ref — for now use a simple approach
+  const textarea = document.querySelector('.composer-textarea') as HTMLTextAreaElement
+  if (textarea) {
+    textarea.value = text
+    textarea.dispatchEvent(new Event('input'))
+    textarea.focus()
+  }
+}
+
+function handleFollowUp(text: string) {
+  const textarea = document.querySelector('.composer-textarea') as HTMLTextAreaElement
+  if (textarea) {
+    textarea.value = `关于"${text.slice(0, 50)}..."，我想继续了解：`
+    textarea.dispatchEvent(new Event('input'))
+    textarea.focus()
+  }
+}
+
+// ─── Demo 模式初始化 ──
+const demoActive = ref(isDemoMode())
+
+function initDemoMode() {
+  // 加载 mock 论文到 library
+  libraryStore.papers = DEMO_PAPERS
+
+  // 加载 mock 会话
+  sessions.value = DEMO_SESSIONS.map(s => ({
+    session_id: s.session_id,
+    title: s.title,
+    created_at: s.created_at,
+    updated_at: s.created_at,
+  }))
+
+  // 默认选中几篇论文
+  libraryStore.setSelectedPaperIds(['paper-1', 'paper-2'])
+}
+
+// 探测后端是否可用，不可用时自动激活 demo 模式
+async function probeBackend(): Promise<boolean> {
+  try {
+    const result = await fetchPapers()
+    return !!result.papers
+  } catch {
+    return false
+  }
+}
+
 // ─── 新建对话 ───
 async function handleNewChat() {
   if (isBusy.value && !confirm('当前对话正在进行中，确定要开始新对话吗？')) return
-  try {
-    const session = await createSession()
-    store.reset()
-    store.sessionId = session.session_id
-  } catch {
-    store.reset()
-  }
+  // Just reset locally — don't create a backend session until user actually sends a message
+  store.reset()
   libraryStore.clearSelectedPapers()
 }
 
 // ─── 历史记录 ───
 async function handleOpenHistory() {
-  historyPanelOpen.value = !historyPanelOpen.value
-  if (historyPanelOpen.value) {
-    sessionsLoading.value = true
-    try {
-      sessions.value = await listSessions()
-    } catch {
-      sessions.value = []
-    } finally {
-      sessionsLoading.value = false
-    }
+  uiStore.openSidebar('history')
+  if (demoActive.value) {
+    return
+  }
+  sessionsLoading.value = true
+  try {
+    sessions.value = await listSessions()
+  } catch {
+    sessions.value = []
+  } finally {
+    sessionsLoading.value = false
   }
 }
 
 // ─── 切换到某个会话 ───
 async function switchToSession(sessionId: string) {
+  // Demo 模式：从 mock 数据加载
+  if (demoActive.value) {
+    const demoSession = DEMO_SESSIONS.find(s => s.session_id === sessionId)
+    store.reset()
+    store.sessionId = sessionId
+    if (demoSession) {
+      store.messages = [...demoSession.messages]
+    }
+    uiStore.closeSidebar()
+    return
+  }
+
   try {
     const msgs = await getMessages(sessionId)
     store.reset()
@@ -285,12 +373,20 @@ async function switchToSession(sessionId: string) {
     store.reset()
     store.sessionId = sessionId
   }
-  historyPanelOpen.value = false
+  uiStore.closeSidebar()
   libraryStore.clearSelectedPapers()
 }
 
 // ─── 删除会话 ───
 async function handleDeleteSession(sessionId: string) {
+  if (demoActive.value) {
+    sessions.value = sessions.value.filter((s) => s.session_id !== sessionId)
+    if (store.sessionId === sessionId) {
+      store.reset()
+      libraryStore.clearSelectedPapers()
+    }
+    return
+  }
   try {
     await deleteSession(sessionId)
     sessions.value = sessions.value.filter((s) => s.session_id !== sessionId)
@@ -306,7 +402,11 @@ async function handleDeleteSession(sessionId: string) {
 // ─── 打开 PDF ───
 function handleOpenSource(source: SourceCard) {
   const filePath = source.file_path || source.local_path
-  if (!filePath) return
+  if (!filePath) {
+    // No file path available — show preview instead
+    showCitationPreview(source)
+    return
+  }
 
   if (isWPSAvailable.value && window.wps?.OAAssist?.ShellExecute) {
     window.wps.OAAssist.ShellExecute(filePath)
@@ -317,27 +417,52 @@ function handleOpenSource(source: SourceCard) {
   }
 }
 
+// 在 citation preview 中展示来源内容（用于 demo 模式或无本地文件时）
+function showCitationPreview(source: SourceCard) {
+  cancelHoverTimer()
+  cancelHideTimer()
+  previewSource.value = source
+  // Position near center of viewport
+  previewX.value = Math.max(window.innerWidth / 2 - 200, 20)
+  previewY.value = Math.max(window.innerHeight / 4, 20)
+  previewVisible.value = true
+}
+
 // ─── 上传 PDF ───
 async function handleUploadPdf(file: File) {
+  if (demoActive.value) return
   await libraryStore.importFile(file)
 }
 
 function togglePaperPanel() {
-  paperPanelOpen.value = !paperPanelOpen.value
-  if (paperPanelOpen.value) {
-    libraryStore.loadPapers()
-  }
+  uiStore.openSidebar('library')
+  libraryStore.loadPapers()
 }
 
-// ─── 日期格式化 ───
-function formatDate(iso: string): string {
-  const d = new Date(iso)
-  const now = new Date()
-  const isToday = d.toDateString() === now.toDateString()
-  if (isToday) {
-    return d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+// ─── 文献库上传 ───
+function triggerFileUpload() {
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = '.pdf'
+  input.multiple = true
+  input.onchange = async () => {
+    const files = input.files
+    if (!files || files.length === 0) return
+    const pdfFiles = Array.from(files).filter((f) => f.name.toLowerCase().endsWith('.pdf'))
+    for (const file of pdfFiles) {
+      await libraryStore.importFile(file)
+    }
   }
-  return d.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+  input.click()
+}
+
+// ─── 文献库移除 ───
+async function handleRemovePaper(paperId: string) {
+  try {
+    await libraryStore.removePaper(paperId)
+  } catch {
+    // error state managed by the store
+  }
 }
 
 // ─── 滚动到底部 ───
@@ -348,8 +473,41 @@ function scrollToBottom() {
   })
 }
 
-onMounted(() => {
-  if (isWPSAvailable.value) startPolling()
+// ─── 键盘快捷键 ───
+function handleKeydown(e: KeyboardEvent) {
+  // Ctrl+K: open sidebar search (history)
+  if (e.ctrlKey && e.key === 'k') {
+    e.preventDefault()
+    uiStore.openSidebar('history')
+    return
+  }
+  // Ctrl+N: new chat
+  if (e.ctrlKey && e.key === 'n') {
+    e.preventDefault()
+    handleNewChat()
+    return
+  }
+}
+
+onMounted(async () => {
+  if (demoActive.value) {
+    // Explicitly requested demo via ?demo param
+    initDemoMode()
+  } else {
+    // Probe backend — if unreachable, auto-activate demo mode
+    const backendOk = await probeBackend()
+    if (!backendOk) {
+      demoActive.value = true
+      initDemoMode()
+    } else {
+      if (isWPSAvailable.value) startPolling()
+    }
+  }
+  window.addEventListener('keydown', handleKeydown)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeydown)
 })
 
 watch(() => store.messages.length, scrollToBottom)
@@ -388,138 +546,13 @@ watch(() => store.status, (s) => {
   width: 100%;
 }
 
-/* 文献选择弹层 */
-.paper-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 150;
-  background: rgba(0, 0, 0, 0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+@media (max-width: 420px) {
+  .chat-main {
+    padding: 0 var(--space-3) var(--space-2);
+  }
 
-.paper-panel {
-  width: 400px;
-  max-height: 60vh;
-  overflow-y: auto;
-  background: var(--color-surface-card);
-  border-radius: 14px;
-  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.15);
-  padding: 20px 24px;
-}
-
-.paper-panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.paper-panel-header h3 {
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.paper-close-btn {
-  padding: 4px;
-  border-radius: 6px;
-  cursor: pointer;
-  color: var(--color-text-muted);
-}
-
-.paper-close-btn:hover {
-  background: var(--color-surface-muted);
-  color: var(--color-text-primary);
-}
-
-.paper-loading, .paper-empty, .paper-error {
-  text-align: center;
-  padding: 24px;
-  color: var(--color-text-muted);
-  font-size: 13px;
-}
-
-.paper-list {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.paper-option {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 0.1s ease;
-}
-
-.paper-option:hover {
-  background: var(--color-surface-muted);
-}
-
-.paper-option-title {
-  font-size: 13px;
-  color: var(--color-text-primary);
-}
-
-/* 会话列表 */
-.session-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 0.1s ease;
-}
-
-.session-item:hover {
-  background: var(--color-surface-muted);
-}
-
-.session-item.active {
-  background: var(--color-surface-muted);
-  font-weight: 500;
-}
-
-.session-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.session-title {
-  font-size: 13px;
-  color: var(--color-text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.session-date {
-  font-size: 11px;
-  color: var(--color-text-muted);
-  margin-top: 2px;
-}
-
-.session-delete-btn {
-  flex-shrink: 0;
-  padding: 4px;
-  border-radius: 4px;
-  cursor: pointer;
-  color: var(--color-text-muted);
-  opacity: 0;
-  transition: opacity 0.15s, color 0.15s;
-}
-
-.session-item:hover .session-delete-btn {
-  opacity: 1;
-}
-
-.session-delete-btn:hover {
-  color: var(--color-error, #e53e3e);
-  background: var(--color-surface-muted);
+  .chat-messages-inner {
+    max-width: 100%;
+  }
 }
 </style>

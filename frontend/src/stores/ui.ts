@@ -1,21 +1,28 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
-export const useUiStore = defineStore('ui', () => {
-  /** 模型选择器面板是否展开 */
-  const modelPanelOpen = ref(false)
+export type SidebarTab = 'history' | 'library'
 
-  function toggleModelPanel() {
-    modelPanelOpen.value = !modelPanelOpen.value
+export const useUiStore = defineStore('ui', () => {
+  /** 侧栏抽屉是否打开 */
+  const sidebarOpen = ref(false)
+
+  /** 侧栏当前激活的 Tab */
+  const sidebarTab = ref<SidebarTab>('history')
+
+  function openSidebar(tab?: SidebarTab) {
+    if (tab) sidebarTab.value = tab
+    sidebarOpen.value = true
   }
 
-  function closeModelPanel() {
-    modelPanelOpen.value = false
+  function closeSidebar() {
+    sidebarOpen.value = false
   }
 
   return {
-    modelPanelOpen,
-    toggleModelPanel,
-    closeModelPanel,
+    sidebarOpen,
+    sidebarTab,
+    openSidebar,
+    closeSidebar,
   }
 })
