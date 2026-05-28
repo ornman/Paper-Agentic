@@ -276,6 +276,19 @@ export const useConversationStore = defineStore('conversation', () => {
     })
   }
 
+  /** Resubmit: edit a user message in-place, truncate everything after it, regenerate */
+  async function resubmitMessage(userMessageId: string, newText: string): Promise<void> {
+    const idx = messages.value.findIndex((m) => m.id === userMessageId)
+    if (idx === -1) return
+    messages.value.splice(idx)
+    await sendPrompt({
+      session_id: sessionId.value,
+      prompt: newText,
+      paper_ids: [],
+      enable_rag: false,
+    })
+  }
+
   return {
     status,
     errorMessage,
@@ -287,5 +300,6 @@ export const useConversationStore = defineStore('conversation', () => {
     deleteMessagePair,
     deleteMessage,
     regenerateAfterUser,
+    resubmitMessage,
   }
 })

@@ -20,7 +20,7 @@
               @regenerate="handleRegenerate"
               @stop="store.abortStreaming()"
               @delete-message="handleDeleteMessage"
-              @edit-message="handleEditMessage"
+              @resubmit-message="handleResubmitMessage"
               @follow-up="handleFollowUp"
             />
             <EmptyState
@@ -256,15 +256,8 @@ function handleDeleteMessage(messageId: string) {
   }
 }
 
-function handleEditMessage(_messageId: string, text: string) {
-  // Fill the input bar with the message content for editing
-  // We'll emit to InputBar via a ref — for now use a simple approach
-  const textarea = document.querySelector('.composer-textarea') as HTMLTextAreaElement
-  if (textarea) {
-    textarea.value = text
-    textarea.dispatchEvent(new Event('input'))
-    textarea.focus()
-  }
+async function handleResubmitMessage(messageId: string, newText: string) {
+  await store.resubmitMessage(messageId, newText)
 }
 
 function handleFollowUp(text: string) {

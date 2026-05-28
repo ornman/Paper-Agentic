@@ -4,20 +4,20 @@
       <UserMessage
         v-if="message.role === 'user'"
         :message="message"
-        @edit="(id, text) => emit('edit-message', id, text)"
-        @delete="(id) => emit('delete-message', id)"
+        @resubmit="onResubmit"
+        @delete="onDelete"
       />
       <AIMessage
         v-else
         :message="message"
         :is-streaming="isStreaming && message.id === lastAssistantId"
-        @citation-hover="(sourceId, event) => emit('citation-hover', sourceId, event)"
+        @citation-hover="onCitationHover"
         @citation-leave="emit('citation-leave')"
-        @citation-click="(sourceId) => emit('citation-click', sourceId)"
-        @regenerate="(id) => emit('regenerate', id)"
+        @citation-click="onCitationClick"
+        @regenerate="onRegenerate"
         @stop="emit('stop')"
-        @delete="(id) => emit('delete-message', id)"
-        @follow-up="(text) => emit('follow-up', text)"
+        @delete="onDelete"
+        @follow-up="onFollowUp"
       />
     </template>
 
@@ -57,7 +57,7 @@ const emit = defineEmits<{
   (e: 'regenerate', messageId: string): void
   (e: 'stop'): void
   (e: 'delete-message', messageId: string): void
-  (e: 'edit-message', messageId: string, text: string): void
+  (e: 'resubmit-message', messageId: string, text: string): void
   (e: 'follow-up', text: string): void
 }>()
 
@@ -68,6 +68,13 @@ const lastAssistantId = computed(() => {
   const last = [...props.messages].reverse().find((m): m is AssistantMessage => m.role === 'assistant')
   return last?.id ?? null
 })
+
+function onResubmit(id: string, text: string) { emit('resubmit-message', id, text) }
+function onDelete(id: string) { emit('delete-message', id) }
+function onCitationHover(sourceId: string, event: MouseEvent) { emit('citation-hover', sourceId, event) }
+function onCitationClick(sourceId: string) { emit('citation-click', sourceId) }
+function onRegenerate(id: string) { emit('regenerate', id) }
+function onFollowUp(text: string) { emit('follow-up', text) }
 </script>
 
 <style scoped>
