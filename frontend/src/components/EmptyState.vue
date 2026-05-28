@@ -32,7 +32,15 @@ const emit = defineEmits<{
   (e: 'select-prompt', text: string): void
 }>()
 
-const promptCards = [
+interface PromptCard {
+  icon: string
+  title: string
+  description: string
+  prompt: string
+}
+
+const allPromptCards: PromptCard[] = [
+  // ── 功能导向 ──
   {
     icon: iconDocText,
     title: '帮我分析这篇论文',
@@ -69,7 +77,47 @@ const promptCards = [
     description: '自动汇总多篇论文的核心观点',
     prompt: '帮我汇总多篇论文的核心观点，生成文献综述',
   },
+  // ── 痛点导向（用户原声） ──
+  {
+    icon: iconTextSparkle,
+    title: '写了一半卡住了...',
+    description: '不知道怎么往下写，帮你梳理思路',
+    prompt: '我写论文写了一半卡住了，帮我梳理思路，找到继续写下去的方向',
+  },
+  {
+    icon: iconSearch,
+    title: '我写的有文献支撑吗？',
+    description: '检查你的论点能否被文献库支持',
+    prompt: '帮我检查一下我写的这些观点，在文献库中有没有论文可以支持',
+  },
+  {
+    icon: iconDocText,
+    title: '综述咋写啊？',
+    description: '和你探讨综述的写作框架和逻辑脉络',
+    prompt: '我想写文献综述但不知道怎么组织，能不能和我探讨一下写作框架和逻辑脉络',
+  },
+  {
+    icon: iconEdit,
+    title: '帮我把这段改学术一点',
+    description: '优化措辞和逻辑，让表达更专业',
+    prompt: '帮我把这段话改得更学术更专业，优化措辞和逻辑',
+  },
+  {
+    icon: iconBot,
+    title: '我的创新点够不够？',
+    description: '对比已有文献，评估研究创新性',
+    prompt: '帮我对比已有文献，分析我的研究创新点够不够',
+  },
+  {
+    icon: iconChart,
+    title: '这个选题还能发吗？',
+    description: '从研究空白、竞争热度帮你评估选题',
+    prompt: '帮我分析一下这个选题的研究空白和竞争热度，看看还有没有发表空间',
+  },
 ]
+
+// 随机选取 6 个展示（每次组件挂载重新随机）
+const promptCards = [...allPromptCards].sort(() => Math.random() - 0.5).slice(0, 6)
 </script>
 
 <style scoped>
