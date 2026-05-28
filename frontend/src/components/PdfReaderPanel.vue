@@ -36,31 +36,39 @@
         />
 
         <!-- PDF viewport -->
-        <div ref="scrollContainerRef" class="reader-body">
-          <div v-if="loading" class="reader-loading">
-            <div class="reader-spinner" />
-            <span>加载中…</span>
-          </div>
-          <div v-else-if="error" class="reader-error">
-            <span>{{ error }}</span>
-            <button class="reader-btn" @click="loadPdf">重试</button>
-          </div>
-          <div v-else-if="pdfDocProxy" class="reader-pages">
-            <div
-              v-for="pageNum in renderer.totalPages.value"
-              :key="pageNum"
-              :data-page-number="pageNum"
-              class="reader-page-slot"
-              :style="{ height: renderer.pageHeights.value[pageNum - 1] ? renderer.pageHeights.value[pageNum - 1] + 'px' : 'auto' }"
-            >
-              <PdfPage
-                v-if="renderer.pagesToRender.value.includes(pageNum)"
-                :pdf-doc="pdfDocProxy"
-                :page-number="pageNum"
-                :scale="scale"
-                :container-width="containerWidth"
-                @page-height="(h: number) => onPageHeight(pageNum, h)"
-              />
+        <div class="reader-content">
+          <PdfOutline
+            :open="outlineOpen"
+            :items="outlineItems"
+            @close="outlineOpen = false"
+            @navigate="(p: number) => renderer.scrollToPage(p)"
+          />
+          <div ref="scrollContainerRef" class="reader-body">
+            <div v-if="loading" class="reader-loading">
+              <div class="reader-spinner" />
+              <span>加载中…</span>
+            </div>
+            <div v-else-if="error" class="reader-error">
+              <span>{{ error }}</span>
+              <button class="reader-btn" @click="loadPdf">重试</button>
+            </div>
+            <div v-else-if="pdfDocProxy" class="reader-pages">
+              <div
+                v-for="pageNum in renderer.totalPages.value"
+                :key="pageNum"
+                :data-page-number="pageNum"
+                class="reader-page-slot"
+                :style="{ height: renderer.pageHeights.value[pageNum - 1] ? renderer.pageHeights.value[pageNum - 1] + 'px' : 'auto' }"
+              >
+                <PdfPage
+                  v-if="renderer.pagesToRender.value.includes(pageNum)"
+                  :pdf-doc="pdfDocProxy"
+                  :page-number="pageNum"
+                  :scale="scale"
+                  :container-width="containerWidth"
+                  @page-height="(h: number) => onPageHeight(pageNum, h)"
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -77,6 +85,8 @@ import { usePdfRenderer } from '../composables/use-pdf-renderer'
 import { buildPaperOpenUrl } from '../services/library-api'
 import PdfPage from './pdf-reader/PdfPage.vue'
 import PdfToolbar from './pdf-reader/PdfToolbar.vue'
+import PdfOutline from './pdf-reader/PdfOutline.vue'
+import type { OutlineItem } from './pdf-reader/PdfOutline.vue'
 
 const { lib: pdfjsLib, cMapOptions } = usePdfjs()
 
@@ -99,6 +109,7 @@ const scale = ref(1.0)
 const containerWidth = ref(480)
 const outlineOpen = ref(false)
 const hasOutline = ref(false)
+const outlineItems = ref<OutlineItem[]>([])
 
 let pdfDocProxy: PDFDocumentProxy | null = null
 
@@ -134,6 +145,7 @@ async function loadPdf() {
     paperTitle.value = isDemo ? 'Demo PDF' : `PDF (${props.paperId.slice(0, 8)}…)`
 
     renderer.init(pdfDocProxy)
+    await loadOutline()
 
     if (props.targetPage && props.targetPage >= 1 && props.targetPage <= pdfDocProxy.numPages) {
       renderer.currentPage.value = props.targetPage
@@ -143,6 +155,48 @@ async function loadPdf() {
   } finally {
     loading.value = false
   }
+}
+
+async function loadOutline() {
+  if (!pdfDocProxy) return
+  const rawOutline = await pdfDocProxy.getOutline()
+  if (!rawOutline || rawOutline.length === 0) {
+    hasOutline.value = false
+    outlineItems.value = []
+    return
+  }
+  hasOutline.value = true
+
+  const items: OutlineItem[] = []
+  for (const raw of rawOutline) {
+    items.push(await resolveOutlineItem(raw as { title: string; dest: unknown; items: unknown[] }))
+  }
+  outlineItems.value = items
+}
+
+async function resolveOutlineItem(raw: { title: string; dest: unknown; items: unknown[] }): Promise<OutlineItem> {
+  let pageNumber: number | undefined
+  try {
+    let dest = raw.dest
+    if (typeof dest === 'string') {
+      dest = await pdfDocProxy!.getDestination(dest)
+    }
+    if (Array.isArray(dest) && dest.length > 0) {
+      const pageIdx = await pdfDocProxy!.getPageIndex(dest[0])
+      pageNumber = pageIdx + 1
+    }
+  } catch {
+    // ignore unresolvable destinations
+  }
+
+  const children: OutlineItem[] = []
+  if (raw.items && raw.items.length > 0) {
+    for (const child of raw.items as Array<{ title: string; dest: unknown; items: unknown[] }>) {
+      children.push(await resolveOutlineItem(child))
+    }
+  }
+
+  return { title: raw.title, dest: raw.dest, items: children, pageNumber }
 }
 
 watch(() => props.visible, async (visible) => {
@@ -204,6 +258,13 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   background: var(--color-surface-card);
+}
+
+.reader-content {
+  position: relative;
+  flex: 1;
+  display: flex;
+  overflow: hidden;
 }
 
 .reader-panel-enter-active {
