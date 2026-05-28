@@ -13,7 +13,7 @@
 <script setup lang="ts">
 import { ref, watch, onBeforeUnmount } from 'vue'
 import { TextLayer } from 'pdfjs-dist'
-import type { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist'
+import type { PDFDocumentProxy, PDFPageProxy, PageViewport } from 'pdfjs-dist'
 
 const props = defineProps<{
   pdfDoc: PDFDocumentProxy
@@ -59,7 +59,7 @@ async function render() {
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    renderTask = pageProxy.render({ canvasContext: ctx, viewport })
+    renderTask = pageProxy.render({ canvas, canvasContext: ctx, viewport })
     await renderTask.promise
 
     await renderTextLayer(pageProxy, displayViewport)
@@ -75,7 +75,7 @@ async function render() {
   }
 }
 
-async function renderTextLayer(page: PDFPageProxy, viewport: { width: number; height: number; scale: number }) {
+async function renderTextLayer(page: PDFPageProxy, viewport: PageViewport) {
   if (!textLayerRef.value) return
 
   const textContent = await page.getTextContent()
