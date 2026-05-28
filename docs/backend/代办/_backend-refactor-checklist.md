@@ -1,6 +1,8 @@
 # 后端重构清单
 
-这份清单只服务于“三层后端”重构，不再沿用上一版那套以 `application/domain/infrastructure` 为主线的拆法。
+> ⚠️ 状态更新：PDF 解析已采用 MinerU（非 Docling）。Checklist 中 Docling 相关条目已不适用。
+
+这份清单只服务于”三层后端”重构，不再沿用上一版那套以 `application/domain/infrastructure` 为主线的拆法。
 
 ## Phase 0: 停线与边界收敛
 
