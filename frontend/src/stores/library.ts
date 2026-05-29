@@ -39,10 +39,30 @@ function isImportTerminalStatus(status: string) {
 export interface ImportQueueItem {
   fileName: string
   file?: File
+  taskId?: string
   status: 'pending' | 'importing' | 'completed' | 'failed'
   percent: number
   step: string
   error?: string
+}
+
+const STORAGE_KEY = 'paper-agentic-import-queue'
+
+function persistQueue(items: ImportQueueItem[]) {
+  const serializable = items.map(({ fileName, taskId, status, percent, step, error }) => ({
+    fileName, taskId, status, percent, step, error,
+  }))
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(serializable))
+}
+
+function restoreQueue(): ImportQueueItem[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return []
+    return JSON.parse(raw)
+  } catch {
+    return []
+  }
 }
 
 export const useLibraryStore = defineStore('library', () => {
@@ -58,8 +78,8 @@ export const useLibraryStore = defineStore('library', () => {
   const importPercent = ref(0)
   const importError = ref<string | null>(null)
 
-  // 批量导入队列
-  const importQueue = ref<ImportQueueItem[]>([])
+  // 批量导入队列（从 localStorage 恢复进行中的条目）
+  const importQueue = ref<ImportQueueItem[]>(restoreQueue())
   let lastProgressSignature = ''
 
   const selectedPaperCount = computed(() => selectedPaperIds.value.length)
@@ -78,6 +98,38 @@ export const useLibraryStore = defineStore('library', () => {
     } finally {
       loading.value = false
     }
+  }
+
+  // 恢复刷新前进行中的导入任务
+  async function resumeImports() {
+    const active = importQueue.value.filter(
+      (item) => item.status === 'importing' || item.status === 'pending',
+    )
+    if (active.length === 0) {
+      importQueue.value = []
+      localStorage.removeItem(STORAGE_KEY)
+      return
+    }
+
+    importing.value = true
+    for (const item of active) {
+      if (item.taskId) {
+        const idx = importQueue.value.indexOf(item)
+        if (idx !== -1) {
+          try {
+            await monitorImportStatus(item.taskId, idx)
+          } catch {
+            item.status = 'failed'
+            item.step = '导入失败（刷新后恢复）'
+          }
+        }
+      } else {
+        item.status = 'failed'
+        item.step = '导入失败（无法恢复）'
+      }
+    }
+    importing.value = false
+    void loadPapers()
   }
 
   async function removePaper(paperId: string) {
@@ -293,8 +345,10 @@ export const useLibraryStore = defineStore('library', () => {
 
       try {
         const result = await startImport(files[i])
+        item.taskId = result.task_id
         item.percent = 8
         item.step = '任务已创建，等待处理'
+        persistQueue(importQueue.value)
         log.info('导入任务已创建', { taskId: result.task_id, fileName: files[i].name })
         await monitorImportStatus(result.task_id, i)
       } catch (err: unknown) {
@@ -319,6 +373,7 @@ export const useLibraryStore = defineStore('library', () => {
         importQueue.value.splice(i, 1)
         i-- // splice 后索引偏移
       }
+      persistQueue(importQueue.value)
     }
 
     // 队列中剩余的都是真正失败的条目
@@ -328,6 +383,7 @@ export const useLibraryStore = defineStore('library', () => {
     }
 
     importing.value = false
+    localStorage.removeItem(STORAGE_KEY)
     void loadPapers()
   }
 
@@ -341,6 +397,7 @@ export const useLibraryStore = defineStore('library', () => {
 
   function removeQueueItem(index: number) {
     importQueue.value.splice(index, 1)
+    persistQueue(importQueue.value)
   }
 
   async function retryQueueItem(index: number) {
@@ -382,6 +439,7 @@ export const useLibraryStore = defineStore('library', () => {
     importError,
     importQueue,
     loadPapers,
+    resumeImports,
     removePaper,
     setSelectedPaperIds,
     togglePaperSelection,

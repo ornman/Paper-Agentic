@@ -235,7 +235,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import type { PaperItem } from '../services/library-api'
 import { useLibraryStore } from '../stores/library'
 import { useUiStore } from '../stores/ui'
@@ -277,6 +277,12 @@ const hasImportStatus = computed(() =>
 )
 
 const filteredPapers = computed(() => search.results.value)
+
+onMounted(() => {
+  if (libraryStore.importQueue.length > 0) {
+    libraryStore.resumeImports()
+  }
+})
 
 const filteredIds = computed(() => filteredPapers.value.map((p) => p.paper_id))
 
