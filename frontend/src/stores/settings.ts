@@ -1,5 +1,15 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
+import { requestJsonData } from '../services/api-client'
+
+export interface BackendConfig {
+  data: Record<string, string>
+  configured: {
+    llm: boolean
+    embedding: boolean
+    mineru: boolean
+  }
+}
 
 export const useSettingsStore = defineStore('settings', () => {
   // ── API config ──
@@ -8,6 +18,10 @@ export const useSettingsStore = defineStore('settings', () => {
   const models = ref<string[]>(JSON.parse(localStorage.getItem('models') || '[]'))
   const selectedModel = ref(localStorage.getItem('selectedModel') || '')
   const thinkingEnabled = ref(localStorage.getItem('thinkingEnabled') !== 'false')
+
+  // ── Backend config status ──
+  const backendConfigured = ref(localStorage.getItem('backendConfigured') === 'true')
+  const configLoading = ref(false)
 
   // ── Conversation behavior ──
   const reflectionEnabled = ref(localStorage.getItem('reflectionEnabled') === 'true')
@@ -29,6 +43,7 @@ export const useSettingsStore = defineStore('settings', () => {
   watch(thinkingEnabled, (v) => persist('thinkingEnabled', v))
   watch(reflectionEnabled, (v) => persist('reflectionEnabled', v))
   watch(ragEnabled, (v) => persist('ragEnabled', v))
+  watch(backendConfigured, (v) => persist('backendConfigured', v))
   watch(fontSize, (v) => {
     persist('fontSize', v)
     document.documentElement.style.fontSize = `${v}px`
@@ -111,6 +126,20 @@ export const useSettingsStore = defineStore('settings', () => {
   // ── Apply font size on init ──
   document.documentElement.style.fontSize = `${fontSize.value}px`
 
+  // ── Check backend config status ──
+  async function fetchBackendConfig(): Promise<BackendConfig> {
+    configLoading.value = true
+    try {
+      const config = await requestJsonData<BackendConfig>('/api/v1/config/env')
+      backendConfigured.value = config.configured.llm && config.configured.embedding
+      return config
+    } catch {
+      return { data: {}, configured: { llm: false, embedding: false, mineru: false } }
+    } finally {
+      configLoading.value = false
+    }
+  }
+
   return {
     apiUrl,
     apiKey,
@@ -120,7 +149,10 @@ export const useSettingsStore = defineStore('settings', () => {
     reflectionEnabled,
     ragEnabled,
     fontSize,
+    backendConfigured,
+    configLoading,
     fetchModels,
+    fetchBackendConfig,
     clearCache,
     exportData,
     estimateStorageUsage,
