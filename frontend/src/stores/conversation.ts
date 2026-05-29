@@ -33,6 +33,8 @@ export interface AssistantMessage {
   blocks: ContentBlock[]
   /** 本轮引用来源 */
   sources: SourceCard[]
+  /** 流式文本（LLM 逐 chunk 到达时累积，blocks 到达后清空） */
+  streamingText: string
 }
 
 export type ConversationRecord = UserMessage | AssistantMessage
@@ -92,6 +94,7 @@ export const useConversationStore = defineStore('conversation', () => {
       thinkingTimeMs: 0,
       blocks: [],
       sources: [],
+      streamingText: '',
     }
     messages.value.push(msg)
     activeAssistantId.value = id
@@ -220,12 +223,24 @@ export const useConversationStore = defineStore('conversation', () => {
           msg.thinking += text
           msg.thinkingTimeMs = timeMs
         },
+        onDelta(text) {
+          if (status.value === 'thinking' || status.value === 'requesting') {
+            status.value = 'streaming'
+          }
+          phaseMessage.value = ''
+          const msg = ensureActiveAssistant()
+          msg.streamingText += text
+        },
         onBlock(block) {
           if (status.value === 'thinking' || status.value === 'requesting') {
             status.value = 'streaming'
           }
           phaseMessage.value = ''
           const msg = ensureActiveAssistant()
+          // 第一个 block 到达时清空流式文本
+          if (msg.blocks.length === 0) {
+            msg.streamingText = ''
+          }
           msg.blocks.push(block)
         },
         onSources(sources) {
@@ -235,6 +250,11 @@ export const useConversationStore = defineStore('conversation', () => {
           }
         },
         onDone() {
+          const msg = getActiveAssistant()
+          if (msg && msg.streamingText && msg.blocks.length === 0) {
+            msg.blocks.push({ type: 'paragraph', text: msg.streamingText })
+            msg.streamingText = ''
+          }
           status.value = 'done'
           activeAssistantId.value = null
           phaseMessage.value = ''
@@ -243,10 +263,15 @@ export const useConversationStore = defineStore('conversation', () => {
           log.error('对话请求失败', new Error(message))
           errorMessage.value = message
           status.value = 'error'
-          // 移除非法的空 assistant 消息
           const lastMsg = messages.value[messages.value.length - 1]
-          if (lastMsg && lastMsg.role === 'assistant' && (lastMsg as AssistantMessage).blocks.length === 0 && !(lastMsg as AssistantMessage).thinking) {
+          if (lastMsg && lastMsg.role === 'assistant' && (lastMsg as AssistantMessage).blocks.length === 0 && !(lastMsg as AssistantMessage).thinking && !(lastMsg as AssistantMessage).streamingText) {
             messages.value.pop()
+          } else if (lastMsg && lastMsg.role === 'assistant') {
+            const assistantMsg = lastMsg as AssistantMessage
+            if (assistantMsg.streamingText && assistantMsg.blocks.length === 0) {
+              assistantMsg.blocks.push({ type: 'paragraph', text: assistantMsg.streamingText })
+              assistantMsg.streamingText = ''
+            }
           }
           activeAssistantId.value = null
         },

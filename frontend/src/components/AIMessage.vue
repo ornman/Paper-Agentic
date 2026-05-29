@@ -34,6 +34,9 @@
       @mouseenter.capture="onContentMouseEnter"
       @mouseleave.capture="onContentMouseLeave"
     >
+      <!-- Streaming text preview (shown before structured blocks arrive) -->
+      <p v-if="message.streamingText" class="block-paragraph streaming-text">{{ message.streamingText }}</p>
+
       <template v-for="(block, index) in message.blocks" :key="index">
         <!-- Paragraph -->
         <p v-if="block.type === 'paragraph'" class="block-paragraph" v-html="renderParagraphWithCitations(block.text)"></p>

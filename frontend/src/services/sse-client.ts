@@ -23,6 +23,8 @@ export interface AskRequestPayload {
 export interface AskStreamHandlers {
   /** 思考过程文本 */
   onThinking?: (thinkingText: string, timeMs: number) => void
+  /** 流式文本增量（LLM 逐 chunk 到达） */
+  onDelta?: (text: string) => void
   /** 块级内容：paragraph / heading 等 */
   onBlock?: (block: ContentBlock) => void
   /** 所有来源列表（SSE 最后一次性发送） */
@@ -217,6 +219,15 @@ export async function postAskStream(
             const parsed = parseThinkingPayload(frame.data)
             if (parsed) {
               handlers.onThinking?.(parsed.text, parsed.timeMs)
+            }
+            break
+          }
+          case 'delta': {
+            const deltaText = typeof frame.data === 'string'
+              ? frame.data
+              : (frame.data as Record<string, unknown>)?.text as string | undefined
+            if (deltaText) {
+              handlers.onDelta?.(deltaText)
             }
             break
           }

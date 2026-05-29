@@ -13,6 +13,7 @@ from openai import APIConnectionError, APIStatusError, RateLimitError
 from app.agent_layer.contracts.query import AskRequest
 from app.agent_layer.contracts.sse_events import (
     BlockEvent,
+    DeltaEvent,
     DoneEvent,
     ErrorEvent,
     MetadataEvent,
@@ -247,6 +248,7 @@ class TurnRunner:
             model_override = snapshot.model_name or None
             async for chunk in self._chat_model.chat_stream(messages, model=model_override):
                 full_text += chunk
+                yield DeltaEvent(text=chunk).to_sse_frame()
 
             # ── Tool Loop：LLM 可决定调用内部工具 ──
             if self._tool_registry and self._tool_registry.tool_names:

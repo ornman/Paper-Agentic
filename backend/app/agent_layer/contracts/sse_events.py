@@ -32,6 +32,14 @@ class ThinkingEvent(BaseModel):
         return f"event: thinking\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n"
 
 
+class DeltaEvent(BaseModel):
+    event: Literal["delta"] = "delta"
+    text: str
+
+    def to_sse_frame(self) -> str:
+        return f"event: delta\ndata: {json.dumps({'text': self.text}, ensure_ascii=False)}\n\n"
+
+
 class BlockEvent(BaseModel):
     event: Literal["block"] = "block"
     data: ContentBlock
