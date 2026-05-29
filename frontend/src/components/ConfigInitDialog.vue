@@ -40,10 +40,10 @@
 
             <!-- Embedding Section -->
             <div class="config-section">
-              <h3 class="config-section-title">Embedding</h3>
+              <h3 class="config-section-title">Embedding（硅基流动）</h3>
               <div class="config-field">
                 <label>API Key</label>
-                <input v-model="embeddingApiKey" type="password" placeholder="sk-..." autocomplete="off" />
+                <input v-model="embeddingApiKey" type="password" placeholder="硅基流动 API Key，若 LLM 选硅基流动则填同一个" autocomplete="off" />
               </div>
             </div>
 
