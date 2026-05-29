@@ -16,7 +16,7 @@
         <!-- 悬浮文献列表 -->
         <Transition name="badge-pop">
           <div v-if="badgeHover" class="badge-tooltip" @mouseenter="badgeHover = true" @mouseleave="badgeHover = false">
-            <div class="badge-tooltip-title">已选文献</div>
+            <div class="badge-tooltip-title">已引用文献</div>
             <div v-for="name in selectedPaperNames" :key="name" class="badge-tooltip-item">
               <span class="badge-tooltip-dot" />
               {{ name }}
@@ -73,11 +73,11 @@
         <div class="action-bar-left">
           <button class="action-chip" type="button" @click="emit('toggle-papers')">
             <span class="chip-icon" v-html="icons.search" />
-            <span>检索增强</span>
+            <span>引用文献</span>
           </button>
           <button class="action-chip" type="button" @click="triggerUpload">
             <span class="chip-icon" v-html="icons.docAdd" />
-            <span>上传 PDF</span>
+            <span>导入论文</span>
           </button>
           <button
             class="action-chip"
@@ -96,7 +96,7 @@
             class="meta-papers"
             @click="emit('toggle-papers')"
           >
-            {{ selectedPaperCount }} 篇文献已选
+            {{ selectedPaperCount }} 篇参考文献已引用
           </span>
         </Transition>
       </div>
@@ -145,8 +145,8 @@ const expanded = ref(false)
 const badgeHover = ref(false)
 
 const placeholderText = computed(() => {
-  if (props.isBusy) return '发送新消息将打断当前回答...'
-  if (props.selectedPaperCount > 0) return `基于 ${props.selectedPaperCount} 篇文献回答...`
+  if (props.isBusy) return 'AI 正在回答中，发送新消息会中断当前回复'
+  if (props.selectedPaperCount > 0) return `基于 ${props.selectedPaperCount} 篇参考文献回答...`
   return '输入你的问题...'
 })
 

@@ -7,8 +7,8 @@
         v-model="searchQuery"
         type="text"
         class="search-input"
-        placeholder="搜索历史记录..."
-        aria-label="搜索历史记录"
+        placeholder="搜索对话历史..."
+        aria-label="搜索对话历史"
       />
     </div>
 
@@ -18,7 +18,7 @@
       <svg class="empty-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
       </svg>
-      <p class="empty-text">暂无会话记录</p>
+      <p class="empty-text">暂无对话历史，开始你的第一次提问</p>
     </div>
 
     <div v-else class="history-list">

@@ -19,7 +19,7 @@
               :aria-selected="activeTab === 'history'"
               @click="emit('update:activeTab', 'history')"
             >
-              历史对话
+              对话历史
             </button>
             <button
               role="tab"

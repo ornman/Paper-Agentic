@@ -57,7 +57,7 @@
         <polyline points="17 8 12 3 7 8" />
         <line x1="12" y1="3" x2="12" y2="15" />
       </svg>
-      上传论文
+      导入论文
     </button>
 
     <!-- Loading -->
@@ -74,20 +74,21 @@
 
     <!-- Empty state -->
     <div v-else-if="papers.length === 0" class="library-empty-state">
-      <p class="library-empty-text">尚未导入论文</p>
+      <p class="library-empty-text">开始导入你的第一篇论文</p>
+      <p class="library-empty-hint">支持 PDF 格式，拖拽或点击上传</p>
       <button class="library-upload-btn library-upload-btn--prominent" type="button" @click="emit('upload')">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
           <polyline points="17 8 12 3 7 8" />
           <line x1="12" y1="3" x2="12" y2="15" />
         </svg>
-        上传论文
+        导入论文
       </button>
     </div>
 
     <!-- No search results -->
     <div v-else-if="filteredPapers.length === 0 && (search.hasQuery.value || search.yearFilter.value || search.authorFilter.value)" class="library-empty">
-      未找到匹配的论文
+      未找到匹配的论文，试试调整搜索关键词
     </div>
 
     <!-- Paper list -->
@@ -374,6 +375,13 @@ function handleSimilar(paperId: string) {
 .library-empty-text {
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
+}
+
+.library-empty-hint {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  opacity: 0.7;
+  margin: 0;
 }
 
 /* ─── Paper list ─── */

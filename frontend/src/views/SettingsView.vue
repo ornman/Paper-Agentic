@@ -35,7 +35,7 @@
           </div>
         </div>
         <div class="settings-field-row">
-          <span>思考模式</span>
+          <span>深度思考</span>
           <button class="toggle-btn" :class="{ active: settingsStore.thinkingEnabled }" @click="settingsStore.toggleThinking()">
             <span class="toggle-knob"></span>
           </button>
@@ -59,7 +59,7 @@
         </div>
         <div class="settings-field-row">
           <div>
-            <span>RAG 检索</span>
+            <span>文献引用</span>
             <div class="field-hint">基于文献库检索增强回答</div>
           </div>
           <button class="toggle-btn" :class="{ active: settingsStore.ragEnabled }" @click="settingsStore.ragEnabled = !settingsStore.ragEnabled">
