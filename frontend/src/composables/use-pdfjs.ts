@@ -7,6 +7,12 @@ function initWorker() {
   if (initialized) return
   initialized = true
 
+  // pdfjs-dist/web/pdf_viewer.mjs 在顶层解构 globalThis.pdfjsLib，
+  // 必须在任何 pdf_viewer 导入之前设置
+  if (typeof globalThis !== 'undefined' && !globalThis.pdfjsLib) {
+    (globalThis as Record<string, unknown>).pdfjsLib = pdfjsLib
+  }
+
   try {
     // Dev 模式：使用 import.meta.url 加载 worker
     if (typeof import.meta !== 'undefined' && import.meta.url) {
