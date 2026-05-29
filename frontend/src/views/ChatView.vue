@@ -74,7 +74,6 @@
           @toggle="libraryStore.togglePaperSelection($event)"
           @upload="triggerFileUpload"
           @remove="handleRemovePaper"
-          @batch-remove="handleBatchRemovePaper"
           @retry="handleRetryImport"
           @select-all="libraryStore.setSelectedPaperIds($event)"
         />
@@ -489,16 +488,6 @@ async function handleRemovePaper(paperId: string) {
     await libraryStore.removePaper(paperId)
   } catch {
     // error state managed by the store
-  }
-}
-
-async function handleBatchRemovePaper(ids: string[]) {
-  for (const id of ids) {
-    try {
-      await libraryStore.removePaper(id)
-    } catch {
-      // continue deleting others
-    }
   }
 }
 

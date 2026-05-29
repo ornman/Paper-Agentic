@@ -134,14 +134,6 @@
           <span v-if="search.hasQuery.value || search.yearFilter.value || search.authorFilter.value" class="library-result-count">
             {{ search.totalResults.value }} / {{ papers.length }}
           </span>
-          <button
-            v-if="selectedIds.length > 0"
-            type="button"
-            class="library-batch-delete"
-            @click="handleBatchRemove"
-          >
-            删除选中 {{ selectedIds.length }} 篇
-          </button>
         </label>
 
         <LibraryPaperCard
@@ -252,7 +244,6 @@ const emit = defineEmits<{
   (e: 'toggle', id: string): void
   (e: 'upload'): void
   (e: 'remove', id: string): void
-  (e: 'batch-remove', ids: string[]): void
   (e: 'select-all', ids: string[]): void
   (e: 'retry', paperId: string): void
 }>()
@@ -296,25 +287,26 @@ function handleRetry(paperId: string) {
 }
 
 function handleRemove(paperId: string) {
-  if (skipDeleteConfirm.value) {
-    emit('remove', paperId)
-    return
-  }
-  const paper = props.papers.find((p) => p.paper_id === paperId)
-  confirmDelete.paperId = paperId
-  confirmDelete.title = paper?.title || paperId
-  confirmDelete.batchIds = []
-  confirmDelete.visible = true
-}
+  const hasSelection = props.selectedIds.length > 0
+  const idsToDelete = hasSelection ? [...props.selectedIds] : [paperId]
 
-function handleBatchRemove() {
   if (skipDeleteConfirm.value) {
-    emit('batch-remove', [...props.selectedIds])
+    for (const id of idsToDelete) {
+      emit('remove', id)
+    }
     return
   }
-  confirmDelete.paperId = ''
-  confirmDelete.title = `${props.selectedIds.length} 篇论文`
-  confirmDelete.batchIds = [...props.selectedIds]
+
+  if (idsToDelete.length > 1) {
+    confirmDelete.paperId = ''
+    confirmDelete.title = `${idsToDelete.length} 篇论文`
+    confirmDelete.batchIds = idsToDelete
+  } else {
+    const paper = props.papers.find((p) => p.paper_id === paperId)
+    confirmDelete.paperId = paperId
+    confirmDelete.title = paper?.title || paperId
+    confirmDelete.batchIds = []
+  }
   confirmDelete.visible = true
 }
 
@@ -323,8 +315,13 @@ function cancelDelete() {
 }
 
 function confirmDeleteAction() {
-  if (confirmDelete.batchIds.length > 0) {
-    emit('batch-remove', confirmDelete.batchIds)
+  if (confirmDelete.batchIds.length > 1) {
+    // 批量删除：逐个触发
+    for (const id of confirmDelete.batchIds) {
+      emit('remove', id)
+    }
+  } else if (confirmDelete.batchIds.length === 1) {
+    emit('remove', confirmDelete.batchIds[0])
   } else {
     emit('remove', confirmDelete.paperId)
   }
@@ -545,24 +542,6 @@ function confirmDeleteAction() {
   font-size: 11px;
   color: var(--color-accent);
   margin-left: auto;
-}
-
-.library-batch-delete {
-  margin-left: auto;
-  padding: 2px 8px;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--color-error, #c53030) 10%, transparent);
-  color: var(--color-error, #c53030);
-  font-size: 11px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.15s ease;
-  white-space: nowrap;
-}
-
-.library-batch-delete:hover {
-  background: color-mix(in srgb, var(--color-error, #c53030) 18%, transparent);
 }
 
 .library-item-checkbox {
