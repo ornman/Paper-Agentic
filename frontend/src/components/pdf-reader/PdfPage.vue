@@ -133,6 +133,9 @@ onBeforeUnmount(() => {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
   border-radius: 2px;
   margin: 0 auto;
+  --scale-round-x: 1px;
+  --scale-round-y: 1px;
+  --total-scale-factor: var(--scale-factor);
 }
 
 .pdf-page :deep(.page) {
