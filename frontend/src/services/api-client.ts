@@ -71,6 +71,11 @@ function resolveApiBaseUrl(): string {
   const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim()
 
   if (!configuredBaseUrl) {
+    // Dev server: use Vite proxy (relative path) to avoid CORS issues
+    // Production (WPS plugin, standalone): use absolute URL
+    if (typeof window !== 'undefined' && window.location?.port === '3893') {
+      return '/'
+    }
     return DEFAULT_API_BASE_URL
   }
 
