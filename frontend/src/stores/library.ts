@@ -36,19 +36,29 @@ function isImportTerminalStatus(status: string) {
   return status === 'completed' || status === 'failed' || status === 'error'
 }
 
+export interface ImportQueueItem {
+  fileName: string
+  status: 'pending' | 'importing' | 'completed' | 'failed'
+  percent: number
+  step: string
+  error?: string
+}
+
 export const useLibraryStore = defineStore('library', () => {
   const papers = ref<PaperItem[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
   const selectedPaperIds = ref<string[]>([])
 
+  // 单文件导入状态（InputBar 快捷上传）
   const importing = ref(false)
   const importFileName = ref('')
   const importStep = ref('')
   const importPercent = ref(0)
   const importError = ref<string | null>(null)
-  const importBatchTotal = ref(0)
-  const importBatchCurrent = ref(0)
+
+  // 批量导入队列
+  const importQueue = ref<ImportQueueItem[]>([])
   let lastProgressSignature = ''
 
   const selectedPaperCount = computed(() => selectedPaperIds.value.length)
@@ -106,7 +116,7 @@ export const useLibraryStore = defineStore('library', () => {
     importError.value = message
   }
 
-  function applyImportProgress(progress: ImportProgressEvent) {
+  function applyImportProgress(progress: ImportProgressEvent, queueIdx?: number) {
     const nextSignature = [
       progress.status,
       progress.step ?? '',
@@ -116,26 +126,35 @@ export const useLibraryStore = defineStore('library', () => {
       typeof progress.percent === 'number' ? String(progress.percent) : '',
     ].join('|')
 
-    if (nextSignature === lastProgressSignature) {
-      return
-    }
+    if (nextSignature === lastProgressSignature) return
     lastProgressSignature = nextSignature
 
-    if (progress.file_name) {
-      importFileName.value = progress.file_name
-    }
-
-    importStep.value = progress.error_msg || STEP_LABELS[progress.step ?? ''] || progress.step || '处理中...'
-    importPercent.value = typeof progress.percent === 'number'
+    const stepText = progress.error_msg || STEP_LABELS[progress.step ?? ''] || progress.step || '处理中...'
+    const percent = typeof progress.percent === 'number'
       ? progress.percent
       : Math.min(importPercent.value + 12, 95)
+
+    // 更新单文件全局状态
+    if (progress.file_name) importFileName.value = progress.file_name
+    importStep.value = stepText
+    importPercent.value = percent
+
+    // 更新队列中对应条目
+    if (queueIdx !== undefined && queueIdx < importQueue.value.length) {
+      const item = importQueue.value[queueIdx]
+      item.step = stepText
+      item.percent = percent
+    }
 
     if (progress.status === 'completed') {
       importStep.value = '导入完成'
       importPercent.value = 100
-      // 批量模式下不立即关闭 importing，由 importFiles 统一管理
-      if (importBatchTotal.value <= 1) {
+      if (queueIdx === undefined) {
         importing.value = false
+      } else if (queueIdx < importQueue.value.length) {
+        importQueue.value[queueIdx].status = 'completed'
+        importQueue.value[queueIdx].step = '已完成'
+        importQueue.value[queueIdx].percent = 100
       }
       log.info('导入完成', { paperId: progress.paper_id })
       void loadPapers()
@@ -143,15 +162,24 @@ export const useLibraryStore = defineStore('library', () => {
     }
 
     if (progress.status === 'failed' || progress.status === 'error') {
+      const errMsg = progress.error_msg || progress.step || '遇到了意外问题，请稍后重试'
       importStep.value = '导入失败'
-      importError.value = progress.error_msg || progress.step || '遇到了意外问题，请稍后重试'
+      importError.value = errMsg
       importPercent.value = 100
-      importing.value = false
+
+      if (queueIdx === undefined) {
+        importing.value = false
+      } else if (queueIdx < importQueue.value.length) {
+        importQueue.value[queueIdx].status = 'failed'
+        importQueue.value[queueIdx].step = '导入失败'
+        importQueue.value[queueIdx].percent = 100
+        importQueue.value[queueIdx].error = errMsg
+      }
       log.warn('导入失败', { paperId: progress.paper_id, step: progress.step, error: progress.error_msg })
     }
   }
 
-  function applyImportStatus(status: ImportStatus) {
+  function applyImportStatus(status: ImportStatus, queueIdx?: number) {
     applyImportProgress({
       status: status.status,
       step: status.current_step,
@@ -159,10 +187,10 @@ export const useLibraryStore = defineStore('library', () => {
       error_msg: status.error_msg,
       file_name: status.file_name,
       percent: status.percent,
-    })
+    }, queueIdx)
   }
 
-  async function monitorImportStatus(taskId: string, maxConsecutiveFailures = 30) {
+  async function monitorImportStatus(taskId: string, queueIdx?: number, maxConsecutiveFailures = 30) {
     let consecutiveFailures = 0
 
     while (true) {
@@ -170,16 +198,19 @@ export const useLibraryStore = defineStore('library', () => {
         const status = await fetchImportStatus(taskId)
         consecutiveFailures = 0
         log.info('轮询导入状态', { taskId, status: status.status, step: status.current_step, percent: status.percent })
-        applyImportStatus(status)
+        applyImportStatus(status, queueIdx)
 
-        if (isImportTerminalStatus(status.status)) {
-          return
-        }
+        if (isImportTerminalStatus(status.status)) return
       } catch (err: unknown) {
         if (err instanceof ApiClientError && err.statusCode === 400) {
-          importing.value = false
           importStep.value = '导入失败'
           importError.value = err.message || '导入失败'
+          if (queueIdx === undefined) importing.value = false
+          else if (queueIdx < importQueue.value.length) {
+            importQueue.value[queueIdx].status = 'failed'
+            importQueue.value[queueIdx].step = '导入失败'
+            importQueue.value[queueIdx].error = err.message || '导入失败'
+          }
           log.warn('导入任务返回业务错误', { taskId, message: err.message })
           return
         }
@@ -191,11 +222,14 @@ export const useLibraryStore = defineStore('library', () => {
           message: err instanceof Error ? err.message : String(err),
         })
         if (consecutiveFailures >= maxConsecutiveFailures) {
-          importing.value = false
+          const msg = `导入似乎中断了，请尝试重新上传`
           importStep.value = '导入中断'
-          if (!importError.value) {
-            const fileLabel = importFileName.value ? `：${importFileName.value}` : ''
-            importError.value = `导入似乎中断了，请尝试重新上传${fileLabel}`
+          if (!importError.value) importError.value = msg
+          if (queueIdx === undefined) importing.value = false
+          else if (queueIdx < importQueue.value.length) {
+            importQueue.value[queueIdx].status = 'failed'
+            importQueue.value[queueIdx].step = '导入中断'
+            importQueue.value[queueIdx].error = msg
           }
           return
         }
@@ -231,50 +265,51 @@ export const useLibraryStore = defineStore('library', () => {
 
   async function importFiles(files: File[]) {
     if (files.length === 0) return
-    if (files.length === 1) {
-      return importFile(files[0])
-    }
+    if (files.length === 1) return importFile(files[0])
 
     importing.value = true
-    importBatchTotal.value = files.length
-    importBatchCurrent.value = 0
     importError.value = null
     error.value = null
 
+    importQueue.value = files.map((f) => ({
+      fileName: f.name,
+      status: 'pending' as const,
+      percent: 0,
+      step: '等待中',
+    }))
+
     for (let i = 0; i < files.length; i++) {
-      importBatchCurrent.value = i + 1
+      const item = importQueue.value[i]
+      item.status = 'importing'
+      item.percent = 2
+      item.step = '提交中...'
       lastProgressSignature = ''
-      importFileName.value = files[i].name
-      importStep.value = '提交中...'
-      importPercent.value = 2
-      log.info('批量导入进度', { current: i + 1, total: files.length, name: files[i].name })
 
       try {
         const result = await startImport(files[i])
-        importStep.value = '任务已创建，等待处理'
-        importPercent.value = 8
+        item.percent = 8
+        item.step = '任务已创建，等待处理'
         log.info('导入任务已创建', { taskId: result.task_id, fileName: files[i].name })
-        await monitorImportStatus(result.task_id)
+        await monitorImportStatus(result.task_id, i)
       } catch (err: unknown) {
-        importError.value = err instanceof Error ? err.message : `导入 ${files[i].name} 失败`
+        const msg = err instanceof Error ? err.message : '导入失败'
+        item.status = 'failed'
+        item.error = msg
+        item.step = '导入失败'
         log.error('批量导入中单文件失败', err, { name: files[i].name })
-        // 继续导入下一文件
-      }
-
-      // 单文件完成后短暂停顿，让 UI 显示"完成"状态
-      if (i < files.length - 1) {
-        await wait(600)
       }
     }
 
-    importBatchTotal.value = 0
-    importBatchCurrent.value = 0
     importing.value = false
     void loadPapers()
   }
 
   function clearImportError() {
     importError.value = null
+  }
+
+  function clearImportQueue() {
+    importQueue.value = []
   }
 
   return {
@@ -289,8 +324,7 @@ export const useLibraryStore = defineStore('library', () => {
     importStep,
     importPercent,
     importError,
-    importBatchTotal,
-    importBatchCurrent,
+    importQueue,
     loadPapers,
     removePaper,
     setSelectedPaperIds,
@@ -301,5 +335,6 @@ export const useLibraryStore = defineStore('library', () => {
     monitorImportStatus,
     clearImportError,
     setImportError,
+    clearImportQueue,
   }
 })

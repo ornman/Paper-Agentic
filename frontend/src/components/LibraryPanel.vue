@@ -67,12 +67,34 @@
     <div v-else-if="error" class="library-error">{{ error }}</div>
 
     <!-- Importing placeholder (replaces empty state during import) -->
-    <div v-else-if="papers.length === 0 && importing" class="library-importing-state">
+    <div v-else-if="papers.length === 0 && importing && importQueue.length === 0" class="library-importing-state">
       <div class="importing-spinner"></div>
-      <p class="importing-text">
-        <template v-if="importBatchTotal > 1">正在导入 ({{ importBatchCurrent }}/{{ importBatchTotal }})...</template>
-        <template v-else>正在导入文献，请稍候...</template>
-      </p>
+      <p class="importing-text">正在导入文献，请稍候...</p>
+    </div>
+
+    <!-- Batch import queue (empty library) -->
+    <div v-else-if="papers.length === 0 && importQueue.length > 0" class="import-queue">
+      <div
+        v-for="item in importQueue"
+        :key="item.fileName"
+        class="import-queue-item"
+        :class="'import-queue-item--' + item.status"
+      >
+        <span class="import-queue-icon">
+          <svg v-if="item.status === 'completed'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span v-else-if="item.status === 'importing'" class="import-queue-spinner"></span>
+          <span v-else-if="item.status === 'failed'" class="import-queue-dot import-queue-dot--failed">×</span>
+          <span v-else class="import-queue-dot"></span>
+        </span>
+        <div class="import-queue-body">
+          <div class="import-queue-filename">{{ item.fileName }}</div>
+          <div v-if="item.status === 'importing'" class="import-queue-bar-track">
+            <div class="import-queue-bar-fill" :style="{ width: item.percent + '%' }"></div>
+          </div>
+          <div class="import-queue-step" :class="{ 'import-queue-step--error': item.status === 'failed' }">{{ item.step }}</div>
+        </div>
+        <span v-if="item.status === 'importing'" class="import-queue-percent">{{ item.percent }}%</span>
+      </div>
     </div>
 
     <!-- Empty state -->
@@ -131,13 +153,35 @@
       </div>
     </div>
 
-    <!-- Import progress -->
-    <div v-if="importing" class="import-progress">
-      <div class="import-info">
-        <span class="import-filename">
-          <template v-if="importBatchTotal > 1" class="import-batch-badge">({{ importBatchCurrent }}/{{ importBatchTotal }})</template>
-          {{ importFileName || '正在导入...' }}
+    <!-- Import queue (non-empty library) -->
+    <div v-if="importQueue.length > 0" class="import-queue">
+      <div
+        v-for="item in importQueue"
+        :key="item.fileName"
+        class="import-queue-item"
+        :class="'import-queue-item--' + item.status"
+      >
+        <span class="import-queue-icon">
+          <svg v-if="item.status === 'completed'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span v-else-if="item.status === 'importing'" class="import-queue-spinner"></span>
+          <span v-else-if="item.status === 'failed'" class="import-queue-dot import-queue-dot--failed">×</span>
+          <span v-else class="import-queue-dot"></span>
         </span>
+        <div class="import-queue-body">
+          <div class="import-queue-filename">{{ item.fileName }}</div>
+          <div v-if="item.status === 'importing'" class="import-queue-bar-track">
+            <div class="import-queue-bar-fill" :style="{ width: item.percent + '%' }"></div>
+          </div>
+          <div class="import-queue-step" :class="{ 'import-queue-step--error': item.status === 'failed' }">{{ item.step }}</div>
+        </div>
+        <span v-if="item.status === 'importing'" class="import-queue-percent">{{ item.percent }}%</span>
+      </div>
+    </div>
+
+    <!-- Single file import progress (InputBar upload, no queue) -->
+    <div v-else-if="importing" class="import-progress">
+      <div class="import-info">
+        <span class="import-filename">{{ importFileName || '正在导入...' }}</span>
         <span class="import-percent">{{ importPercent }}%</span>
       </div>
       <div class="import-bar-track">
@@ -166,7 +210,7 @@ import { storeToRefs } from 'pinia'
 
 const libraryStore = useLibraryStore()
 const uiStore = useUiStore()
-const { importing, importFileName, importPercent, importStep, importError, importBatchTotal, importBatchCurrent } = storeToRefs(libraryStore)
+const { importing, importFileName, importPercent, importStep, importError, importQueue } = storeToRefs(libraryStore)
 
 const props = defineProps<{
   papers: PaperItem[]
@@ -488,7 +532,7 @@ function handleRetry(paperId: string) {
   font-weight: 600;
 }
 
-/* ─── Importing state (replaces empty state) ─── */
+/* ─── Importing state (single-file spinner) ─── */
 .library-importing-state {
   display: flex;
   flex-direction: column;
@@ -513,6 +557,122 @@ function handleRetry(paperId: string) {
 .importing-text {
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
+}
+
+/* ─── Import queue (list) ─── */
+.import-queue {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  border-top: 1px solid var(--color-border-subtle);
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.import-queue-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  transition: background 0.15s ease;
+}
+
+.import-queue-item--completed {
+  opacity: 0.65;
+}
+
+.import-queue-item--failed {
+  background: color-mix(in srgb, var(--color-error, #c53030) 5%, transparent);
+}
+
+.import-queue-icon {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+}
+
+.import-queue-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--color-border-subtle);
+  border-top-color: var(--color-accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+.import-queue-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-border-subtle);
+}
+
+.import-queue-dot--failed {
+  background: var(--color-error, #c53030);
+  color: var(--color-error, #c53030);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  width: auto;
+  height: auto;
+  border-radius: 0;
+  background: none;
+}
+
+.import-queue-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.import-queue-filename {
+  font-size: 12px;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.import-queue-item--completed .import-queue-filename {
+  text-decoration: line-through;
+  text-decoration-color: var(--color-text-muted);
+}
+
+.import-queue-bar-track {
+  height: 3px;
+  margin-top: 4px;
+  background: var(--color-surface-muted);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.import-queue-bar-fill {
+  height: 100%;
+  background: var(--color-accent);
+  border-radius: var(--radius-full);
+  transition: width 0.3s ease;
+}
+
+.import-queue-step {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.import-queue-step--error {
+  color: var(--color-error, #c53030);
+}
+
+.import-queue-percent {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--color-accent);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  margin-top: 1px;
 }
 
 /* ─── Import progress ─── */
