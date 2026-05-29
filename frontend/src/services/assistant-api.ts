@@ -27,11 +27,16 @@ export async function getWrittenContext(sessionId: string): Promise<ContextState
   return request(`/api/v1/assistant/written-context/${encodeURIComponent(sessionId)}`)
 }
 
-export async function updateSelection(sessionId: string, selection: string): Promise<void> {
+export async function updateSelection(
+  sessionId: string,
+  selection: string,
+  start?: number,
+  end?: number,
+): Promise<void> {
   await request('/api/v1/assistant/selection', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ session_id: sessionId, selection }),
+    body: JSON.stringify({ session_id: sessionId, selection, start, end }),
   })
 }
 

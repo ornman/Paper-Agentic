@@ -7,6 +7,12 @@
 
 var LOG_SERVER = 'http://127.0.0.1:3895';
 
+var PLUGIN_STATE = {
+  initialized: false,
+  taskPaneOpen: false,
+  boundWindows: [],
+};
+
 function sendLog(module, level, message) {
   try {
     var xhr = new XMLHttpRequest();
@@ -22,8 +28,24 @@ function sendLog(module, level, message) {
 }
 
 function OnAddinLoad() {
-  sendLog('wps', 'info', 'OnAddinLoad 插件已加载');
+  sendLog('wps', 'info', 'OnAddinLoad — 插件加载');
   console.log('[WPS Plugin V1] 宿主桥接层已加载');
+
+  // 状态初始化
+  PLUGIN_STATE.initialized = true;
+  PLUGIN_STATE.taskPaneOpen = false;
+  PLUGIN_STATE.boundWindows = [];
+
+  // 注册 WPS 宿主事件
+  try {
+    if (typeof Application !== 'undefined' && Application.Documents) {
+      // 监听文档切换 → 通知 Vue 应用重新绑定 SelectionChange
+      // 具体通信通过 taskpane.html 的 postMessage
+    }
+  } catch (e) {
+    sendLog('wps', 'warn', 'OnAddinLoad 事件注册失败: ' + e.message);
+  }
+
   return true;
 }
 
@@ -67,6 +89,26 @@ function OnOpenPane() {
     taskPane.DockPosition = 2;
     taskPane.Width = 400;
 
+    // 监听 TaskPane 关闭事件
+    try {
+      taskPane.OnClose = function () {
+        sendLog('wps', 'info', 'TaskPane 被用户关闭');
+        PLUGIN_STATE.taskPaneOpen = false;
+        // 通知 Vue 应用停止轮询（通过 postMessage）
+        try {
+          var iframe = document.querySelector('iframe');
+          if (iframe && iframe.contentWindow) {
+            iframe.contentWindow.postMessage({ type: 'wps:taskpane-closed' }, '*');
+          }
+        } catch (postError) {
+          sendLog('wps', 'warn', 'postMessage 失败: ' + postError.message);
+        }
+      };
+    } catch (e) {
+      sendLog('wps', 'warn', 'TaskPane.OnClose 注册失败: ' + e.message);
+    }
+
+    PLUGIN_STATE.taskPaneOpen = true;
     sendLog('wps', 'info', 'TaskPane 已打开成功');
     console.log('[WPS Plugin V1] TaskPane 已打开');
     return true;
@@ -75,7 +117,7 @@ function OnOpenPane() {
     var stack = error && error.stack ? error.stack : '';
     sendLog('wps', 'error', 'OnOpenPane 失败: ' + message + (stack ? '\n' + stack : ''));
     console.error('[WPS Plugin V1] 打开 TaskPane 失败:', message);
-    alert('打开 TaskPane 失败: ' + message);
+    // 不再用 alert()，改用日志 + 降级
     return false;
   }
 }

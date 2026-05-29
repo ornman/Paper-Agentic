@@ -42,6 +42,10 @@ async def update_selection(body: EditorSelectionUpdate, request: Request):
     existing = await container.editor_context_store.get(body.session_id) or {}
     existing["session_id"] = body.session_id
     existing["selection"] = body.selection
+    if body.start is not None:
+        existing["selection_start"] = body.start
+    if body.end is not None:
+        existing["selection_end"] = body.end
     await container.editor_context_store.put(existing)
     return {"status": "ok", "session_id": body.session_id}
 
