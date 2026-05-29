@@ -2,25 +2,27 @@
   <div class="empty-state">
     <h1 class="empty-title">{{ greeting.title }}</h1>
     <p class="empty-hint">{{ greeting.hint }}</p>
-    <div class="prompt-grid">
-      <button
-        v-for="card in promptCards"
-        :key="card.title"
-        class="prompt-card"
-        type="button"
-        @click="emit('select-prompt', card.prompt)"
-      >
-        <span class="prompt-card-icon" v-html="card.icon" />
-        <div class="prompt-card-body">
-          <div class="prompt-card-title">{{ card.title }}</div>
-          <div class="prompt-card-desc">{{ card.description }}</div>
-        </div>
-      </button>
-      <button class="shuffle-btn" type="button" @click="shuffle" title="换一批">
+    <div class="prompt-container">
+      <button class="shuffle-btn" :class="{ spinning }" type="button" @click="handleShuffle" title="换一批">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="18" height="18" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
           <path d="M42 8v16M6 24v16m36-16c0-9.941-8.059-18-18-18a17.95 17.95 0 0 0-12.952 5.5M6 24c0 9.941 8.059 18 18 18a17.94 17.94 0 0 0 12.5-5.048" />
         </svg>
       </button>
+      <TransitionGroup name="card" tag="div" class="prompt-grid">
+        <button
+          v-for="card in promptCards"
+          :key="card.title"
+          class="prompt-card"
+          type="button"
+          @click="emit('select-prompt', card.prompt)"
+        >
+          <span class="prompt-card-icon" v-html="card.icon" />
+          <div class="prompt-card-body">
+            <div class="prompt-card-title">{{ card.title }}</div>
+            <div class="prompt-card-desc">{{ card.description }}</div>
+          </div>
+        </button>
+      </TransitionGroup>
     </div>
   </div>
 </template>
@@ -124,9 +126,17 @@ const allPromptCards: PromptCard[] = [
 
 // 随机选取 6 个展示（每次组件挂载重新随机）
 const promptCards = ref<PromptCard[]>([])
+const spinning = ref(false)
 
 function shuffle() {
   promptCards.value = [...allPromptCards].sort(() => Math.random() - 0.5).slice(0, 6)
+}
+
+function handleShuffle() {
+  if (spinning.value) return
+  spinning.value = true
+  shuffle()
+  setTimeout(() => { spinning.value = false }, 400)
 }
 
 shuffle()
@@ -166,25 +176,23 @@ const greeting = greetings[Math.floor(Math.random() * greetings.length)]
   margin-bottom: var(--space-6, 24px);
 }
 
-.prompt-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-3, 12px);
+.prompt-container {
   max-width: 680px;
   width: 100%;
 }
 
 .shuffle-btn {
-  grid-column: 1 / -1;
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  width: 100%;
+  margin-bottom: 8px;
   background: transparent;
   border: none;
   color: var(--color-text-muted);
   cursor: pointer;
   padding: 0;
-  opacity: 0.6;
+  opacity: 0.5;
   transition: opacity 150ms ease, color 150ms ease;
 }
 
@@ -193,8 +201,24 @@ const greeting = greetings[Math.floor(Math.random() * greetings.length)]
   color: var(--color-accent);
 }
 
+.shuffle-btn.spinning svg {
+  animation: spin-once 0.4s ease;
+}
+
+@keyframes spin-once {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.prompt-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3, 12px);
+  position: relative;
+}
+
 @media (max-width: 640px) {
-  .prompt-grid {
+  .prompt-container .prompt-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
@@ -209,7 +233,7 @@ const greeting = greetings[Math.floor(Math.random() * greetings.length)]
     font-size: 22px;
   }
 
-  .prompt-grid {
+  .prompt-container .prompt-grid {
     grid-template-columns: 1fr;
   }
 }
@@ -262,5 +286,25 @@ const greeting = greetings[Math.floor(Math.random() * greetings.length)]
   color: var(--color-text-muted);
   margin-top: 4px;
   line-height: 1.4;
+}
+
+/* 卡片切换动画 */
+.card-enter-active {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.card-leave-active {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  position: absolute;
+}
+
+.card-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.card-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
 }
 </style>
