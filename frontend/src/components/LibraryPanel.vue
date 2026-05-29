@@ -156,10 +156,10 @@ import type { PaperItem } from '../services/library-api'
 import { useLibraryStore } from '../stores/library'
 import { useLibrarySearch } from '../composables/use-library-search'
 import LibraryPaperCard from './LibraryPaperCard.vue'
+import { storeToRefs } from 'pinia'
 
 const libraryStore = useLibraryStore()
-
-const { importing, importFileName, importPercent, importStep } = libraryStore
+const { importing, importFileName, importPercent, importStep, importError } = storeToRefs(libraryStore)
 
 const props = defineProps<{
   papers: PaperItem[]
