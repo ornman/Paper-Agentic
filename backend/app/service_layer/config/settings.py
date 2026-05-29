@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from functools import lru_cache
 from pathlib import Path
 
@@ -112,4 +113,13 @@ class BackendSettings(BaseSettings):
 
 @lru_cache(maxsize=1)
 def get_settings() -> BackendSettings:
-    return BackendSettings()
+    settings = BackendSettings()
+    # Sync to os.environ for code that reads env vars directly (e.g. mineru_adapter)
+    _env_sync = {
+        "MINERU_API_KEY": settings.mineru_api_key,
+        "MINERU_BASE_URL": settings.mineru_base_url,
+    }
+    for key, value in _env_sync.items():
+        if value and not os.environ.get(key):
+            os.environ[key] = value
+    return settings
