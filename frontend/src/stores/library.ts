@@ -280,9 +280,11 @@ export const useLibraryStore = defineStore('library', () => {
       step: '等待中',
     }))
 
+    let skippedCount = 0
+
     for (let i = 0; i < files.length; i++) {
       const item = importQueue.value[i]
-      if (item.status === 'completed') continue  // 已完成的跳过
+      if (item.status === 'completed') continue
       item.status = 'importing'
       item.percent = 2
       item.step = '提交中...'
@@ -302,15 +304,30 @@ export const useLibraryStore = defineStore('library', () => {
         log.error('批量导入中单文件失败', err, { name: files[i].name })
       }
 
-      // 已完成的短暂展示后标记为可清除
       const completed = importQueue.value[i]?.status === 'completed'
       if (completed) {
         await wait(800)
       }
     }
 
-    // 清除已完成的条目，保留失败的
-    importQueue.value = importQueue.value.filter((item) => item.status !== 'completed')
+    // 清除已完成的条目，收集跳过的重复文件
+    const failedItems = importQueue.value.filter((item) => item.status === 'failed')
+    const dupNames: string[] = []
+    const realFails: typeof failedItems = []
+    for (const item of failedItems) {
+      if (item.error?.includes('已导入过')) {
+        dupNames.push(item.fileName)
+        skippedCount++
+      } else {
+        realFails.push(item)
+      }
+    }
+
+    importQueue.value = realFails
+
+    if (dupNames.length > 0) {
+      importError.value = `${dupNames.length} 篇论文已导入过，已跳过：${dupNames.join('、')}`
+    }
 
     importing.value = false
     void loadPapers()
