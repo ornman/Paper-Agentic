@@ -40,6 +40,7 @@
           <PdfOutline
             :open="outlineOpen"
             :items="outlineItems"
+            :current-page="renderer.currentPage.value"
             @close="outlineOpen = false"
             @navigate="(p: number) => renderer.scrollToPage(p)"
           />

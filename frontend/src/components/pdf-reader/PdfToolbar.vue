@@ -2,6 +2,24 @@
   <div class="reader-toolbar">
     <div class="reader-title" :title="title">{{ title }}</div>
 
+    <template v-if="showOutlineButton">
+      <button
+        class="reader-btn"
+        :class="{ 'reader-btn-active': outlineOpen }"
+        aria-label="目录"
+        @click="emit('toggle-outline')"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="8" y1="6" x2="21" y2="6"/>
+          <line x1="8" y1="12" x2="21" y2="12"/>
+          <line x1="8" y1="18" x2="21" y2="18"/>
+          <line x1="3" y1="6" x2="3.01" y2="6"/>
+          <line x1="3" y1="12" x2="3.01" y2="12"/>
+          <line x1="3" y1="18" x2="3.01" y2="18"/>
+        </svg>
+      </button>
+    </template>
+
     <div class="reader-controls">
       <button
         class="reader-btn"
@@ -57,25 +75,6 @@
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       </button>
-
-      <template v-if="showOutlineButton">
-        <span class="reader-divider" />
-        <button
-          class="reader-btn"
-          :class="{ 'reader-btn-active': outlineOpen }"
-          aria-label="目录"
-          @click="emit('toggle-outline')"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="8" y1="6" x2="21" y2="6"/>
-            <line x1="8" y1="12" x2="21" y2="12"/>
-            <line x1="8" y1="18" x2="21" y2="18"/>
-            <line x1="3" y1="6" x2="3.01" y2="6"/>
-            <line x1="3" y1="12" x2="3.01" y2="12"/>
-            <line x1="3" y1="18" x2="3.01" y2="18"/>
-          </svg>
-        </button>
-      </template>
     </div>
 
     <button
@@ -95,7 +94,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
-defineProps<{
+const props = defineProps<{
   title: string
   currentPage: number
   totalPages: number
@@ -117,8 +116,13 @@ const emit = defineEmits<{
 const pageInputRef = ref<HTMLInputElement | null>(null)
 
 function handlePageInput() {
-  const val = parseInt(pageInputRef.value?.value ?? '', 10)
-  if (!isNaN(val)) emit('go-to-page', val)
+  const raw = pageInputRef.value
+  if (!raw) return
+  const val = parseInt(raw.value, 10)
+  if (isNaN(val)) { raw.value = String(props.currentPage); return }
+  const clamped = Math.max(1, Math.min(props.totalPages, val))
+  raw.value = String(clamped)
+  emit('go-to-page', clamped)
 }
 </script>
 

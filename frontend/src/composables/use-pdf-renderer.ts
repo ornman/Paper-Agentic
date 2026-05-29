@@ -36,7 +36,7 @@ export function usePdfRenderer(
       const pages = await Promise.all(batch)
       for (const page of pages) {
         const vp = page.getViewport({ scale: scale.value })
-        heights.push(vp.height / (window.devicePixelRatio || 1))
+        heights.push(vp.height)
       }
     }
     pageHeights.value = heights

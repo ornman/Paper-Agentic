@@ -2,6 +2,7 @@
   <li role="treeitem" :style="{ paddingLeft: depth * 16 + 'px' }">
     <button
       class="outline-item-btn"
+      :class="{ 'outline-item-btn--active': isActive }"
       @click="emit('navigate', item.pageNumber ?? 1)"
     >
       {{ item.title }}
@@ -12,6 +13,7 @@
         :key="index"
         :item="child"
         :depth="depth + 1"
+        :current-page="currentPage"
         @navigate="(p: number) => emit('navigate', p)"
       />
     </ul>
@@ -19,16 +21,23 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { OutlineItem } from './PdfOutline.vue'
 
-defineProps<{
+const props = defineProps<{
   item: OutlineItem
   depth: number
+  currentPage: number
 }>()
 
 const emit = defineEmits<{
   (e: 'navigate', pageNumber: number): void
 }>()
+
+const isActive = computed(() => {
+  if (!props.item.pageNumber) return false
+  return props.item.pageNumber === props.currentPage
+})
 </script>
 
 <style scoped>
@@ -53,5 +62,11 @@ ul {
 .outline-item-btn:hover {
   background: var(--color-surface-muted);
   color: var(--color-text-primary);
+}
+
+.outline-item-btn--active {
+  color: var(--color-accent);
+  background: var(--color-accent-soft);
+  font-weight: 500;
 }
 </style>

@@ -11,7 +11,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onBeforeUnmount } from 'vue'
+import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { TextLayer } from 'pdfjs-dist'
 import type { PDFDocumentProxy, PDFPageProxy, PageViewport } from 'pdfjs-dist'
 
@@ -120,10 +120,11 @@ async function highlightOnPage() {
   }, 3000)
 }
 
+onMounted(() => render())
+
 watch(
   () => [props.pdfDoc, props.pageNumber, props.scale] as const,
   () => render(),
-  { immediate: true },
 )
 
 onBeforeUnmount(() => {
@@ -152,7 +153,6 @@ onBeforeUnmount(() => {
   position: absolute;
   inset: 0;
   overflow: hidden;
-  opacity: 0.25;
   line-height: 1;
 }
 

@@ -1,40 +1,39 @@
 <template>
-  <Transition name="outline-sidebar">
-    <div
-      v-if="open"
-      class="outline-sidebar"
-      role="navigation"
-      aria-label="PDF 目录"
-    >
-      <div class="outline-header">
-        <span class="outline-title">目录</span>
-        <button
-          class="outline-close-btn"
-          aria-label="关闭目录"
-          @click="emit('close')"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"/>
-            <line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
-        </button>
-      </div>
-
-      <div v-if="items.length === 0" class="outline-empty">
-        此文档无目录
-      </div>
-
-      <ul v-else class="outline-list" role="tree">
-        <PdfOutlineItem
-          v-for="(item, index) in items"
-          :key="index"
-          :item="item"
-          :depth="0"
-          @navigate="(p: number) => emit('navigate', p)"
-        />
-      </ul>
+  <div
+    class="outline-wrapper"
+    :class="{ 'outline-wrapper--open': open }"
+    role="navigation"
+    aria-label="PDF 目录"
+  >
+    <div class="outline-header">
+      <span class="outline-title">目录</span>
+      <button
+        class="outline-close-btn"
+        aria-label="关闭目录"
+        @click="emit('close')"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
     </div>
-  </Transition>
+
+    <div v-if="items.length === 0" class="outline-empty">
+      此文档无目录
+    </div>
+
+    <ul v-else class="outline-list" role="tree">
+      <PdfOutlineItem
+        v-for="(item, index) in items"
+        :key="index"
+        :item="item"
+        :depth="0"
+        :current-page="currentPage"
+        @navigate="(p: number) => emit('navigate', p)"
+      />
+    </ul>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -50,6 +49,7 @@ export interface OutlineItem {
 defineProps<{
   open: boolean
   items: OutlineItem[]
+  currentPage: number
 }>()
 
 const emit = defineEmits<{
@@ -59,18 +59,21 @@ const emit = defineEmits<{
 </script>
 
 <style scoped>
-.outline-sidebar {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 220px;
+.outline-wrapper {
+  width: 0;
+  overflow: hidden;
   background: var(--color-surface-card);
-  border-right: 1px solid var(--color-border-subtle);
+  border-right: 1px solid transparent;
   display: flex;
   flex-direction: column;
-  z-index: 10;
-  overflow: hidden;
+  flex-shrink: 0;
+  transition: width 250ms var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)),
+              border-color 250ms ease;
+}
+
+.outline-wrapper--open {
+  width: 240px;
+  border-right-color: var(--color-border-subtle);
 }
 
 .outline-header {
@@ -117,27 +120,22 @@ const emit = defineEmits<{
   padding: var(--space-2) 0;
 }
 
-.outline-sidebar-enter-active {
-  transition: transform 250ms var(--ease-out-expo);
-}
-.outline-sidebar-leave-active {
-  transition: transform 200ms ease-in-out;
-}
-.outline-sidebar-enter-from,
-.outline-sidebar-leave-to {
-  transform: translateX(-100%);
-}
-
 @media (max-width: 800px) {
-  .outline-sidebar {
+  .outline-wrapper {
     position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
     z-index: 220;
     box-shadow: var(--shadow-drawer);
+  }
+  .outline-wrapper--open {
+    width: 260px;
   }
 }
 
 @media (max-width: 420px) {
-  .outline-sidebar {
+  .outline-wrapper--open {
     width: 100%;
   }
 }
