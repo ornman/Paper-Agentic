@@ -208,6 +208,15 @@ const emit = defineEmits<{
   overflow-y: auto;
   overflow-x: hidden;
   padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+}
+
+.tab-content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 @media (max-width: 420px) {

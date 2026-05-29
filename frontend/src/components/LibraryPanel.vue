@@ -1,108 +1,57 @@
 <template>
   <div class="library-panel">
-    <!-- Search bar -->
-    <div class="library-search">
-      <svg class="library-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="11" cy="11" r="8" />
-        <line x1="21" y1="21" x2="16.65" y2="16.65" />
-      </svg>
-      <input
-        v-model="search.query.value"
-        type="text"
-        class="library-search-input"
-        placeholder="搜索标题、作者、关键词..."
-        aria-label="搜索文献库"
-      />
-      <div class="search-actions">
-        <button v-if="search.hasQuery.value" class="search-clear" type="button" @click="search.resetFilters()" title="清除搜索">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
-        </button>
-        <div class="sort-wrapper">
-          <button class="sort-toggle" type="button" @click="showSortMenu = !showSortMenu" title="排序">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 4h12M4 8h8M6 12h4"/></svg>
+    <!-- Sticky header: search + filters + upload -->
+    <div class="library-header">
+      <div class="library-search">
+        <svg class="library-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
+        <input
+          v-model="search.query.value"
+          type="text"
+          class="library-search-input"
+          placeholder="搜索标题、作者、关键词..."
+          aria-label="搜索文献库"
+        />
+        <div class="search-actions">
+          <button v-if="search.hasQuery.value" class="search-clear" type="button" @click="search.resetFilters()" title="清除搜索">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
           </button>
-          <div v-if="showSortMenu" class="sort-menu" @mouseleave="showSortMenu = false">
-            <button :class="{ active: search.sortBy.value === 'relevance' }" @click="search.sortBy.value = 'relevance'; showSortMenu = false">相关度</button>
-            <button :class="{ active: search.sortBy.value === 'time' }" @click="search.sortBy.value = 'time'; showSortMenu = false">导入时间</button>
-            <button :class="{ active: search.sortBy.value === 'year' }" @click="search.sortBy.value = 'year'; showSortMenu = false">发表年份</button>
-            <button :class="{ active: search.sortBy.value === 'title' }" @click="search.sortBy.value = 'title'; showSortMenu = false">标题</button>
+          <div class="sort-wrapper">
+            <button class="sort-toggle" type="button" @click="showSortMenu = !showSortMenu" title="排序">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 4h12M4 8h8M6 12h4"/></svg>
+            </button>
+            <div v-if="showSortMenu" class="sort-menu" @mouseleave="showSortMenu = false">
+              <button :class="{ active: search.sortBy.value === 'relevance' }" @click="search.sortBy.value = 'relevance'; showSortMenu = false">相关度</button>
+              <button :class="{ active: search.sortBy.value === 'time' }" @click="search.sortBy.value = 'time'; showSortMenu = false">导入时间</button>
+              <button :class="{ active: search.sortBy.value === 'year' }" @click="search.sortBy.value = 'year'; showSortMenu = false">发表年份</button>
+              <button :class="{ active: search.sortBy.value === 'title' }" @click="search.sortBy.value = 'title'; showSortMenu = false">标题</button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Filter row -->
-    <div v-if="papers.length > 0" class="library-filters">
-      <select v-model="search.yearFilter.value" class="filter-select" :class="{ 'filter-active': search.yearFilter.value }">
-        <option value="">年份</option>
-        <option v-for="y in search.yearOptions.value" :key="y" :value="y">{{ y }}</option>
-      </select>
-      <select v-model="search.authorFilter.value" class="filter-select" :class="{ 'filter-active': search.authorFilter.value }">
-        <option value="">作者</option>
-        <option v-for="a in search.authorOptions.value" :key="a" :value="a">{{ a }}</option>
-      </select>
-    </div>
+      <div v-if="papers.length > 0" class="library-filters">
+        <select v-model="search.yearFilter.value" class="filter-select" :class="{ 'filter-active': search.yearFilter.value }">
+          <option value="">年份</option>
+          <option v-for="y in search.yearOptions.value" :key="y" :value="y">{{ y }}</option>
+        </select>
+        <select v-model="search.authorFilter.value" class="filter-select" :class="{ 'filter-active': search.authorFilter.value }">
+          <option value="">作者</option>
+          <option v-for="a in search.authorOptions.value" :key="a" :value="a">{{ a }}</option>
+        </select>
+      </div>
 
-    <!-- Upload button -->
-    <button
-      v-if="filteredPapers.length > 0 || papers.length > 0"
-      class="library-upload-btn"
-      type="button"
-      @click="emit('upload')"
-    >
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-        <polyline points="17 8 12 3 7 8" />
-        <line x1="12" y1="3" x2="12" y2="15" />
-      </svg>
-      导入论文
-    </button>
-
-    <!-- Loading -->
-    <div v-if="loading" class="library-empty">正在加载...</div>
-
-    <!-- Error -->
-    <div v-else-if="error" class="library-error">{{ error }}</div>
-
-    <!-- Importing placeholder (replaces empty state during import) -->
-    <div v-else-if="papers.length === 0 && importing && importQueue.length === 0" class="library-importing-state">
-      <div class="importing-spinner"></div>
-      <p class="importing-text">正在导入文献，请稍候...</p>
-    </div>
-
-    <!-- Batch import queue (empty library) -->
-    <div v-else-if="papers.length === 0 && importQueue.length > 0" class="import-queue">
-      <div
-        v-for="item in importQueue"
-        :key="item.fileName"
-        class="import-queue-item"
-        :class="'import-queue-item--' + item.status"
+      <button
+        v-if="filteredPapers.length > 0 || papers.length > 0"
+        class="library-upload-btn"
+        type="button"
+        @click="emit('upload')"
       >
-        <span class="import-queue-icon">
-          <svg v-if="item.status === 'completed'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-          <span v-else-if="item.status === 'importing'" class="import-queue-spinner"></span>
-          <span v-else-if="item.status === 'failed'" class="import-queue-dot import-queue-dot--failed">×</span>
-          <span v-else class="import-queue-dot"></span>
-        </span>
-        <div class="import-queue-body">
-          <div class="import-queue-filename">{{ item.fileName }}</div>
-          <div v-if="item.status === 'importing'" class="import-queue-bar-track">
-            <div class="import-queue-bar-fill" :style="{ width: item.percent + '%' }"></div>
-          </div>
-          <div class="import-queue-step" :class="{ 'import-queue-step--error': item.status === 'failed' }">{{ item.step }}</div>
-        </div>
-        <span v-if="item.status === 'importing'" class="import-queue-percent">{{ item.percent }}%</span>
-      </div>
-    </div>
-
-    <!-- Empty state -->
-    <div v-else-if="papers.length === 0" class="library-empty-state">
-      <p class="library-empty-text">开始导入你的第一篇论文</p>
-      <p class="library-empty-hint">支持 PDF 格式，拖拽或点击上传</p>
-      <button class="library-upload-btn library-upload-btn--prominent" type="button" @click="emit('upload')">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
           <polyline points="17 8 12 3 7 8" />
           <line x1="12" y1="3" x2="12" y2="15" />
@@ -111,96 +60,168 @@
       </button>
     </div>
 
-    <!-- No search results -->
-    <div v-else-if="filteredPapers.length === 0 && (search.hasQuery.value || search.yearFilter.value || search.authorFilter.value)" class="library-empty">
-      未找到匹配的论文，试试调整搜索关键词
-    </div>
+    <!-- Scrollable body -->
+    <div class="library-body">
+      <!-- Loading -->
+      <div v-if="loading" class="library-empty">正在加载...</div>
 
-    <!-- Paper list -->
-    <div v-else class="library-list">
-      <!-- Select all header -->
-      <label v-if="filteredPapers.length > 0" class="library-select-all">
-        <input
-          type="checkbox"
-          class="library-item-checkbox"
-          :checked="allFilteredSelected"
-          :indeterminate.prop="someFilteredSelected && !allFilteredSelected"
-          @change="handleSelectAll"
-        />
-        <span class="library-select-all-label">
-          {{ allFilteredSelected ? '取消全选' : '全选' }}
-        </span>
-        <span v-if="search.hasQuery.value || search.yearFilter.value || search.authorFilter.value" class="library-result-count">
-          {{ search.totalResults.value }} / {{ papers.length }}
-        </span>
-      </label>
+      <!-- Error -->
+      <div v-else-if="error" class="library-error">{{ error }}</div>
 
-      <LibraryPaperCard
-        v-for="paper in filteredPapers"
-        :key="paper.paper_id"
-        :paper="paper"
-        :selected="selectedIds.includes(paper.paper_id)"
-        :highlight-fn="search.highlightText"
-        @toggle="emit('toggle', $event)"
-        @remove="emit('remove', $event)"
-        @retry="handleRetry($event)"
-        @preview="handlePreview"
-      />
-
-      <!-- Summary footer -->
-      <div class="library-summary">
-        共 {{ papers.length }} 篇论文，已选 {{ selectedIds.length }} 篇
+      <!-- Importing placeholder -->
+      <div v-else-if="papers.length === 0 && importing && importQueue.length === 0" class="library-importing-state">
+        <div class="importing-spinner"></div>
+        <p class="importing-text">正在导入文献，请稍候...</p>
       </div>
-    </div>
 
-    <!-- Import queue (non-empty library) -->
-    <div v-if="importQueue.length > 0 && papers.length > 0" class="import-queue">
-      <div
-        v-for="item in importQueue"
-        :key="item.fileName"
-        class="import-queue-item"
-        :class="'import-queue-item--' + item.status"
-      >
-        <span class="import-queue-icon">
-          <svg v-if="item.status === 'completed'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-          <span v-else-if="item.status === 'importing'" class="import-queue-spinner"></span>
-          <span v-else-if="item.status === 'failed'" class="import-queue-dot import-queue-dot--failed">×</span>
-          <span v-else class="import-queue-dot"></span>
-        </span>
-        <div class="import-queue-body">
-          <div class="import-queue-filename">{{ item.fileName }}</div>
-          <div v-if="item.status === 'importing'" class="import-queue-bar-track">
-            <div class="import-queue-bar-fill" :style="{ width: item.percent + '%' }"></div>
+      <!-- Batch import queue (empty library) -->
+      <div v-else-if="papers.length === 0 && importQueue.length > 0" class="import-queue">
+        <div
+          v-for="item in importQueue"
+          :key="item.fileName"
+          class="import-queue-item"
+          :class="'import-queue-item--' + item.status"
+        >
+          <span class="import-queue-icon">
+            <svg v-if="item.status === 'completed'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <span v-else-if="item.status === 'importing'" class="import-queue-spinner"></span>
+            <span v-else-if="item.status === 'failed'" class="import-queue-dot import-queue-dot--failed">×</span>
+            <span v-else class="import-queue-dot"></span>
+          </span>
+          <div class="import-queue-body">
+            <div class="import-queue-filename">{{ item.fileName }}</div>
+            <div v-if="item.status === 'importing'" class="import-queue-bar-track">
+              <div class="import-queue-bar-fill" :style="{ width: item.percent + '%' }"></div>
+            </div>
+            <div class="import-queue-step" :class="{ 'import-queue-step--error': item.status === 'failed' }">{{ item.step }}</div>
           </div>
-          <div class="import-queue-step" :class="{ 'import-queue-step--error': item.status === 'failed' }">{{ item.step }}</div>
+          <span v-if="item.status === 'importing'" class="import-queue-percent">{{ item.percent }}%</span>
         </div>
-        <span v-if="item.status === 'importing'" class="import-queue-percent">{{ item.percent }}%</span>
+      </div>
+
+      <!-- Empty state -->
+      <div v-else-if="papers.length === 0" class="library-empty-state">
+        <p class="library-empty-text">开始导入你的第一篇论文</p>
+        <p class="library-empty-hint">支持 PDF 格式，拖拽或点击上传</p>
+        <button class="library-upload-btn library-upload-btn--prominent" type="button" @click="emit('upload')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="17 8 12 3 7 8" />
+            <line x1="12" y1="3" x2="12" y2="15" />
+          </svg>
+          导入论文
+        </button>
+      </div>
+
+      <!-- No search results -->
+      <div v-else-if="filteredPapers.length === 0 && (search.hasQuery.value || search.yearFilter.value || search.authorFilter.value)" class="library-empty">
+        未找到匹配的论文，试试调整搜索关键词
+      </div>
+
+      <!-- Paper list -->
+      <div v-else class="library-list">
+        <label v-if="filteredPapers.length > 0" class="library-select-all">
+          <input
+            type="checkbox"
+            class="library-item-checkbox"
+            :checked="allFilteredSelected"
+            :indeterminate.prop="someFilteredSelected && !allFilteredSelected"
+            @change="handleSelectAll"
+          />
+          <span class="library-select-all-label">
+            {{ allFilteredSelected ? '取消全选' : '全选' }}
+          </span>
+          <span v-if="search.hasQuery.value || search.yearFilter.value || search.authorFilter.value" class="library-result-count">
+            {{ search.totalResults.value }} / {{ papers.length }}
+          </span>
+        </label>
+
+        <LibraryPaperCard
+          v-for="paper in filteredPapers"
+          :key="paper.paper_id"
+          :paper="paper"
+          :selected="selectedIds.includes(paper.paper_id)"
+          :highlight-fn="search.highlightText"
+          @toggle="emit('toggle', $event)"
+          @remove="handleRemove"
+          @retry="handleRetry($event)"
+          @preview="handlePreview"
+        />
+
+        <div class="library-summary">
+          共 {{ papers.length }} 篇论文，已选 {{ selectedIds.length }} 篇
+        </div>
+      </div>
+
+      <!-- Import queue (non-empty library) -->
+      <div v-if="importQueue.length > 0 && papers.length > 0" class="import-queue">
+        <div
+          v-for="item in importQueue"
+          :key="item.fileName"
+          class="import-queue-item"
+          :class="'import-queue-item--' + item.status"
+        >
+          <span class="import-queue-icon">
+            <svg v-if="item.status === 'completed'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <span v-else-if="item.status === 'importing'" class="import-queue-spinner"></span>
+            <span v-else-if="item.status === 'failed'" class="import-queue-dot import-queue-dot--failed">×</span>
+            <span v-else class="import-queue-dot"></span>
+          </span>
+          <div class="import-queue-body">
+            <div class="import-queue-filename">{{ item.fileName }}</div>
+            <div v-if="item.status === 'importing'" class="import-queue-bar-track">
+              <div class="import-queue-bar-fill" :style="{ width: item.percent + '%' }"></div>
+            </div>
+            <div class="import-queue-step" :class="{ 'import-queue-step--error': item.status === 'failed' }">{{ item.step }}</div>
+          </div>
+          <span v-if="item.status === 'importing'" class="import-queue-percent">{{ item.percent }}%</span>
+        </div>
+      </div>
+
+      <!-- Single file import progress -->
+      <div v-else-if="importing" class="import-progress">
+        <div class="import-info">
+          <span class="import-filename">{{ importFileName || '正在导入...' }}</span>
+          <span class="import-percent">{{ importPercent }}%</span>
+        </div>
+        <div class="import-bar-track">
+          <div class="import-bar-fill" :style="{ width: importPercent + '%' }"></div>
+        </div>
+        <div v-if="importStep" class="import-step">{{ importStep }}</div>
+      </div>
+
+      <!-- Import error -->
+      <div v-if="importError" class="import-error">
+        <span class="import-error-icon">!</span>
+        <span class="import-error-text">{{ importError }}</span>
+        <button class="import-error-close" type="button" @click="libraryStore.clearImportError()">×</button>
       </div>
     </div>
 
-    <!-- Single file import progress (InputBar upload, no queue) -->
-    <div v-else-if="importing" class="import-progress">
-      <div class="import-info">
-        <span class="import-filename">{{ importFileName || '正在导入...' }}</span>
-        <span class="import-percent">{{ importPercent }}%</span>
-      </div>
-      <div class="import-bar-track">
-        <div class="import-bar-fill" :style="{ width: importPercent + '%' }"></div>
-      </div>
-      <div v-if="importStep" class="import-step">{{ importStep }}</div>
-    </div>
-
-    <!-- Import error -->
-    <div v-if="importError" class="import-error">
-      <span class="import-error-icon">!</span>
-      <span class="import-error-text">{{ importError }}</span>
-      <button class="import-error-close" type="button" @click="libraryStore.clearImportError()">×</button>
-    </div>
+    <!-- Delete confirmation dialog -->
+    <Teleport to="body">
+      <Transition name="confirm-fade">
+        <div v-if="confirmDelete.visible" class="confirm-overlay" @click.self="cancelDelete">
+          <div class="confirm-dialog">
+            <p class="confirm-message">确定要删除这篇论文吗？</p>
+            <p class="confirm-title">{{ confirmDelete.title }}</p>
+            <label class="confirm-skip">
+              <input type="checkbox" v-model="skipDeleteConfirm" />
+              <span>本次对话不再提示</span>
+            </label>
+            <div class="confirm-actions">
+              <button class="confirm-btn confirm-btn--cancel" type="button" @click="cancelDelete">取消</button>
+              <button class="confirm-btn confirm-btn--danger" type="button" @click="confirmDeleteAction">删除</button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import type { PaperItem } from '../services/library-api'
 import { useLibraryStore } from '../stores/library'
 import { useUiStore } from '../stores/ui'
@@ -228,6 +249,10 @@ const emit = defineEmits<{
 }>()
 
 const showSortMenu = ref(false)
+
+// 删除确认状态
+const skipDeleteConfirm = ref(false)
+const confirmDelete = reactive({ visible: false, paperId: '', title: '' })
 
 const search = useLibrarySearch(() => props.papers)
 
@@ -260,14 +285,55 @@ function handlePreview(paperId: string) {
 function handleRetry(paperId: string) {
   emit('retry', paperId)
 }
+
+function handleRemove(paperId: string) {
+  if (skipDeleteConfirm.value) {
+    emit('remove', paperId)
+    return
+  }
+  const paper = props.papers.find((p) => p.paper_id === paperId)
+  confirmDelete.paperId = paperId
+  confirmDelete.title = paper?.title || paperId
+  confirmDelete.visible = true
+}
+
+function cancelDelete() {
+  confirmDelete.visible = false
+}
+
+function confirmDeleteAction() {
+  emit('remove', confirmDelete.paperId)
+  confirmDelete.visible = false
+}
 </script>
 
 <style scoped>
 .library-panel {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
   min-height: 0;
+  height: 100%;
+}
+
+/* ─── Sticky header ─── */
+.library-header {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-bottom: var(--space-3);
+  background: var(--color-surface-card);
+  z-index: 5;
+}
+
+/* ─── Scrollable body ─── */
+.library-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
 }
 
 /* ─── Search ─── */
@@ -770,5 +836,106 @@ function handleRetry(paperId: string) {
 
 .import-error-close:hover {
   opacity: 1;
+}
+
+/* ─── Delete confirmation ─── */
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.confirm-dialog {
+  width: 280px;
+  background: var(--color-surface-card);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.confirm-message {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.confirm-title {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.confirm-skip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.confirm-skip input {
+  accent-color: var(--color-accent);
+  cursor: pointer;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: flex-end;
+  margin-top: var(--space-1);
+}
+
+.confirm-btn {
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--color-border-subtle);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.confirm-btn--cancel {
+  background: transparent;
+  color: var(--color-text-secondary);
+}
+
+.confirm-btn--cancel:hover {
+  background: var(--color-surface-muted);
+}
+
+.confirm-btn--danger {
+  background: var(--color-error, #c53030);
+  color: #fff;
+  border-color: var(--color-error, #c53030);
+}
+
+.confirm-btn--danger:hover {
+  opacity: 0.9;
+}
+
+.confirm-fade-enter-active,
+.confirm-fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.confirm-fade-enter-from,
+.confirm-fade-leave-to {
+  opacity: 0;
 }
 </style>
