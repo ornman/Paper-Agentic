@@ -100,6 +100,13 @@
       :demo-mode="demoActive"
       @close="uiStore.closeReader()"
     />
+
+    <!-- 配置初始化弹窗 -->
+    <ConfigInitDialog
+      :visible="configDialogVisible"
+      @close="configDialogVisible = false"
+      @saved="handleConfigSaved"
+    />
   </div>
 </template>
 
@@ -109,6 +116,7 @@ import type { SourceCard } from '../types/source'
 import { useConversationStore } from '../stores/conversation'
 import type { ConversationRecord, UserMessage, AssistantMessage } from '../stores/conversation'
 import { useLibraryStore } from '../stores/library'
+import { useSettingsStore } from '../stores/settings'
 import { useUiStore } from '../stores/ui'
 import { listSessions, createSession, deleteSession, getMessages } from '../services/conversation-api'
 
@@ -120,6 +128,7 @@ import MessageList from '../components/MessageList.vue'
 import EmptyState from '../components/EmptyState.vue'
 
 import InputBar from '../components/InputBar.vue'
+import ConfigInitDialog from '../components/ConfigInitDialog.vue'
 import CitationPreview from '../components/CitationPreview.vue'
 import PdfReaderPanel from '../components/PdfReaderPanel.vue'
 import SidebarDrawer from '../components/SidebarDrawer.vue'
@@ -128,8 +137,10 @@ import LibraryPanel from '../components/LibraryPanel.vue'
 
 const store = useConversationStore()
 const libraryStore = useLibraryStore()
+const settingsStore = useSettingsStore()
 const uiStore = useUiStore()
 const resetCounter = ref(0)
+const configDialogVisible = ref(false)
 
 const { startPolling, isWPSAvailable } = useWPSPolling(true, () => store.sessionId)
 
@@ -321,6 +332,12 @@ async function probeBackend(): Promise<boolean> {
   } catch {
     return false
   }
+}
+
+// ─── 配置保存完成 ───
+function handleConfigSaved() {
+  configDialogVisible.value = false
+  settingsStore.backendConfigured = true
 }
 
 // ─── 新建对话 ───
@@ -539,6 +556,13 @@ onMounted(async () => {
       initDemoMode()
     } else {
       if (isWPSAvailable.value) startPolling()
+      // Check if backend config is complete
+      if (!settingsStore.backendConfigured) {
+        await settingsStore.fetchBackendConfig()
+        if (!settingsStore.backendConfigured) {
+          configDialogVisible.value = true
+        }
+      }
     }
   }
   window.addEventListener('keydown', handleKeydown)
