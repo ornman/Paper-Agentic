@@ -114,7 +114,7 @@
           </div>
           <div class="import-queue-actions">
             <span v-if="item.status === 'importing'" class="import-queue-percent">{{ item.percent }}%</span>
-            <button v-if="item.status === 'failed'" type="button" class="import-queue-retry" title="重试" @click="libraryStore.retryQueueItem(idx)">
+            <button v-if="item.status === 'failed' && item.file" type="button" class="import-queue-retry" title="重试" @click="libraryStore.retryQueueItem(idx)">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
             </button>
             <button v-if="item.status === 'failed'" type="button" class="import-queue-remove" title="移除" @click="libraryStore.removeQueueItem(idx)">×</button>
@@ -202,7 +202,7 @@
           </div>
           <div class="import-queue-actions">
             <span v-if="item.status === 'importing'" class="import-queue-percent">{{ item.percent }}%</span>
-            <button v-if="item.status === 'failed'" type="button" class="import-queue-retry" title="重试" @click="libraryStore.retryQueueItem(idx)">
+            <button v-if="item.status === 'failed' && item.file" type="button" class="import-queue-retry" title="重试" @click="libraryStore.retryQueueItem(idx)">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
             </button>
             <button v-if="item.status === 'failed'" type="button" class="import-queue-remove" title="移除" @click="libraryStore.removeQueueItem(idx)">×</button>
@@ -323,7 +323,7 @@ const hasImportStatus = computed(() =>
 const filteredPapers = computed(() => search.results.value)
 
 onMounted(() => {
-  if (libraryStore.importQueue.length > 0) {
+  if (libraryStore.importQueue.length > 0 && !libraryStore.importing) {
     libraryStore.resumeImports()
   }
 })

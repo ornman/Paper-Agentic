@@ -102,6 +102,11 @@ export const useLibraryStore = defineStore('library', () => {
 
   // 恢复刷新前进行中的导入任务
   async function resumeImports() {
+    // 移除无法恢复的项（无 taskId 且无 file）
+    importQueue.value = importQueue.value.filter(
+      (item) => item.taskId || item.file,
+    )
+
     const active = importQueue.value.filter(
       (item) => item.status === 'importing' || item.status === 'pending',
     )
@@ -113,22 +118,31 @@ export const useLibraryStore = defineStore('library', () => {
 
     importing.value = true
     for (const item of active) {
+      const idx = importQueue.value.indexOf(item)
+      if (idx === -1) continue
       if (item.taskId) {
-        const idx = importQueue.value.indexOf(item)
-        if (idx !== -1) {
-          try {
-            await monitorImportStatus(item.taskId, idx)
-          } catch {
-            item.status = 'failed'
-            item.step = '导入失败（刷新后恢复）'
-          }
+        try {
+          await monitorImportStatus(item.taskId, idx)
+        } catch {
+          item.status = 'failed'
+          item.step = '导入失败（刷新后恢复）'
         }
-      } else {
-        item.status = 'failed'
-        item.step = '导入失败（无法恢复）'
+      } else if (item.file) {
+        try {
+          const result = await startImport(item.file)
+          item.taskId = result.task_id
+          item.status = 'importing'
+          item.percent = 8
+          item.step = '任务已创建，等待处理'
+          await monitorImportStatus(result.task_id, idx)
+        } catch {
+          item.status = 'failed'
+          item.step = '导入失败'
+        }
       }
     }
     importing.value = false
+    persistQueue(importQueue.value)
     void loadPapers()
   }
 
