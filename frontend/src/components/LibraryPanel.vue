@@ -69,7 +69,10 @@
     <!-- Importing placeholder (replaces empty state during import) -->
     <div v-else-if="papers.length === 0 && importing" class="library-importing-state">
       <div class="importing-spinner"></div>
-      <p class="importing-text">正在导入文献，请稍候...</p>
+      <p class="importing-text">
+        <template v-if="importBatchTotal > 1">正在导入 ({{ importBatchCurrent }}/{{ importBatchTotal }})...</template>
+        <template v-else>正在导入文献，请稍候...</template>
+      </p>
     </div>
 
     <!-- Empty state -->
@@ -131,7 +134,10 @@
     <!-- Import progress -->
     <div v-if="importing" class="import-progress">
       <div class="import-info">
-        <span class="import-filename">{{ importFileName || '正在导入...' }}</span>
+        <span class="import-filename">
+          <template v-if="importBatchTotal > 1" class="import-batch-badge">({{ importBatchCurrent }}/{{ importBatchTotal }})</template>
+          {{ importFileName || '正在导入...' }}
+        </span>
         <span class="import-percent">{{ importPercent }}%</span>
       </div>
       <div class="import-bar-track">
@@ -160,7 +166,7 @@ import { storeToRefs } from 'pinia'
 
 const libraryStore = useLibraryStore()
 const uiStore = useUiStore()
-const { importing, importFileName, importPercent, importStep, importError } = storeToRefs(libraryStore)
+const { importing, importFileName, importPercent, importStep, importError, importBatchTotal, importBatchCurrent } = storeToRefs(libraryStore)
 
 const props = defineProps<{
   papers: PaperItem[]

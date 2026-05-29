@@ -47,7 +47,8 @@ export const useLibraryStore = defineStore('library', () => {
   const importStep = ref('')
   const importPercent = ref(0)
   const importError = ref<string | null>(null)
-  let hasLoadedPapersAfterImport = false
+  const importBatchTotal = ref(0)
+  const importBatchCurrent = ref(0)
   let lastProgressSignature = ''
 
   const selectedPaperCount = computed(() => selectedPaperIds.value.length)
@@ -132,12 +133,12 @@ export const useLibraryStore = defineStore('library', () => {
     if (progress.status === 'completed') {
       importStep.value = '导入完成'
       importPercent.value = 100
-      importing.value = false
-      log.info('导入完成', { paperId: progress.paper_id })
-      if (!hasLoadedPapersAfterImport) {
-        hasLoadedPapersAfterImport = true
-        void loadPapers()
+      // 批量模式下不立即关闭 importing，由 importFiles 统一管理
+      if (importBatchTotal.value <= 1) {
+        importing.value = false
       }
+      log.info('导入完成', { paperId: progress.paper_id })
+      void loadPapers()
       return
     }
 
@@ -206,7 +207,6 @@ export const useLibraryStore = defineStore('library', () => {
 
   async function importFile(file: File) {
     importing.value = true
-    hasLoadedPapersAfterImport = false
     lastProgressSignature = ''
     importFileName.value = file.name
     importStep.value = '提交中...'
@@ -229,6 +229,50 @@ export const useLibraryStore = defineStore('library', () => {
     }
   }
 
+  async function importFiles(files: File[]) {
+    if (files.length === 0) return
+    if (files.length === 1) {
+      return importFile(files[0])
+    }
+
+    importing.value = true
+    importBatchTotal.value = files.length
+    importBatchCurrent.value = 0
+    importError.value = null
+    error.value = null
+
+    for (let i = 0; i < files.length; i++) {
+      importBatchCurrent.value = i + 1
+      lastProgressSignature = ''
+      importFileName.value = files[i].name
+      importStep.value = '提交中...'
+      importPercent.value = 2
+      log.info('批量导入进度', { current: i + 1, total: files.length, name: files[i].name })
+
+      try {
+        const result = await startImport(files[i])
+        importStep.value = '任务已创建，等待处理'
+        importPercent.value = 8
+        log.info('导入任务已创建', { taskId: result.task_id, fileName: files[i].name })
+        await monitorImportStatus(result.task_id)
+      } catch (err: unknown) {
+        importError.value = err instanceof Error ? err.message : `导入 ${files[i].name} 失败`
+        log.error('批量导入中单文件失败', err, { name: files[i].name })
+        // 继续导入下一文件
+      }
+
+      // 单文件完成后短暂停顿，让 UI 显示"完成"状态
+      if (i < files.length - 1) {
+        await wait(600)
+      }
+    }
+
+    importBatchTotal.value = 0
+    importBatchCurrent.value = 0
+    importing.value = false
+    void loadPapers()
+  }
+
   function clearImportError() {
     importError.value = null
   }
@@ -245,12 +289,15 @@ export const useLibraryStore = defineStore('library', () => {
     importStep,
     importPercent,
     importError,
+    importBatchTotal,
+    importBatchCurrent,
     loadPapers,
     removePaper,
     setSelectedPaperIds,
     togglePaperSelection,
     clearSelectedPapers,
     importFile,
+    importFiles,
     monitorImportStatus,
     clearImportError,
     setImportError,

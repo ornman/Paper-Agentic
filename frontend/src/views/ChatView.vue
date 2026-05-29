@@ -477,9 +477,7 @@ function triggerFileUpload() {
     const files = input.files
     if (!files || files.length === 0) return
     const pdfFiles = Array.from(files).filter((f) => f.name.toLowerCase().endsWith('.pdf'))
-    for (const file of pdfFiles) {
-      await libraryStore.importFile(file)
-    }
+    await libraryStore.importFiles(pdfFiles)
   }
   input.click()
 }
