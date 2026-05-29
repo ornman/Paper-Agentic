@@ -280,6 +280,7 @@ export const useLibraryStore = defineStore('library', () => {
 
     for (let i = 0; i < files.length; i++) {
       const item = importQueue.value[i]
+      if (item.status === 'completed') continue  // 已完成的跳过
       item.status = 'importing'
       item.percent = 2
       item.step = '提交中...'
@@ -298,7 +299,16 @@ export const useLibraryStore = defineStore('library', () => {
         item.step = '导入失败'
         log.error('批量导入中单文件失败', err, { name: files[i].name })
       }
+
+      // 已完成的短暂展示后标记为可清除
+      const completed = importQueue.value[i]?.status === 'completed'
+      if (completed) {
+        await wait(800)
+      }
     }
+
+    // 清除已完成的条目，保留失败的
+    importQueue.value = importQueue.value.filter((item) => item.status !== 'completed')
 
     importing.value = false
     void loadPapers()

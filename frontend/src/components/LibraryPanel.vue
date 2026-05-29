@@ -154,7 +154,7 @@
     </div>
 
     <!-- Import queue (non-empty library) -->
-    <div v-if="importQueue.length > 0" class="import-queue">
+    <div v-if="importQueue.length > 0 && papers.length > 0" class="import-queue">
       <div
         v-for="item in importQueue"
         :key="item.fileName"

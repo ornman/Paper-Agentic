@@ -53,7 +53,7 @@
       :visible="uiStore.sidebarOpen"
       :active-tab="uiStore.sidebarTab"
       @close="uiStore.closeSidebar()"
-      @update:active-tab="uiStore.sidebarTab = $event"
+      @update:active-tab="(tab: 'history' | 'library') => { uiStore.sidebarTab = tab; if (tab === 'library') libraryStore.loadPapers() }"
     >
       <template #history>
         <HistoryPanel
