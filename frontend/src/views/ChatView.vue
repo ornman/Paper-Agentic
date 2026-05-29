@@ -494,8 +494,7 @@ async function handleRemovePaper(paperId: string) {
 }
 
 // ─── 重试失败的导入 ───
-async function handleRetryImport(filePath: string) {
-  const paperId = filePath.split(/[\\/]/).pop()?.replace('.pdf', '') ?? ''
+async function handleRetryImport(paperId: string) {
   try {
     const { retryImport } = await import('../services/library-api')
     const result = await retryImport(paperId)

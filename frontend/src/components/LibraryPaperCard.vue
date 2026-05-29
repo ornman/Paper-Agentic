@@ -67,7 +67,7 @@
         class="paper-card-action"
         type="button"
         title="重试"
-        @click.prevent.stop="emit('retry', paper.file_path)"
+        @click.prevent.stop="emit('retry', paper.paper_id)"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
       </button>
@@ -103,7 +103,7 @@ const emit = defineEmits<{
   (e: 'toggle', id: string): void
   (e: 'remove', id: string): void
   (e: 'similar', id: string): void
-  (e: 'retry', filePath: string): void
+  (e: 'retry', paperId: string): void
 }>()
 
 const highlightTitle = computed(() =>
