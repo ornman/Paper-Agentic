@@ -164,7 +164,10 @@ watch(text, () => {
 function toggleExpand() {
   expanded.value = !expanded.value
   if (expanded.value) {
-    nextTick(() => textareaEl.value?.focus())
+    nextTick(() => {
+      if (textareaEl.value) textareaEl.value.style.height = ''
+      textareaEl.value?.focus()
+    })
   }
 }
 
@@ -173,6 +176,7 @@ function handleSend() {
   if (!trimmed) return
   emit('send', trimmed)
   text.value = ''
+  expanded.value = false
   if (textareaEl.value) {
     textareaEl.value.style.height = 'auto'
   }
@@ -216,7 +220,8 @@ function autoResize(event: Event) {
   padding: var(--space-3) var(--space-4);
   box-shadow: var(--shadow-sm);
   transition: box-shadow var(--duration-fast) ease,
-              border-color var(--duration-fast) ease;
+              border-color var(--duration-fast) ease,
+              height 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .input-bar:focus-within {
