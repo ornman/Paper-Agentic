@@ -380,12 +380,18 @@ export const useLibraryStore = defineStore('library', () => {
         log.error('批量导入中单文件失败', err, { name: files[i].name })
       }
 
+      // 完成后展示 3 秒再自动移除
+      if (importQueue.value[i]?.status === 'completed') {
+        await wait(3000)
+        if (importQueue.value[i]?.status === 'completed') {
+          importQueue.value.splice(i, 1)
+          i--
+        }
+      }
       persistQueue(importQueue.value)
     }
 
-    // 全部完成后短暂展示结果，再清理队列
-    const hasSuccess = importQueue.value.some((item) => item.status === 'completed')
-    if (hasSuccess) await wait(2000)
+    // 清理已完成的，只保留失败的
     importQueue.value = importQueue.value.filter((item) => item.status === 'failed')
 
     if (dupNames.length > 0) {
