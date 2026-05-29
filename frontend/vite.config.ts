@@ -134,7 +134,23 @@ function assembleWpsPlugin() {
 }
 
 export default defineConfig({
-  plugins: [vue(), assembleWpsPlugin()],
+  plugins: [
+    vue(),
+    {
+      name: 'redirect-root-to-app',
+      configureServer(server) {
+        server.middlewares.use((req, res, next) => {
+          if (req.url === '/' || req.url === '') {
+            res.writeHead(302, { Location: '/app.html' })
+            res.end()
+            return
+          }
+          next()
+        })
+      },
+    },
+    assembleWpsPlugin(),
+  ],
   base: './',
   server: {
     port: 3893,
