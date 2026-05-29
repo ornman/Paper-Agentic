@@ -147,6 +147,13 @@
       </div>
       <div v-if="importStep" class="import-step">{{ importStep }}</div>
     </div>
+
+    <!-- Import error -->
+    <div v-if="importError" class="import-error">
+      <span class="import-error-icon">!</span>
+      <span class="import-error-text">{{ importError }}</span>
+      <button class="import-error-close" type="button" @click="libraryStore.clearImportError()">×</button>
+    </div>
   </div>
 </template>
 
@@ -552,5 +559,53 @@ function handleSimilar(paperId: string) {
   font-size: 11px;
   color: var(--color-text-muted);
   margin-top: var(--space-1);
+}
+
+.import-error {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  margin-top: var(--space-2);
+  background: color-mix(in srgb, var(--color-error, #c53030) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-error, #c53030) 25%, transparent);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-error, #c53030);
+}
+
+.import-error-icon {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--color-error, #c53030);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.import-error-text {
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+}
+
+.import-error-close {
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  color: var(--color-error, #c53030);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0 2px;
+  opacity: 0.6;
+}
+
+.import-error-close:hover {
+  opacity: 1;
 }
 </style>
