@@ -16,14 +16,14 @@ import { useLogger } from '../composables/logger'
 const log = useLogger('api')
 
 const STEP_LABELS: Record<string, string> = {
-  starting: '启动导入...',
+  starting: '正在准备导入...',
   queued: '等待处理...',
-  transforming: 'PDF 解析中...',
-  cleaning: '数据清洗中...',
-  vlm_enriching: '图片理解中...',
-  chunking: '智能切分中...',
-  embedding: '向量计算中...',
-  indexing: '索引构建中...',
+  transforming: '正在读取论文内容...',
+  cleaning: '正在整理文本内容...',
+  vlm_enriching: '正在识别图表和公式...',
+  chunking: '正在分析论文结构...',
+  embedding: '正在建立智能索引...',
+  indexing: '即将完成，准备就绪...',
   running: '处理中...',
   done: '完成',
 }
