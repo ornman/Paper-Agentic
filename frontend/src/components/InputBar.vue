@@ -10,7 +10,7 @@
         @mouseleave="badgeHover = false"
       >
         <span class="badge-icon" v-html="icons.doc" />
-        <span>已选 {{ selectedPaperCount }} 篇文献</span>
+        <span>已引用 {{ selectedPaperCount }} 篇参考文献</span>
         <button class="badge-clear" type="button" @click.stop="emit('clear-papers')">×</button>
 
         <!-- 悬浮文献列表 -->
