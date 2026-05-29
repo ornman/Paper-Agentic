@@ -791,6 +791,21 @@ function confirmDeleteAction() {
   opacity: 0.65;
 }
 
+.import-queue-item--failed {
+  background: color-mix(in srgb, var(--color-error, #c53030) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-error, #c53030) 20%, transparent);
+  border-radius: var(--radius-sm);
+}
+
+.import-queue-item--failed .import-queue-filename {
+  color: var(--color-error, #c53030);
+}
+
+.import-queue-item--failed .import-queue-step {
+  color: var(--color-error, #c53030);
+  opacity: 0.8;
+}
+
 .import-queue-icon {
   flex-shrink: 0;
   width: 16px;
