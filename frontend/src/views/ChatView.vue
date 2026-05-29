@@ -110,7 +110,7 @@ import type { ConversationRecord, UserMessage, AssistantMessage } from '../store
 import { useLibraryStore } from '../stores/library'
 import { useUiStore } from '../stores/ui'
 import { listSessions, createSession, deleteSession, getMessages } from '../services/conversation-api'
-import { fetchPapers } from '../services/library-api'
+
 import type { ConversationSession } from '../services/conversation-api'
 import { useWPSPolling } from '../composables/wps'
 import { isDemoMode, DEMO_PAPERS, DEMO_SESSIONS } from '../demo'
@@ -312,11 +312,11 @@ function initDemoMode() {
   libraryStore.setSelectedPaperIds(['paper-1', 'paper-2'])
 }
 
-// 探测后端是否可用，不可用时自动激活 demo 模式
+// 探测后端是否可达（不依赖文献库是否有数据）
 async function probeBackend(): Promise<boolean> {
   try {
-    const result = await fetchPapers()
-    return !!result.papers
+    const resp = await fetch('/api/v1/papers', { method: 'HEAD' })
+    return resp.ok || resp.status === 405
   } catch {
     return false
   }
