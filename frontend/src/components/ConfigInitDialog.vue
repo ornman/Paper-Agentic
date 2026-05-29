@@ -198,8 +198,8 @@ async function handleSave() {
 }
 
 .config-illustration {
-  width: 80px;
-  height: 80px;
+  width: 140px;
+  height: 140px;
   margin-bottom: 12px;
 }
 
