@@ -2,15 +2,6 @@
   <div class="empty-state">
     <h1 class="empty-title">{{ greeting.title }}</h1>
     <p class="empty-hint">{{ greeting.hint }}</p>
-    <button class="shuffle-btn" type="button" @click="shuffle" title="换一批">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M2 18h1.4c1.3 0 2.5-.6 3.3-1.7l6.1-8.6c.7-1.1 2-1.7 3.3-1.7H20" />
-        <path d="m18 2 4 4-4 4" />
-        <path d="M2 6h1.9c1.5 0 2.9.9 3.6 2.2" />
-        <path d="M20 18h-3.9c-1.3 0-2.5-.6-3.3-1.7l-.5-.8" />
-        <path d="m18 14 4 4-4 4" />
-      </svg>
-    </button>
     <div class="prompt-grid">
       <button
         v-for="card in promptCards"
@@ -24,6 +15,11 @@
           <div class="prompt-card-title">{{ card.title }}</div>
           <div class="prompt-card-desc">{{ card.description }}</div>
         </div>
+      </button>
+      <button class="shuffle-btn" type="button" @click="shuffle" title="换一批">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="18" height="18" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M42 8v16M6 24v16m36-16c0-9.941-8.059-18-18-18a17.95 17.95 0 0 0-12.952 5.5M6 24c0 9.941 8.059 18 18 18a17.94 17.94 0 0 0 12.5-5.048" />
+        </svg>
       </button>
     </div>
   </div>
@@ -170,33 +166,31 @@ const greeting = greetings[Math.floor(Math.random() * greetings.length)]
   margin-bottom: var(--space-6, 24px);
 }
 
-.shuffle-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  margin-bottom: var(--space-3, 12px);
-  background: transparent;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm, 6px);
-  color: var(--color-text-muted);
-  cursor: pointer;
-  transition: all 150ms ease;
-}
-
-.shuffle-btn:hover {
-  color: var(--color-accent);
-  border-color: var(--color-accent);
-  background: var(--color-accent-soft, rgba(59, 130, 246, 0.06));
-}
-
 .prompt-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: var(--space-3, 12px);
   max-width: 680px;
   width: 100%;
+}
+
+.shuffle-btn {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 0;
+  opacity: 0.6;
+  transition: opacity 150ms ease, color 150ms ease;
+}
+
+.shuffle-btn:hover {
+  opacity: 1;
+  color: var(--color-accent);
 }
 
 @media (max-width: 640px) {
