@@ -38,6 +38,7 @@ function isImportTerminalStatus(status: string) {
 
 export interface ImportQueueItem {
   fileName: string
+  file?: File
   status: 'pending' | 'importing' | 'completed' | 'failed'
   percent: number
   step: string
@@ -273,6 +274,7 @@ export const useLibraryStore = defineStore('library', () => {
 
     importQueue.value = files.map((f) => ({
       fileName: f.name,
+      file: f,
       status: 'pending' as const,
       percent: 0,
       step: '等待中',
@@ -322,6 +324,31 @@ export const useLibraryStore = defineStore('library', () => {
     importQueue.value = []
   }
 
+  async function retryQueueItem(index: number) {
+    const item = importQueue.value[index]
+    if (!item || !item.file) return
+
+    item.status = 'importing'
+    item.percent = 2
+    item.step = '提交中...'
+    item.error = undefined
+    lastProgressSignature = ''
+
+    try {
+      const result = await startImport(item.file)
+      item.percent = 8
+      item.step = '任务已创建，等待处理'
+      log.info('重试导入', { taskId: result.task_id, fileName: item.fileName })
+      await monitorImportStatus(result.task_id, index)
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : '导入失败'
+      item.status = 'failed'
+      item.error = msg
+      item.step = '导入失败'
+      log.error('重试导入失败', err, { name: item.fileName })
+    }
+  }
+
   return {
     papers,
     loading,
@@ -346,5 +373,6 @@ export const useLibraryStore = defineStore('library', () => {
     clearImportError,
     setImportError,
     clearImportQueue,
+    retryQueueItem,
   }
 })

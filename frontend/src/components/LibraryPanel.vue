@@ -77,7 +77,7 @@
       <!-- Batch import queue (empty library) -->
       <div v-else-if="papers.length === 0 && importQueue.length > 0" class="import-queue">
         <div
-          v-for="item in importQueue"
+          v-for="(item, idx) in importQueue"
           :key="item.fileName"
           class="import-queue-item"
           :class="'import-queue-item--' + item.status"
@@ -95,8 +95,25 @@
             </div>
             <div class="import-queue-step" :class="{ 'import-queue-step--error': item.status === 'failed' }">{{ item.step }}</div>
           </div>
-          <span v-if="item.status === 'importing'" class="import-queue-percent">{{ item.percent }}%</span>
+          <div class="import-queue-actions">
+            <span v-if="item.status === 'importing'" class="import-queue-percent">{{ item.percent }}%</span>
+            <button
+              v-if="item.status === 'failed'"
+              type="button"
+              class="import-queue-retry"
+              title="重试"
+              @click="libraryStore.retryQueueItem(idx)"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+            </button>
+          </div>
         </div>
+        <button
+          v-if="importQueue.every(q => q.status === 'failed' || q.status === 'completed')"
+          type="button"
+          class="import-queue-dismiss"
+          @click="libraryStore.clearImportQueue()"
+        >关闭</button>
       </div>
 
       <!-- Empty state -->
@@ -160,7 +177,7 @@
       <!-- Import queue (non-empty library) -->
       <div v-if="importQueue.length > 0 && papers.length > 0" class="import-queue">
         <div
-          v-for="item in importQueue"
+          v-for="(item, idx) in importQueue"
           :key="item.fileName"
           class="import-queue-item"
           :class="'import-queue-item--' + item.status"
@@ -178,8 +195,25 @@
             </div>
             <div class="import-queue-step" :class="{ 'import-queue-step--error': item.status === 'failed' }">{{ item.step }}</div>
           </div>
-          <span v-if="item.status === 'importing'" class="import-queue-percent">{{ item.percent }}%</span>
+          <div class="import-queue-actions">
+            <span v-if="item.status === 'importing'" class="import-queue-percent">{{ item.percent }}%</span>
+            <button
+              v-if="item.status === 'failed'"
+              type="button"
+              class="import-queue-retry"
+              title="重试"
+              @click="libraryStore.retryQueueItem(idx)"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+            </button>
+          </div>
         </div>
+        <button
+          v-if="importQueue.every(q => q.status === 'failed' || q.status === 'completed')"
+          type="button"
+          class="import-queue-dismiss"
+          @click="libraryStore.clearImportQueue()"
+        >关闭</button>
       </div>
 
       <!-- Single file import progress -->
@@ -779,6 +813,49 @@ function confirmDeleteAction() {
   font-variant-numeric: tabular-nums;
   font-weight: 600;
   margin-top: 1px;
+}
+
+.import-queue-actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.import-queue-retry {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.import-queue-retry:hover {
+  color: var(--color-accent);
+  background: var(--color-surface-muted);
+}
+
+.import-queue-dismiss {
+  display: block;
+  width: 100%;
+  padding: var(--space-2);
+  border: none;
+  border-top: 1px solid var(--color-border-subtle);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.import-queue-dismiss:hover {
+  color: var(--color-text-primary);
 }
 
 /* ─── Import progress ─── */
