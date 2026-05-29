@@ -44,7 +44,15 @@ export function usePdfRenderer(
   }
 
   function setupObserver(scrollContainer: HTMLElement) {
-    teardownObserver()
+    // 只断开旧 observer，不清空 pageElements（调用方已注册）
+    if (observer) {
+      for (const el of pageElements.values()) {
+        observer.unobserve(el)
+      }
+      observer.disconnect()
+      observer = null
+    }
+    visiblePages.value.clear()
 
     observer = new IntersectionObserver(
       (entries) => {

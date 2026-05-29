@@ -6,7 +6,7 @@
     :data-page-number="pageNumber"
   >
     <canvas ref="canvasRef" class="pdf-page-canvas" />
-    <div ref="textLayerRef" class="pdf-text-layer" />
+    <div ref="textLayerRef" class="textLayer" />
   </div>
 </template>
 
@@ -14,6 +14,7 @@
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { TextLayer } from 'pdfjs-dist'
 import type { PDFDocumentProxy, PDFPageProxy, PageViewport } from 'pdfjs-dist'
+import 'pdfjs-dist/web/pdf_viewer.css'
 
 const props = defineProps<{
   pdfDoc: PDFDocumentProxy
@@ -144,24 +145,6 @@ onBeforeUnmount(() => {
 
 .pdf-page-canvas {
   display: block;
-}
-
-.pdf-text-layer {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  line-height: 1;
-}
-
-.pdf-text-layer ::selection {
-  background: var(--color-accent-soft);
-}
-
-.pdf-text-layer > span {
-  color: transparent;
-  position: absolute;
-  white-space: pre;
-  transform-origin: 0% 0%;
 }
 
 .pdf-highlight-overlay {
