@@ -183,14 +183,18 @@ const greeting = greetings[Math.floor(Math.random() * greetings.length)]
 .prompt-container {
   max-width: 680px;
   width: 100%;
+  position: relative;
 }
 
 .shuffle-btn {
+  position: absolute;
+  top: -28px;
+  right: 0;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  width: 100%;
-  margin-bottom: 8px;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
   background: transparent;
   border: none;
   color: var(--color-text-muted);
