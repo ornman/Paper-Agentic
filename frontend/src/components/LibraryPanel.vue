@@ -93,7 +93,7 @@
             <div v-if="item.status === 'importing'" class="import-queue-bar-track">
               <div class="import-queue-bar-fill" :style="{ width: item.percent + '%' }"></div>
             </div>
-            <div class="import-queue-step" :class="{ 'import-queue-step--error': item.status === 'failed' }">{{ item.step }}</div>
+            <div class="import-queue-step" :class="{ 'import-queue-step--error': item.status === 'failed' }">{{ item.error || item.step }}</div>
           </div>
           <div class="import-queue-actions">
             <span v-if="item.status === 'importing'" class="import-queue-percent">{{ item.percent }}%</span>
@@ -193,7 +193,7 @@
             <div v-if="item.status === 'importing'" class="import-queue-bar-track">
               <div class="import-queue-bar-fill" :style="{ width: item.percent + '%' }"></div>
             </div>
-            <div class="import-queue-step" :class="{ 'import-queue-step--error': item.status === 'failed' }">{{ item.step }}</div>
+            <div class="import-queue-step" :class="{ 'import-queue-step--error': item.status === 'failed' }">{{ item.error || item.step }}</div>
           </div>
           <div class="import-queue-actions">
             <span v-if="item.status === 'importing'" class="import-queue-percent">{{ item.percent }}%</span>
