@@ -89,7 +89,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { buildApiUrl, postJson } from '../services/api-client'
+import { postJson } from '../services/api-client'
 
 interface Vendor {
   name: string
@@ -115,7 +115,7 @@ const VENDOR_LIST: Vendor[] = [
 
 const vendors = VENDOR_LIST
 
-const props = defineProps<{
+defineProps<{
   visible: boolean
 }>()
 
