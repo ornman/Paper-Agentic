@@ -2,6 +2,15 @@
   <div class="empty-state">
     <h1 class="empty-title">{{ greeting.title }}</h1>
     <p class="empty-hint">{{ greeting.hint }}</p>
+    <button class="shuffle-btn" type="button" @click="shuffle" title="换一批">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 18h1.4c1.3 0 2.5-.6 3.3-1.7l6.1-8.6c.7-1.1 2-1.7 3.3-1.7H20" />
+        <path d="m18 2 4 4-4 4" />
+        <path d="M2 6h1.9c1.5 0 2.9.9 3.6 2.2" />
+        <path d="M20 18h-3.9c-1.3 0-2.5-.6-3.3-1.7l-.5-.8" />
+        <path d="m18 14 4 4-4 4" />
+      </svg>
+    </button>
     <div class="prompt-grid">
       <button
         v-for="card in promptCards"
@@ -21,6 +30,7 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import iconDocText from '../assets/icons/document-text.svg?raw'
 import iconSearch from '../assets/icons/search-sparkle.svg?raw'
 import iconEdit from '../assets/icons/clipboard-edit.svg?raw'
@@ -117,7 +127,13 @@ const allPromptCards: PromptCard[] = [
 ]
 
 // 随机选取 6 个展示（每次组件挂载重新随机）
-const promptCards = [...allPromptCards].sort(() => Math.random() - 0.5).slice(0, 6)
+const promptCards = ref<PromptCard[]>([])
+
+function shuffle() {
+  promptCards.value = [...allPromptCards].sort(() => Math.random() - 0.5).slice(0, 6)
+}
+
+shuffle()
 
 // 轮询问候语
 const greetings = [
@@ -152,6 +168,27 @@ const greeting = greetings[Math.floor(Math.random() * greetings.length)]
   font-size: 14px;
   color: var(--color-text-muted);
   margin-bottom: var(--space-6, 24px);
+}
+
+.shuffle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin-bottom: var(--space-3, 12px);
+  background: transparent;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm, 6px);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.shuffle-btn:hover {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft, rgba(59, 130, 246, 0.06));
 }
 
 .prompt-grid {
