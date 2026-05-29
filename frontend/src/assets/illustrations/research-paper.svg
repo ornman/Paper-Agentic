@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <!-- Background circle -->
+  <circle cx="60" cy="60" r="56" fill="#f0f4ff" stroke="#dce3f5" stroke-width="1"/>
+  <!-- Paper -->
+  <rect x="30" y="18" width="48" height="62" rx="4" fill="#fff" stroke="#b8c4e0" stroke-width="1.5"/>
+  <!-- Text lines -->
+  <rect x="38" y="30" width="28" height="3" rx="1.5" fill="#c5cfe0"/>
+  <rect x="38" y="38" width="32" height="3" rx="1.5" fill="#dce3f5"/>
+  <rect x="38" y="46" width="24" height="3" rx="1.5" fill="#dce3f5"/>
+  <rect x="38" y="54" width="30" height="3" rx="1.5" fill="#dce3f5"/>
+  <rect x="38" y="62" width="20" height="3" rx="1.5" fill="#dce3f5"/>
+  <!-- Accent bar -->
+  <rect x="38" y="72" width="14" height="3" rx="1.5" fill="#6c8cff"/>
+  <!-- Magnifying glass -->
+  <circle cx="80" cy="70" r="12" stroke="#6c8cff" stroke-width="2.5" fill="#f5f7ff"/>
+  <circle cx="80" cy="70" r="6" fill="#e8edff"/>
+  <line x1="89" y1="79" x2="96" y2="86" stroke="#6c8cff" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Small dots (data points) -->
+  <circle cx="78" cy="67" r="1.5" fill="#6c8cff" opacity="0.6"/>
+  <circle cx="82" cy="71" r="1.5" fill="#6c8cff" opacity="0.6"/>
+  <circle cx="80" cy="64" r="1" fill="#6c8cff" opacity="0.4"/>
+  <!-- Bookmark -->
+  <path d="M72 18 L72 32 L76 28 L80 32 L80 18" fill="#6c8cff" opacity="0.3"/>
+</svg>
