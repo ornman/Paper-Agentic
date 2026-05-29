@@ -80,23 +80,7 @@
         </div>
       </section>
 
-      <!-- 4. 存储管理 -->
-      <section class="settings-card">
-        <div class="section-header">
-          <h2 class="settings-section-title">存储管理</h2>
-          <p class="section-desc">查看本地存储用量，导出或清理缓存数据</p>
-        </div>
-        <div class="storage-usage">
-          <span>本地存储用量</span>
-          <span class="storage-value">{{ storageUsage }}</span>
-        </div>
-        <div class="storage-actions">
-          <button class="storage-btn" @click="handleExport">导出数据</button>
-          <button class="storage-btn storage-btn-danger" @click="handleClearCache">清理缓存</button>
-        </div>
-      </section>
-
-      <!-- 5. 关于 -->
+      <!-- 4. 关于 -->
       <section class="settings-card">
         <div class="about-header">
           <span class="about-logo" v-html="logoSvg" @click="handleLogoClick" />
@@ -136,7 +120,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, nextTick } from 'vue'
+import { ref, watch, nextTick } from 'vue'
 import { useSettingsStore } from '../stores/settings'
 import { useTheme } from '../composables/use-theme'
 import ConfigInitDialog from '../components/ConfigInitDialog.vue'
@@ -146,8 +130,6 @@ import easterEggData from '../assets/animations/easter-egg.json'
 const settingsStore = useSettingsStore()
 const theme = useTheme()
 const configDialogVisible = ref(false)
-
-const storageUsage = ref('')
 
 const techTags = ['RAG', 'BM25 + Dense', 'VLM', 'MinerU', 'DeepSeek', 'Qwen3-Embedding']
 
@@ -185,27 +167,6 @@ watch(easterEggActive, async (active) => {
     animationData: easterEggData,
   })
 })
-
-onMounted(() => {
-  storageUsage.value = settingsStore.estimateStorageUsage()
-})
-
-function handleExport() {
-  const data = settingsStore.exportData()
-  const blob = new Blob([data], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `paper-assistant-export-${new Date().toISOString().slice(0, 10)}.json`
-  a.click()
-  URL.revokeObjectURL(url)
-}
-
-function handleClearCache() {
-  if (!confirm('确定清理缓存？将保留 API 配置和偏好设置。')) return
-  settingsStore.clearCache()
-  storageUsage.value = settingsStore.estimateStorageUsage()
-}
 
 function handleConfigSaved() {
   configDialogVisible.value = false
@@ -428,53 +389,6 @@ function handleConfigSaved() {
   background: var(--color-accent);
   cursor: pointer;
   box-shadow: 0 1px 4px rgba(0,0,0,0.15);
-}
-
-/* Storage */
-.storage-usage {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 0;
-  font-size: 13px;
-  color: var(--color-text-primary);
-}
-
-.storage-value {
-  font-weight: 500;
-  color: var(--color-accent);
-}
-
-.storage-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.storage-btn {
-  flex: 1;
-  padding: 8px 12px;
-  font-size: 12px;
-  font-weight: 500;
-  border: 1px solid var(--color-border-strong);
-  border-radius: 8px;
-  color: var(--color-text-primary);
-  background: var(--color-surface-base);
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.storage-btn:hover {
-  background: var(--color-surface-muted);
-}
-
-.storage-btn-danger {
-  color: #d32f2f;
-  border-color: rgba(211, 47, 47, 0.2);
-}
-
-.storage-btn-danger:hover {
-  background: rgba(211, 47, 47, 0.06);
 }
 
 /* Theme switcher */
