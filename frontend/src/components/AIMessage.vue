@@ -42,26 +42,46 @@
         <p v-if="block.type === 'paragraph'" class="block-paragraph" v-html="renderParagraphWithCitations(block.text)"></p>
 
         <!-- Heading -->
-        <h2 v-else-if="block.type === 'heading' && block.level === 2" class="block-heading">
-          {{ block.text }}
-        </h2>
-        <h3 v-else-if="block.type === 'heading'" class="block-heading block-heading--h3">
-          {{ block.text }}
-        </h3>
+        <h2 v-else-if="block.type === 'heading' && block.level === 2" class="block-heading" v-html="renderInline(block.text)"></h2>
+        <h3 v-else-if="block.type === 'heading'" class="block-heading block-heading--h3" v-html="renderInline(block.text)"></h3>
 
         <!-- Code block -->
         <div v-else-if="block.type === 'code'" class="block-code-wrapper">
           <div class="code-header">
             <span v-if="block.language" class="code-lang">{{ block.language }}</span>
-            <button class="code-copy-btn" type="button" @click="copyCode(block.text!, $event)">复制</button>
+            <button class="code-copy-btn" type="button" @click="copyCode(block.code ?? block.text ?? '', $event)">复制</button>
           </div>
-          <pre class="block-code"><code>{{ block.text }}</code></pre>
+          <pre class="block-code"><code>{{ block.code ?? block.text }}</code></pre>
         </div>
 
-        <!-- List -->
-        <ul v-else-if="block.type === 'list'" class="block-list">
-          <li v-for="(item, idx) in block.items" :key="idx">{{ item }}</li>
+        <!-- Unordered list -->
+        <ul v-else-if="block.type === 'list' && !block.ordered" class="block-list">
+          <li v-for="(item, idx) in block.items" :key="idx" v-html="renderInline(item)"></li>
         </ul>
+
+        <!-- Ordered list -->
+        <ol v-else-if="block.type === 'list' && block.ordered" class="block-list block-list--ordered">
+          <li v-for="(item, idx) in block.items" :key="idx" v-html="renderInline(item)"></li>
+        </ol>
+
+        <!-- Table -->
+        <div v-else-if="block.type === 'table' && block.headers" class="block-table-wrapper">
+          <table class="block-table">
+            <thead>
+              <tr>
+                <th v-for="(h, hi) in block.headers" :key="hi">{{ h }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(row, ri) in block.rows" :key="ri">
+                <td v-for="(cell, ci) in row" :key="ci">{{ cell }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Divider -->
+        <hr v-else-if="block.type === 'divider'" class="block-divider" />
 
         <!-- Blockquote -->
         <blockquote v-else-if="block.type === 'blockquote'" class="block-blockquote">
@@ -271,6 +291,12 @@ function escapeHtml(str: string): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;')
+}
+
+/** Render inline markdown (bold, italic, code) for headings & list items */
+function renderInline(text: string | undefined): string {
+  if (!text) return ''
+  return renderInlineMarkdown(escapeHtml(text))
 }
 
 /** Handle clicks on inline citation markers via event delegation */
@@ -519,6 +545,53 @@ function onContentMouseLeave(event: MouseEvent): void {
   color: var(--color-text-secondary);
   font-style: italic;
   word-break: break-word;
+}
+
+/* Ordered list */
+.block-list--ordered {
+  padding-left: var(--space-5);
+  list-style: decimal;
+}
+
+.block-list--ordered li::marker {
+  color: var(--color-text-muted);
+}
+
+/* Table */
+.block-table-wrapper {
+  overflow-x: auto;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-subtle);
+}
+
+.block-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+.block-table th,
+.block-table td {
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-border-subtle);
+  text-align: left;
+}
+
+.block-table th {
+  background: var(--color-surface-muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.block-table td {
+  word-break: break-word;
+}
+
+/* Divider */
+.block-divider {
+  border: none;
+  border-top: 1px solid var(--color-border-subtle);
+  margin: var(--space-2) 0;
 }
 
 /* ── Inline elements (from markdown-inline renderer) ── */
