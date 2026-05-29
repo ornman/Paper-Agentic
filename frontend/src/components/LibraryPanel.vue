@@ -119,24 +119,8 @@
         @toggle="emit('toggle', $event)"
         @remove="emit('remove', $event)"
         @retry="handleRetry($event)"
-        @similar="handleSimilar"
+        @preview="handlePreview"
       />
-
-      <!-- Similar mode overlay -->
-      <div v-if="similarPapers.length > 0" class="similar-panel">
-        <div class="similar-header">
-          <span class="similar-title">相似论文</span>
-          <button class="similar-close" type="button" @click="similarPapers = []">关闭</button>
-        </div>
-        <LibraryPaperCard
-          v-for="paper in similarPapers"
-          :key="'sim-' + paper.paper_id"
-          :paper="paper"
-          :selected="selectedIds.includes(paper.paper_id)"
-          @toggle="emit('toggle', $event)"
-          @remove="emit('remove', $event)"
-        />
-      </div>
 
       <!-- Summary footer -->
       <div class="library-summary">
@@ -169,11 +153,13 @@
 import { ref, computed } from 'vue'
 import type { PaperItem } from '../services/library-api'
 import { useLibraryStore } from '../stores/library'
+import { useUiStore } from '../stores/ui'
 import { useLibrarySearch } from '../composables/use-library-search'
 import LibraryPaperCard from './LibraryPaperCard.vue'
 import { storeToRefs } from 'pinia'
 
 const libraryStore = useLibraryStore()
+const uiStore = useUiStore()
 const { importing, importFileName, importPercent, importStep, importError } = storeToRefs(libraryStore)
 
 const props = defineProps<{
@@ -192,7 +178,6 @@ const emit = defineEmits<{
 }>()
 
 const showSortMenu = ref(false)
-const similarPapers = ref<PaperItem[]>([])
 
 const search = useLibrarySearch(() => props.papers)
 
@@ -218,8 +203,8 @@ function handleSelectAll() {
   }
 }
 
-function handleSimilar(paperId: string) {
-  similarPapers.value = search.findSimilar(paperId)
+function handlePreview(paperId: string) {
+  uiStore.openReader(paperId)
 }
 
 function handleRetry(paperId: string) {
@@ -427,41 +412,6 @@ function handleRetry(paperId: string) {
   height: 16px;
   accent-color: var(--color-accent);
   cursor: pointer;
-}
-
-/* ─── Similar panel ─── */
-.similar-panel {
-  margin-top: var(--space-2);
-  padding: var(--space-2);
-  border: 1px solid var(--color-accent);
-  border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--color-accent) 5%, var(--color-surface-card));
-}
-
-.similar-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--space-1) var(--space-2);
-  margin-bottom: var(--space-1);
-}
-
-.similar-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-accent);
-}
-
-.similar-close {
-  border: none;
-  background: transparent;
-  font-size: 12px;
-  color: var(--color-text-muted);
-  cursor: pointer;
-}
-
-.similar-close:hover {
-  color: var(--color-text-primary);
 }
 
 /* ─── Summary ─── */

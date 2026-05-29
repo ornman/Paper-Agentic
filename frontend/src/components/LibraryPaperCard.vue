@@ -30,12 +30,12 @@
       <button
         class="paper-card-action"
         type="button"
-        title="找相似"
-        @click.prevent.stop="emit('similar', paper.paper_id)"
+        title="预览 PDF"
+        @click.prevent.stop="emit('preview', paper.paper_id)"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="11" cy="11" r="8" />
-          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+          <circle cx="12" cy="12" r="3" />
         </svg>
       </button>
       <button
@@ -102,7 +102,7 @@ const props = withDefaults(defineProps<{
 const emit = defineEmits<{
   (e: 'toggle', id: string): void
   (e: 'remove', id: string): void
-  (e: 'similar', id: string): void
+  (e: 'preview', id: string): void
   (e: 'retry', paperId: string): void
 }>()
 
@@ -193,22 +193,24 @@ const authorDisplay = computed(() => {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  margin-top: 2px;
+  margin-top: 4px;
 }
 
 .paper-card-pill {
   display: inline-block;
-  padding: 1px 6px;
+  padding: 2px 8px;
   font-size: 11px;
-  border-radius: 999px;
-  background: var(--color-surface-muted);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-text-secondary) 10%, transparent);
   color: var(--color-text-secondary);
   white-space: nowrap;
+  line-height: 1.4;
 }
 
 .paper-card-pill--more {
   background: transparent;
   color: var(--color-text-muted);
+  padding: 2px 4px;
 }
 
 .paper-card--failed {
