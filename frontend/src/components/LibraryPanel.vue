@@ -134,6 +134,14 @@
           <span v-if="search.hasQuery.value || search.yearFilter.value || search.authorFilter.value" class="library-result-count">
             {{ search.totalResults.value }} / {{ papers.length }}
           </span>
+          <button
+            v-if="selectedIds.length > 0"
+            type="button"
+            class="library-batch-delete"
+            @click="handleBatchRemove"
+          >
+            删除选中 {{ selectedIds.length }} 篇
+          </button>
         </label>
 
         <LibraryPaperCard
@@ -203,7 +211,7 @@
       <Transition name="confirm-fade">
         <div v-if="confirmDelete.visible" class="confirm-overlay" @click.self="cancelDelete">
           <div class="confirm-dialog">
-            <p class="confirm-message">确定要删除这篇论文吗？</p>
+            <p class="confirm-message">{{ confirmDelete.batchIds.length > 0 ? `确定要删除选中的 ${confirmDelete.batchIds.length} 篇论文吗？` : '确定要删除这篇论文吗？' }}</p>
             <p class="confirm-title">{{ confirmDelete.title }}</p>
             <label class="confirm-skip">
               <input type="checkbox" v-model="skipDeleteConfirm" />
@@ -244,6 +252,7 @@ const emit = defineEmits<{
   (e: 'toggle', id: string): void
   (e: 'upload'): void
   (e: 'remove', id: string): void
+  (e: 'batch-remove', ids: string[]): void
   (e: 'select-all', ids: string[]): void
   (e: 'retry', paperId: string): void
 }>()
@@ -252,7 +261,7 @@ const showSortMenu = ref(false)
 
 // 删除确认状态
 const skipDeleteConfirm = ref(false)
-const confirmDelete = reactive({ visible: false, paperId: '', title: '' })
+const confirmDelete = reactive({ visible: false, paperId: '', title: '', batchIds: [] as string[] })
 
 const search = useLibrarySearch(() => props.papers)
 
@@ -294,6 +303,18 @@ function handleRemove(paperId: string) {
   const paper = props.papers.find((p) => p.paper_id === paperId)
   confirmDelete.paperId = paperId
   confirmDelete.title = paper?.title || paperId
+  confirmDelete.batchIds = []
+  confirmDelete.visible = true
+}
+
+function handleBatchRemove() {
+  if (skipDeleteConfirm.value) {
+    emit('batch-remove', [...props.selectedIds])
+    return
+  }
+  confirmDelete.paperId = ''
+  confirmDelete.title = `${props.selectedIds.length} 篇论文`
+  confirmDelete.batchIds = [...props.selectedIds]
   confirmDelete.visible = true
 }
 
@@ -302,7 +323,11 @@ function cancelDelete() {
 }
 
 function confirmDeleteAction() {
-  emit('remove', confirmDelete.paperId)
+  if (confirmDelete.batchIds.length > 0) {
+    emit('batch-remove', confirmDelete.batchIds)
+  } else {
+    emit('remove', confirmDelete.paperId)
+  }
   confirmDelete.visible = false
 }
 </script>
@@ -520,6 +545,24 @@ function confirmDeleteAction() {
   font-size: 11px;
   color: var(--color-accent);
   margin-left: auto;
+}
+
+.library-batch-delete {
+  margin-left: auto;
+  padding: 2px 8px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--color-error, #c53030) 10%, transparent);
+  color: var(--color-error, #c53030);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  white-space: nowrap;
+}
+
+.library-batch-delete:hover {
+  background: color-mix(in srgb, var(--color-error, #c53030) 18%, transparent);
 }
 
 .library-item-checkbox {
