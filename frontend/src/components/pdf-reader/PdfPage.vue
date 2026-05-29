@@ -1,20 +1,17 @@
 <!-- frontend/src/components/pdf-reader/PdfPage.vue -->
 <template>
-  <div
-    ref="containerRef"
-    class="pdf-page"
-    :data-page-number="pageNumber"
-  >
-    <canvas ref="canvasRef" class="pdf-page-canvas" />
-    <div ref="textLayerRef" class="textLayer" />
-  </div>
+  <div ref="containerRef" class="pdf-page" :data-page-number="pageNumber" />
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
-import { TextLayer } from 'pdfjs-dist'
-import type { PDFDocumentProxy, PDFPageProxy, PageViewport } from 'pdfjs-dist'
+import { ref, watch, onMounted, onBeforeUnmount, inject } from 'vue'
+import { PDFPageView } from 'pdfjs-dist/web/pdf_viewer.mjs'
+import type { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist'
+import type { EventBus } from 'pdfjs-dist/web/pdf_viewer.mjs'
 import 'pdfjs-dist/web/pdf_viewer.css'
+import { PDF_EVENT_BUS_KEY } from '../../composables/pdf-event-bus'
+
+const PDF_TO_CSS_UNITS = 96 / 72
 
 const props = defineProps<{
   pdfDoc: PDFDocumentProxy
@@ -29,64 +26,51 @@ const emit = defineEmits<{
 }>()
 
 const containerRef = ref<HTMLDivElement | null>(null)
-const canvasRef = ref<HTMLCanvasElement | null>(null)
-const textLayerRef = ref<HTMLDivElement | null>(null)
+const eventBus = inject(PDF_EVENT_BUS_KEY) as EventBus
 
-let renderTask: { promise: Promise<void>; cancel(): void } | null = null
-let pageProxy: PDFPageProxy | null = null
+let pageView: PDFPageView | null = null
 
-async function render() {
-  if (!canvasRef.value) return
-
-  if (renderTask) {
-    renderTask.cancel()
-    renderTask = null
-  }
-
-  try {
-    pageProxy = await props.pdfDoc.getPage(props.pageNumber)
-    const dpr = window.devicePixelRatio || 1
-    const viewport = pageProxy.getViewport({ scale: props.scale * dpr })
-    const displayViewport = pageProxy.getViewport({ scale: props.scale })
-    const canvas = canvasRef.value
-
-    canvas.width = viewport.width
-    canvas.height = viewport.height
-    canvas.style.width = `${Math.floor(displayViewport.width)}px`
-    canvas.style.height = `${Math.floor(displayViewport.height)}px`
-
-    emit('page-height', Math.floor(displayViewport.height))
-
-    renderTask = pageProxy.render({ canvas, viewport })
-    await renderTask.promise
-
-    await renderTextLayer(pageProxy, displayViewport)
-
-    if (props.highlightText) {
-      await highlightOnPage()
-    }
-  } catch (e: unknown) {
-    if (e instanceof Error && e.name === 'RenderingCancelledException') return
-    console.error(`Page ${props.pageNumber} render error:`, e)
-  } finally {
-    renderTask = null
-  }
+function adjustedScale() {
+  return props.scale / PDF_TO_CSS_UNITS
 }
 
-async function renderTextLayer(page: PDFPageProxy, viewport: PageViewport) {
-  if (!textLayerRef.value) return
+async function createAndDraw() {
+  if (!containerRef.value) return
 
-  const textContent = await page.getTextContent()
-  const textLayer = new TextLayer({
-    textContentSource: textContent,
-    container: textLayerRef.value,
-    viewport,
+  destroyPageView()
+
+  const pageProxy = await props.pdfDoc.getPage(props.pageNumber)
+  const viewport = pageProxy.getViewport({ scale: adjustedScale() })
+
+  emit('page-height', Math.floor(viewport.height * PDF_TO_CSS_UNITS))
+
+  pageView = new PDFPageView({
+    container: containerRef.value,
+    eventBus,
+    id: props.pageNumber,
+    scale: adjustedScale(),
+    defaultViewport: viewport,
   })
-  await textLayer.render()
+
+  pageView.setPdfPage(pageProxy)
+  containerRef.value.appendChild(pageView.div)
+  await pageView.draw()
+
+  if (props.highlightText) {
+    highlightOnPage(pageProxy)
+  }
 }
 
-async function highlightOnPage() {
-  if (!props.highlightText || !pageProxy || !containerRef.value) return
+function destroyPageView() {
+  if (!pageView) return
+  pageView.cancelRendering()
+  pageView.destroy()
+  pageView.div.remove()
+  pageView = null
+}
+
+async function highlightOnPage(pageProxy: PDFPageProxy) {
+  if (!props.highlightText || !containerRef.value) return
 
   const textContent = await pageProxy.getTextContent()
   const fullText = textContent.items
@@ -118,19 +102,27 @@ async function highlightOnPage() {
   }, 3000)
 }
 
-onMounted(() => render())
+onMounted(() => createAndDraw())
 
 watch(
-  () => [props.pdfDoc, props.pageNumber, props.scale] as const,
-  () => render(),
+  () => [props.pdfDoc, props.pageNumber] as const,
+  () => createAndDraw(),
+)
+
+watch(
+  () => props.scale,
+  () => {
+    if (!pageView) return
+    pageView.update({ scale: adjustedScale() })
+    const viewport = pageView.viewport
+    if (viewport) {
+      emit('page-height', Math.floor(viewport.height * PDF_TO_CSS_UNITS))
+    }
+  },
 )
 
 onBeforeUnmount(() => {
-  if (renderTask) {
-    renderTask.cancel()
-    renderTask = null
-  }
-  pageProxy?.cleanup()
+  destroyPageView()
 })
 </script>
 
@@ -143,7 +135,12 @@ onBeforeUnmount(() => {
   margin: 0 auto;
 }
 
-.pdf-page-canvas {
+.pdf-page :deep(.page) {
+  box-shadow: none !important;
+  margin: 0 !important;
+}
+
+.pdf-page :deep(canvas) {
   display: block;
 }
 
