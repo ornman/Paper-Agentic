@@ -382,7 +382,7 @@ export const useLibraryStore = defineStore('library', () => {
 
       // 完成后展示 3 秒再自动移除
       if (importQueue.value[i]?.status === 'completed') {
-        await wait(3000)
+        await wait(600)
         if (importQueue.value[i]?.status === 'completed') {
           importQueue.value.splice(i, 1)
           i--
