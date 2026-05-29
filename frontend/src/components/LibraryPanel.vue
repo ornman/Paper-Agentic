@@ -66,6 +66,12 @@
     <!-- Error -->
     <div v-else-if="error" class="library-error">{{ error }}</div>
 
+    <!-- Importing placeholder (replaces empty state during import) -->
+    <div v-else-if="papers.length === 0 && importing" class="library-importing-state">
+      <div class="importing-spinner"></div>
+      <p class="importing-text">正在导入文献，请稍候...</p>
+    </div>
+
     <!-- Empty state -->
     <div v-else-if="papers.length === 0" class="library-empty-state">
       <p class="library-empty-text">尚未导入论文</p>
@@ -510,6 +516,33 @@ function handleSimilar(paperId: string) {
 .sort-menu button.active {
   color: var(--color-accent);
   font-weight: 600;
+}
+
+/* ─── Importing state (replaces empty state) ─── */
+.library-importing-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-8) var(--space-4);
+}
+
+.importing-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2.5px solid var(--color-border-subtle);
+  border-top-color: var(--color-accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.importing-text {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
 }
 
 /* ─── Import progress ─── */

@@ -15,6 +15,19 @@ import { useLogger } from '../composables/logger'
 
 const log = useLogger('api')
 
+const STEP_LABELS: Record<string, string> = {
+  starting: '启动导入...',
+  queued: '等待处理...',
+  transforming: 'PDF 解析中...',
+  cleaning: '数据清洗中...',
+  vlm_enriching: '图片理解中...',
+  chunking: '智能切分中...',
+  embedding: '向量计算中...',
+  indexing: '索引构建中...',
+  running: '处理中...',
+  done: '完成',
+}
+
 function wait(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms))
 }
@@ -111,7 +124,7 @@ export const useLibraryStore = defineStore('library', () => {
       importFileName.value = progress.file_name
     }
 
-    importStep.value = progress.error_msg || progress.step || '处理中...'
+    importStep.value = progress.error_msg || STEP_LABELS[progress.step ?? ''] || progress.step || '处理中...'
     importPercent.value = typeof progress.percent === 'number'
       ? progress.percent
       : Math.min(importPercent.value + 12, 95)

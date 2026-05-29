@@ -20,6 +20,18 @@ logger = logging.getLogger("paper-assistant")
 
 router = APIRouter(tags=["import"])
 
+_STAGE_PERCENT: dict[str, float] = {
+    "": 5,
+    "starting": 8,
+    "queued": 10,
+    "transforming": 25,
+    "cleaning": 40,
+    "vlm_enriching": 45,
+    "chunking": 60,
+    "embedding": 75,
+    "indexing": 90,
+}
+
 
 @router.post("/import/start", response_model=ImportStartResponse)
 async def start_import(file: UploadFile = FastAPIFile(...), request: Request = None):
@@ -60,13 +72,15 @@ async def get_import_status(task_id: str, request: Request):
         raise HTTPException(status_code=404, detail="导入任务不存在")
 
     file_name = Path(task.file_path).name if task.file_path else None
+    is_running = task.status == "running"
     return ImportStatusResponse(
         task_id=task.task_id,
         paper_id=task.paper_id or None,
         status=task.status,
-        current_step=task.status,
-        error_msg=task.message or None,
+        current_step=task.message if is_running else task.status,
+        error_msg=task.message if task.status in ("failed", "error") else None,
         file_name=file_name,
+        percent=_STAGE_PERCENT.get(task.message, 5) if is_running else (100.0 if task.status == "completed" else None),
     )
 
 
@@ -103,7 +117,7 @@ async def _run_import_with_progress(container, task_id: str, file_path: Path, fi
         await bus.publish(task_id, event)
 
     try:
-        container.import_task_repo.update_status(task_id, "running")
+        container.import_task_repo.update_status(task_id, "running", message="starting")
         await publish({"status": "running", "step": "starting", "paper_id": None})
 
         from app.data_layer.preprocessing.transfer.pipeline import PipelineOrchestrator
@@ -111,6 +125,7 @@ async def _run_import_with_progress(container, task_id: str, file_path: Path, fi
         loop = asyncio.get_event_loop()
 
         def on_stage(pipeline_event):
+            container.import_task_repo.update_status(task_id, "running", message=pipeline_event.stage.value)
             asyncio.run_coroutine_threadsafe(
                 publish({"status": "running", "step": pipeline_event.stage.value, "paper_id": None}),
                 loop,
