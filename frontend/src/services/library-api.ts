@@ -83,6 +83,9 @@ export async function startImport(file: File): Promise<ImportStartResult> {
   const form = new FormData()
   form.append('file', file)
   const result = await request<ImportStartResult>('/api/v1/import/start', { method: 'POST', body: form })
+  if (result?.status === 'duplicate') {
+    throw new ApiClientError('该文件已导入过，无需重复导入')
+  }
   if (!result?.task_id) {
     throw new ApiClientError('导入任务创建失败：缺少 task_id')
   }
