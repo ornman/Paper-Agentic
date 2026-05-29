@@ -2,10 +2,7 @@ from __future__ import annotations
 
 import sqlite3
 
-from app.data_layer.contracts.conversation import (
-    ConversationMessage,
-    ConversationSession,
-)
+from ._types import ConversationMessage, ConversationSession
 
 
 class SQLiteConversationRepo:
@@ -125,6 +122,80 @@ class SQLiteConversationRepo:
                 (session_id,),
             )
             conn.commit()
+
+    def rename_session(self, session_id: str, title: str) -> bool:
+        """重命名会话，返回是否成功"""
+        from ._types import utc_now_iso
+        with sqlite3.connect(self._db_path) as conn:
+            cursor = conn.execute(
+                """
+                UPDATE conversation_sessions
+                SET title = ?, updated_at = ?
+                WHERE session_id = ?
+                """,
+                (title, utc_now_iso(), session_id),
+            )
+            conn.commit()
+            return cursor.rowcount > 0
+
+    def search_sessions(self, keyword: str, limit: int = 20) -> list[ConversationSession]:
+        """按标题搜索会话"""
+        with sqlite3.connect(self._db_path) as conn:
+            rows = conn.execute(
+                """
+                SELECT session_id, title, created_at, updated_at
+                FROM conversation_sessions
+                WHERE title LIKE ?
+                ORDER BY updated_at DESC
+                LIMIT ?
+                """,
+                (f"%{keyword}%", limit),
+            ).fetchall()
+        return [
+            ConversationSession(
+                session_id=r[0],
+                title=r[1],
+                created_at=r[2],
+                updated_at=r[3],
+            )
+            for r in rows
+        ]
+
+    def search_messages(self, keyword: str, session_id: str | None = None, limit: int = 20) -> list[ConversationMessage]:
+        """按内容搜索消息，可选限定会话"""
+        with sqlite3.connect(self._db_path) as conn:
+            if session_id:
+                rows = conn.execute(
+                    """
+                    SELECT session_id, role, content, created_at, sources_json
+                    FROM conversation_messages
+                    WHERE content LIKE ? AND session_id = ?
+                    ORDER BY id DESC
+                    LIMIT ?
+                    """,
+                    (f"%{keyword}%", session_id, limit),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    """
+                    SELECT session_id, role, content, created_at, sources_json
+                    FROM conversation_messages
+                    WHERE content LIKE ?
+                    ORDER BY id DESC
+                    LIMIT ?
+                    """,
+                    (f"%{keyword}%", limit),
+                ).fetchall()
+        return [
+            ConversationMessage(
+                session_id=r[0],
+                role=r[1],
+                content=r[2],
+                created_at=r[3],
+                sources_json=r[4],
+            )
+            for r in rows
+        ]
 
     # ------------------------------------------------------------------
     # Messages

@@ -2,22 +2,19 @@
 
 from __future__ import annotations
 
-import logging
 import uuid
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
 from app.agent_layer.contracts.query import AskRequest
-from app.data_layer.contracts.conversation import ConversationSession
-from app.data_layer.contracts.library_item import utc_now_iso
+from app.data_layer.storage.sqlite_runtime._types import ConversationSession, utc_now_iso
 from app.service_layer.schemas.conversation import (
     ChatRequest,
     ConversationMessageOut,
     ConversationSessionOut,
+    RenameRequest,
 )
-
-logger = logging.getLogger("paper-assistant")
 
 router = APIRouter(prefix="/conversations", tags=["conversations"])
 
@@ -58,6 +55,33 @@ async def delete_session(session_id: str, request: Request):
     return {"status": "ok", "message": "会话已删除"}
 
 
+@router.put("/{session_id}/title", response_model=ConversationSessionOut)
+async def rename_session(session_id: str, body: RenameRequest, request: Request):
+    """重命名会话"""
+    container = request.app.state.container
+    ok = container.conversation_repo.rename_session(session_id, body.title)
+    if not ok:
+        raise HTTPException(status_code=404, detail="会话不存在")
+    session = container.conversation_repo.get_session(session_id)
+    return ConversationSessionOut(**session.__dict__)
+
+
+@router.get("/search")
+async def search_conversations(request: Request, q: str = "", limit: int = 20):
+    """搜索会话（标题）和消息（内容）"""
+    if not q.strip():
+        return {"sessions": [], "messages": []}
+
+    container = request.app.state.container
+    sessions = container.conversation_repo.search_sessions(q, limit=limit)
+    messages = container.conversation_repo.search_messages(q, limit=limit)
+
+    return {
+        "sessions": [ConversationSessionOut(**s.__dict__) for s in sessions],
+        "messages": [ConversationMessageOut(**m.__dict__) for m in messages],
+    }
+
+
 @router.get("/{session_id}/messages", response_model=list[ConversationMessageOut])
 async def list_messages(session_id: str, request: Request, limit: int = 50):
     container = request.app.state.container
@@ -78,7 +102,7 @@ async def chat(body: ChatRequest, request: Request):
         enable_rag=True,
     )
 
-    runner = _build_runner()
+    runner = _build_runner(request)
 
     async def event_stream():
         async for frame in runner.run(ask_req):

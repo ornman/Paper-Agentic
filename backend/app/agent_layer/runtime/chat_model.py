@@ -1,4 +1,4 @@
-"""OpenAI 兼容 LLM 客户端（支持 429 自动重试 + 模型轮转）"""
+"""OpenAI 兼容 LLM 客户端（支持 429 自动重试 + 模型轮转 + 上下文长度自动发现）"""
 
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ class ChatModel:
         self._timeout = settings.llm_timeout
         self._fallback_models = settings.llm_fallback_list
         self._client: AsyncOpenAI | None = None
-        self.max_context_tokens: int = getattr(settings, "chunk_max_context", 32000)
+        self.max_context_tokens: int = settings.llm_context_window or settings.context_window_tokens
 
         if self._api_key and self._base_url:
             self._client = AsyncOpenAI(
@@ -41,6 +41,25 @@ class ChatModel:
             if m not in chain:
                 chain.append(m)
         return chain
+
+    async def discover_context_window(self, model: str | None = None) -> int:
+        """从 API 自动发现模型上下文长度
+
+        部分提供商在 GET /models/{model_id} 返回 context_window 字段。
+        发现失败返回 0（由调用方 fallback）。
+        """
+        if not self._client:
+            return 0
+        target = model or self._model
+        try:
+            model_info = await self._client.models.retrieve(target)
+            ctx = getattr(model_info, "context_window", None)
+            if ctx and isinstance(ctx, int) and ctx > 0:
+                logger.info("模型 %s 上下文长度: %d", target, ctx)
+                return ctx
+        except Exception as e:
+            logger.debug("模型上下文发现失败 (%s): %s", target, e)
+        return 0
 
     @staticmethod
     def _backoff_seconds(exc: RateLimitError) -> float:

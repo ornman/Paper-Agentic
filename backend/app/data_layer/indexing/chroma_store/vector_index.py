@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json as _json
 import logging
 import os
 from dataclasses import dataclass, field
@@ -69,7 +70,6 @@ class VectorIndex:
             ids.append(f"{paper_id}_{i}")
             heading_path = c.get("heading_path", "")
             if isinstance(heading_path, list):
-                import json as _json
                 heading_path = _json.dumps(heading_path, ensure_ascii=False)
             metadatas.append({
                 "paper_id": paper_id,

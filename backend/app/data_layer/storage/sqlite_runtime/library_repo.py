@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sqlite3
 
-from app.data_layer.contracts.library_item import LibraryItem
+from ._types import LibraryItem
 
 
 class SQLiteLibraryRepo:
@@ -28,18 +28,17 @@ class SQLiteLibraryRepo:
                     file_type TEXT NOT NULL DEFAULT '',
                     import_time TEXT NOT NULL DEFAULT '',
                     page_count INTEGER DEFAULT 0,
-                    status TEXT DEFAULT 'ready',
-                    authors TEXT DEFAULT '',
-                    year TEXT DEFAULT ''
+                    status TEXT DEFAULT 'ready'
                 )
                 """
             )
-            # Migrate: add columns that may be missing in older databases
-            existing = {r[1] for r in conn.execute("PRAGMA table_info(library_items)").fetchall()}
+            conn.commit()
+            # 向后兼容迁移：添加 authors 和 year 列
+            existing = {row[1] for row in conn.execute("PRAGMA table_info(library_items)").fetchall()}
             if "authors" not in existing:
                 conn.execute("ALTER TABLE library_items ADD COLUMN authors TEXT DEFAULT ''")
             if "year" not in existing:
-                conn.execute("ALTER TABLE library_items ADD COLUMN year TEXT DEFAULT ''")
+                conn.execute("ALTER TABLE library_items ADD COLUMN year INTEGER")
             conn.commit()
 
     # ------------------------------------------------------------------
@@ -56,6 +55,45 @@ class SQLiteLibraryRepo:
                 FROM library_items
                 ORDER BY import_time DESC
                 """,
+            ).fetchall()
+        return [self._row_to_item(r) for r in rows]
+
+    def list_items_filtered(
+        self,
+        *,
+        title: str | None = None,
+        authors: str | None = None,
+        year_from: int | None = None,
+        year_to: int | None = None,
+    ) -> list[LibraryItem]:
+        """带筛选条件的查询"""
+        clauses: list[str] = []
+        params: list = []
+        if title:
+            clauses.append("title LIKE ?")
+            params.append(f"%{title}%")
+        if authors:
+            clauses.append("LOWER(TRIM(authors)) = LOWER(TRIM(?))")
+            params.append(authors)
+        if year_from is not None:
+            clauses.append("(year IS NOT NULL AND year >= ?)")
+            params.append(year_from)
+        if year_to is not None:
+            clauses.append("(year IS NOT NULL AND year <= ?)")
+            params.append(year_to)
+
+        where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+        with sqlite3.connect(self._db_path) as conn:
+            rows = conn.execute(
+                f"""
+                SELECT item_id, title, file_path, file_hash,
+                       file_type, import_time, page_count, status,
+                       authors, year
+                FROM library_items
+                {where}
+                ORDER BY import_time DESC
+                """,
+                params,
             ).fetchall()
         return [self._row_to_item(r) for r in rows]
 
@@ -154,5 +192,5 @@ class SQLiteLibraryRepo:
             page_count=row[6],
             status=row[7],
             authors=row[8] if len(row) > 8 else "",
-            year=row[9] if len(row) > 9 else "",
+            year=row[9] if len(row) > 9 and row[9] is not None else None,
         )

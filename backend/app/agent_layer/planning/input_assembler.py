@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import re
 
-_SOURCE_SNIPPET_MAX_LENGTH = 220
-_TITLE_MAX_LENGTH = 20
+
+def _get_settings():
+    from app.service_layer.config.settings import get_settings
+    return get_settings()
 
 
 def assemble_query(
@@ -25,19 +27,22 @@ def assemble_query(
 
 
 def sanitize_title(raw_title: str, fallback: str) -> str:
+    title_max = _get_settings().title_max_length
     title = re.sub(r"\s+", " ", raw_title).strip().strip("\"'`'")
     title = re.split(r"[\n\r。！？.!?]", title, maxsplit=1)[0].strip()
     title = re.sub(r"^(标题|对话标题)\s*[:：]\s*", "", title)
     if not title:
         title = re.sub(r"\s+", " ", fallback).strip()
-    return title[:_TITLE_MAX_LENGTH].strip() or fallback[:_TITLE_MAX_LENGTH].strip() or "新对话"
+    return title[:title_max].strip() or fallback[:title_max].strip() or "新对话"
 
 
 def normalize_snippet(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
-def truncate_snippet(text: str, max_length: int = _SOURCE_SNIPPET_MAX_LENGTH) -> str:
+def truncate_snippet(text: str, max_length: int = 0) -> str:
+    if not max_length:
+        max_length = _get_settings().source_snippet_max_length
     normalized = normalize_snippet(text)
     if len(normalized) <= max_length:
         return normalized

@@ -4,7 +4,6 @@ import re
 
 from app.agent_layer.contracts.content_block import (
     BlockCitation,
-    BlockCode,
     BlockDivider,
     BlockHeading,
     BlockList,
@@ -51,31 +50,7 @@ def stream_to_blocks(raw_text: str, sources: list[SourceCard]) -> list[ContentBl
                 blocks.append(_make_paragraph(text, sources))
         table_rows = []
 
-    i = 0
-    while i < len(lines):
-        line = lines[i]
-
-        # ── Fenced code block (``` or ~~~) ──
-        fence_match = re.match(r"^(`{3,}|~{3,})(\w*)", line)
-        if fence_match:
-            flush_list()
-            flush_table()
-            fence_char = fence_match.group(1)[0]
-            fence_len = len(fence_match.group(1))
-            lang = fence_match.group(2) or ""
-            code_lines: list[str] = []
-            i += 1
-            while i < len(lines):
-                if lines[i].startswith(fence_char * fence_len) and re.match(
-                    rf"^{{{fence_char}}}{{{fence_len},}}\s*$", lines[i]
-                ):
-                    break
-                code_lines.append(lines[i])
-                i += 1
-            blocks.append(BlockCode(language=lang, code="\n".join(code_lines)))
-            i += 1
-            continue
-
+    for line in lines:
         heading_match = _HEADING_RE.match(line)
         if heading_match:
             flush_list()
@@ -113,7 +88,7 @@ def stream_to_blocks(raw_text: str, sources: list[SourceCard]) -> list[ContentBl
             if not list_ordered and list_items:
                 flush_list()
             list_ordered = True
-            list_items.append(ordered_match.group(2).strip())
+            list_items.append(ordered_match.group(1).strip() + ". " + ordered_match.group(2).strip())
             continue
 
         flush_list()
@@ -121,8 +96,6 @@ def stream_to_blocks(raw_text: str, sources: list[SourceCard]) -> list[ContentBl
         stripped = line.strip()
         if stripped:
             blocks.append(_make_paragraph(stripped, sources))
-
-        i += 1
 
     flush_list()
     flush_table()

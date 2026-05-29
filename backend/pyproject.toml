@@ -1,12 +1,11 @@
 [project]
 name = "paper-assistant-v1"
 version = "0.1.0"
-description = "学术写作 RAG 助手（重构版）"
+description = "论文助手"
 requires-python = ">=3.13"
 dependencies = [
     "fastapi>=0.115.12",
     "uvicorn[standard]>=0.42.0",
-    "redis>=6.1.0",
     "httpx>=0.28.1",
     "openai>=2.29.0",
     "pydantic>=2.12.5",
@@ -18,10 +17,7 @@ dependencies = [
     "python-multipart>=0.0.9",
     "chromadb>=1.5.8",
     # PDF 处理链路
-    "markitdown>=0.0.1",
     "pypdf>=5.0.0",
-    "pdfplumber>=0.11.0",
-    "pdf2image>=1.16.0",
 ]
 
 [project.optional-dependencies]
@@ -32,4 +28,5 @@ dev = [
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+testpaths = ["test_backend"]
 

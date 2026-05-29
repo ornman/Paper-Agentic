@@ -12,36 +12,28 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, Request, UploadFile, File as FastAPIFile
 from fastapi.responses import StreamingResponse
 
-from app.data_layer.contracts.library_item import ImportTask, LibraryItem
-from app.data_layer.preprocessing.transformation.pdf_metadata import extract_pdf_metadata
+from app.data_layer.storage.sqlite_runtime._types import ImportTask, LibraryItem, utc_now_iso
 from app.service_layer.schemas.library import ImportStartResponse, ImportStatusResponse
 
 logger = logging.getLogger("paper-assistant")
 
 router = APIRouter(tags=["import"])
 
-_STAGE_PERCENT: dict[str, float] = {
-    "": 5,
-    "starting": 8,
-    "queued": 10,
-    "transforming": 25,
-    "cleaning": 40,
-    "vlm_enriching": 45,
-    "chunking": 60,
-    "embedding": 75,
-    "indexing": 90,
-}
-
 
 @router.post("/import/start", response_model=ImportStartResponse)
 async def start_import(file: UploadFile = FastAPIFile(...), request: Request = None):
     container = request.app.state.container
 
-    # 保存上传文件
+    # 保存上传文件（UUID 前缀防同名覆盖 + 大小限制）
     uploads_dir = Path(container.settings.uploads_dir)
     uploads_dir.mkdir(parents=True, exist_ok=True)
-    dest = uploads_dir / (file.filename or "upload.pdf")
+    original_name = file.filename or "upload.pdf"
+    dest = uploads_dir / f"{uuid.uuid4().hex[:8]}_{original_name}"
+
+    MAX_UPLOAD_SIZE = 100 * 1024 * 1024  # 100MB
     content = await file.read()
+    if len(content) > MAX_UPLOAD_SIZE:
+        raise HTTPException(status_code=413, detail=f"文件超过大小限制 ({MAX_UPLOAD_SIZE // 1024 // 1024}MB)")
     dest.write_bytes(content)
 
     # 格式校验
@@ -59,7 +51,7 @@ async def start_import(file: UploadFile = FastAPIFile(...), request: Request = N
     task = ImportTask(task_id=task_id, file_path=str(dest))
     container.import_task_repo.create(task)
 
-    asyncio.create_task(_run_import_with_progress(container, task_id, dest, file_hash))
+    asyncio.create_task(_run_import_with_progress(container, task_id, dest))
 
     return ImportStartResponse(task_id=task_id, status="queued")
 
@@ -72,15 +64,13 @@ async def get_import_status(task_id: str, request: Request):
         raise HTTPException(status_code=404, detail="导入任务不存在")
 
     file_name = Path(task.file_path).name if task.file_path else None
-    is_running = task.status == "running"
     return ImportStatusResponse(
         task_id=task.task_id,
         paper_id=task.paper_id or None,
         status=task.status,
-        current_step=task.message if is_running else task.status,
-        error_msg=task.message if task.status in ("failed", "error") else None,
+        current_step=task.status,
+        error_msg=task.message or None,
         file_name=file_name,
-        percent=_STAGE_PERCENT.get(task.message, 5) if is_running else (100.0 if task.status == "completed" else None),
     )
 
 
@@ -109,53 +99,52 @@ async def stream_import_progress(task_id: str, request: Request):
     )
 
 
-async def _run_import_with_progress(container, task_id: str, file_path: Path, file_hash: str):
+@router.get("/import/artifacts/{task_id}")
+async def get_import_artifacts(task_id: str, request: Request):
+    """查询导入中间产物（markdown/structured/report）"""
+    container = request.app.state.container
+    monitor = container.import_monitor
+
+    progress = monitor.get_progress(task_id)
+    artifacts = monitor.get_artifacts(task_id, container.directory_manager)
+
+    if progress is None and artifacts is None:
+        raise HTTPException(status_code=404, detail="导入任务不存在或已过期")
+
+    return {
+        "task_id": task_id,
+        "progress": progress,
+        "artifacts": artifacts,
+    }
+
+
+async def _run_import_with_progress(container, task_id: str, file_path: Path):
     """后台导入 worker（带进度推送）"""
     bus = container.import_progress_bus
+    monitor = container.import_monitor
 
     async def publish(event: dict):
         await bus.publish(task_id, event)
 
     try:
-        container.import_task_repo.update_status(task_id, "running", message="starting")
+        container.import_task_repo.update_status(task_id, "running")
         await publish({"status": "running", "step": "starting", "paper_id": None})
 
-        from app.data_layer.preprocessing.transfer.pipeline import PipelineOrchestrator
-
-        loop = asyncio.get_event_loop()
-
-        def on_stage(pipeline_event):
-            container.import_task_repo.update_status(task_id, "running", message=pipeline_event.stage.value)
-            asyncio.run_coroutine_threadsafe(
-                publish({"status": "running", "step": pipeline_event.stage.value, "paper_id": None}),
-                loop,
-            )
-
-        orchestrator = PipelineOrchestrator(
-            monitor_callback=on_stage,
-            embedding_client=container.embedding_client,
-            vector_index=container.vector_store,
-            keyword_index=container.keyword_search,
-        )
-
-        result = await container.document_ingest.ingest_document(
-            file_path, pipeline_orchestrator=orchestrator,
-        )
+        result = await container.document_ingest.ingest_document(file_path)
 
         if result.success:
             container.import_task_repo.update_status(
                 task_id, "completed", message=f"导入成功，{result.chunk_count} 个 chunk", paper_id=result.paper_id,
             )
-            meta = extract_pdf_metadata(file_path)
             container.library_repo.upsert(LibraryItem(
                 item_id=result.paper_id,
-                title=meta.title or file_path.stem,
+                title=file_path.stem,
                 file_path=str(file_path),
-                file_hash=file_hash,
+                file_hash=_compute_file_hash(file_path),
                 file_type=file_path.suffix.lower(),
+                import_time=utc_now_iso(),
+                page_count=result.chunk_count,
                 status="ready",
-                authors=meta.authors,
-                year=meta.year,
             ))
             await publish({"status": "completed", "step": "done", "paper_id": result.paper_id})
         else:

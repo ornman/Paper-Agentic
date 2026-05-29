@@ -78,16 +78,18 @@ class VLMProcessor:
         api_key: str,
         base_url: str,
         model: str = "qwen3-vl:235b",
-        max_retries: int = 3,
-        base_delay_ms: int = 1000,
-        jitter_ms: int = 300,
+        max_retries: int = 0,
+        base_delay_ms: int = 0,
+        jitter_ms: int = 0,
     ):
+        from app.service_layer.config.settings import get_settings
+        _s = get_settings()
         self._api_key = api_key
         self._base_url = base_url.rstrip("/") + "/chat/completions"
         self._model = model
-        self._max_retries = max_retries
-        self._base_delay_ms = base_delay_ms
-        self._jitter_ms = jitter_ms
+        self._max_retries = max_retries or _s.vlm_max_retries
+        self._base_delay_ms = base_delay_ms or _s.vlm_retry_base_delay_ms
+        self._jitter_ms = jitter_ms or _s.vlm_retry_jitter_ms
 
     async def process_images(
         self,
@@ -198,10 +200,12 @@ class VLMProcessor:
     async def _call_vlm(self, image_path: str) -> str:
         """调用 VLM API"""
         import httpx
+        from app.service_layer.config.settings import get_settings
+        _s = get_settings()
 
         media_type, data = self._encode_image(image_path)
 
-        async with httpx.AsyncClient(timeout=60) as client:
+        async with httpx.AsyncClient(timeout=_s.vlm_timeout) as client:
             response = await client.post(
                 self._base_url,
                 headers={
@@ -219,7 +223,7 @@ class VLMProcessor:
                             ],
                         }
                     ],
-                    "max_tokens": 1024,
+                    "max_tokens": _s.vlm_max_tokens,
                 },
             )
             response.raise_for_status()

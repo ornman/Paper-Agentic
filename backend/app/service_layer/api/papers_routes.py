@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import FileResponse
 
 from app.service_layer.schemas.library import PaperItemOut, PaperListResponse
@@ -11,18 +11,31 @@ router = APIRouter(tags=["papers"])
 
 
 @router.get("/papers", response_model=PaperListResponse)
-async def list_papers(request: Request):
+async def list_papers(
+    request: Request,
+    title: str | None = Query(None, description="标题模糊搜索"),
+    authors: str | None = Query(None, description="作者精确筛选"),
+    year_from: int | None = Query(None, description="年份起始"),
+    year_to: int | None = Query(None, description="年份截止"),
+):
     container = request.app.state.container
-    items = container.library_repo.list_items()
+    has_filter = any(v is not None for v in (title, authors, year_from, year_to))
+    if has_filter:
+        items = container.library_repo.list_items_filtered(
+            title=title, authors=authors, year_from=year_from, year_to=year_to,
+        )
+    else:
+        items = container.library_repo.list_items()
     papers = [
         PaperItemOut(
             paper_id=item.item_id,
             title=item.title,
-            authors=getattr(item, "authors", ""),
+            authors=item.authors,
+            year=item.year,
             file_path=item.file_path,
             file_hash=item.file_hash,
             chunk_count=getattr(item, "chunk_count", 0),
-            total_pages=getattr(item, "page_count", 0) or 0,
+            total_pages=item.page_count or 0,
             import_time=item.import_time,
             status=item.status,
         )

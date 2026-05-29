@@ -13,8 +13,8 @@ from app.service_layer.api.papers_routes import router as papers_router
 from app.service_layer.api.query_routes import router as query_router
 
 api_router = APIRouter(prefix="/api/v1")
-api_router.include_router(config_router)
 api_router.include_router(health_router)
+api_router.include_router(config_router)
 api_router.include_router(library_router)
 api_router.include_router(papers_router)
 api_router.include_router(import_router)
