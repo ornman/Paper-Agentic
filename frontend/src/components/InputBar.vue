@@ -147,7 +147,7 @@ const badgeHover = ref(false)
 const placeholderText = computed(() => {
   if (props.isBusy) return 'AI 正在回答中，发送新消息会中断当前回复'
   if (props.selectedPaperCount > 0) return `基于 ${props.selectedPaperCount} 篇参考文献回答...`
-  return '输入你的问题...'
+  return '输入你的问题... (Enter 发送，Shift+Enter 换行)'
 })
 
 function toggleExpand() {

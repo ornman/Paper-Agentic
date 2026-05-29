@@ -158,7 +158,7 @@ async function loadPdf() {
     const url = isDemo ? '/demo-paper.pdf' : buildPaperOpenUrl(props.paperId)
     const loadingTask = pdfjsLib.getDocument({ url, ...cMapOptions })
     pdfDocProxy = await loadingTask.promise
-    paperTitle.value = isDemo ? 'Demo PDF' : `PDF (${props.paperId.slice(0, 8)}…)`
+    paperTitle.value = isDemo ? 'Demo PDF' : 'PDF 预览'
 
     renderer.init(pdfDocProxy)
     await loadOutline()

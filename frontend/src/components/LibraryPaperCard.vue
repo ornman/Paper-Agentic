@@ -15,7 +15,7 @@
         {{ authorDisplay }}
         <template v-if="paper.year"> · {{ paper.year }}</template>
         · {{ paper.total_pages }} 页
-        · {{ paper.chunk_count }} 块
+        · {{ paper.chunk_count }} 个引用片段
       </span>
       <div v-if="displayKeywords.length" class="paper-card-keywords">
         <span v-for="kw in displayKeywords" :key="kw" class="paper-card-pill">{{ kw }}</span>
