@@ -8,21 +8,23 @@
           <path d="M42 8v16M6 24v16m36-16c0-9.941-8.059-18-18-18a17.95 17.95 0 0 0-12.952 5.5M6 24c0 9.941 8.059 18 18 18a17.94 17.94 0 0 0 12.5-5.048" />
         </svg>
       </button>
-      <TransitionGroup name="card" tag="div" class="prompt-grid">
-        <button
-          v-for="card in promptCards"
-          :key="card.title"
-          class="prompt-card"
-          type="button"
-          @click="emit('select-prompt', card.prompt)"
-        >
-          <span class="prompt-card-icon" v-html="card.icon" />
-          <div class="prompt-card-body">
-            <div class="prompt-card-title">{{ card.title }}</div>
-            <div class="prompt-card-desc">{{ card.description }}</div>
-          </div>
-        </button>
-      </TransitionGroup>
+      <Transition name="fade" mode="out-in">
+        <div class="prompt-grid" :key="shuffleKey">
+          <button
+            v-for="card in promptCards"
+            :key="card.title"
+            class="prompt-card"
+            type="button"
+            @click="emit('select-prompt', card.prompt)"
+          >
+            <span class="prompt-card-icon" v-html="card.icon" />
+            <div class="prompt-card-body">
+              <div class="prompt-card-title">{{ card.title }}</div>
+              <div class="prompt-card-desc">{{ card.description }}</div>
+            </div>
+          </button>
+        </div>
+      </Transition>
     </div>
   </div>
 </template>
@@ -127,6 +129,7 @@ const allPromptCards: PromptCard[] = [
 // 随机选取 6 个展示（每次组件挂载重新随机）
 const promptCards = ref<PromptCard[]>([])
 const spinning = ref(false)
+const shuffleKey = ref(0)
 
 function shuffle() {
   promptCards.value = [...allPromptCards].sort(() => Math.random() - 0.5).slice(0, 6)
@@ -135,6 +138,7 @@ function shuffle() {
 function handleShuffle() {
   if (spinning.value) return
   spinning.value = true
+  shuffleKey.value++
   shuffle()
   setTimeout(() => { spinning.value = false }, 400)
 }
@@ -288,23 +292,14 @@ const greeting = greetings[Math.floor(Math.random() * greetings.length)]
   line-height: 1.4;
 }
 
-/* 卡片切换动画 */
-.card-enter-active {
-  transition: opacity 0.25s ease, transform 0.25s ease;
+/* 整体网格淡入淡出（与对话切换一致） */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
 }
 
-.card-leave-active {
-  transition: opacity 0.15s ease, transform 0.15s ease;
-  position: absolute;
-}
-
-.card-enter-from {
+.fade-enter-from,
+.fade-leave-to {
   opacity: 0;
-  transform: translateY(8px);
-}
-
-.card-leave-to {
-  opacity: 0;
-  transform: translateY(-4px);
 }
 </style>
