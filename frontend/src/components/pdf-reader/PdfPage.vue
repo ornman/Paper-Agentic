@@ -1,15 +1,15 @@
 <!-- frontend/src/components/pdf-reader/PdfPage.vue -->
 <template>
-  <div ref="containerRef" class="pdf-page" :data-page-number="pageNumber" />
+  <div ref="containerRef" class="pdf-page" :data-page-number="pageNumber">
+    <canvas ref="canvasRef" class="pdf-page-canvas" />
+    <div ref="textLayerRef" class="pdf-text-layer" />
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, onBeforeUnmount, inject } from 'vue'
-import { PDFPageView } from 'pdfjs-dist/web/pdf_viewer.mjs'
+import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
+import { TextLayer } from 'pdfjs-dist'
 import type { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist'
-import type { EventBus } from 'pdfjs-dist/web/pdf_viewer.mjs'
-import 'pdfjs-dist/web/pdf_viewer.css'
-import { PDF_EVENT_BUS_KEY } from '../../composables/pdf-event-bus'
 
 const PDF_TO_CSS_UNITS = 96 / 72
 
@@ -26,47 +26,81 @@ const emit = defineEmits<{
 }>()
 
 const containerRef = ref<HTMLDivElement | null>(null)
-const eventBus = inject(PDF_EVENT_BUS_KEY) as EventBus
+const canvasRef = ref<HTMLCanvasElement | null>(null)
+const textLayerRef = ref<HTMLDivElement | null>(null)
 
-let pageView: PDFPageView | null = null
+let renderTask: { promise: Promise<void>; cancel(): void } | null = null
+let pageProxy: PDFPageProxy | null = null
 
-async function createAndDraw() {
-  if (!containerRef.value) return
+async function render() {
+  if (!canvasRef.value || !textLayerRef.value) return
 
-  destroyPageView()
+  if (renderTask) {
+    renderTask.cancel()
+    renderTask = null
+  }
 
-  const pageProxy = await props.pdfDoc.getPage(props.pageNumber)
-  // 匹配官方 viewer 的 scale 模型：viewport = getViewport({ scale: scale * PDF_TO_CSS_UNITS })
-  const viewport = pageProxy.getViewport({ scale: props.scale * PDF_TO_CSS_UNITS })
+  try {
+    pageProxy = await props.pdfDoc.getPage(props.pageNumber)
+    const dpr = window.devicePixelRatio || 1
+    const viewport = pageProxy.getViewport({ scale: props.scale * PDF_TO_CSS_UNITS })
+    const canvas = canvasRef.value
 
-  emit('page-height', Math.floor(viewport.height))
+    const actualWidth = Math.floor(viewport.width)
+    const actualHeight = Math.floor(viewport.height)
 
-  pageView = new PDFPageView({
-    container: containerRef.value,
-    eventBus,
-    id: props.pageNumber,
-    scale: props.scale,
-    defaultViewport: viewport,
-  })
+    canvas.width = actualWidth * dpr
+    canvas.height = actualHeight * dpr
+    canvas.style.width = `${actualWidth}px`
+    canvas.style.height = `${actualHeight}px`
 
-  pageView.setPdfPage(pageProxy)
-  await pageView.draw()
+    emit('page-height', actualHeight)
 
-  if (props.highlightText) {
-    highlightOnPage(pageProxy)
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    ctx.save()
+    ctx.scale(dpr, dpr)
+    renderTask = pageProxy.render({
+      canvas,
+      canvasContext: ctx,
+      viewport,
+    })
+    await renderTask.promise
+    ctx.restore()
+
+    await renderTextLayer()
+  } catch (e: unknown) {
+    if (e instanceof Error && e.name === 'RenderingCancelledException') return
+    console.error(`Page ${props.pageNumber} render error:`, e)
+  } finally {
+    renderTask = null
   }
 }
 
-function destroyPageView() {
-  if (!pageView) return
-  pageView.cancelRendering()
-  pageView.destroy()
-  pageView.div.remove()
-  pageView = null
+async function renderTextLayer() {
+  if (!textLayerRef.value || !pageProxy) return
+
+  // Clear previous text layer
+  textLayerRef.value.innerHTML = ''
+
+  const viewport = pageProxy.getViewport({ scale: props.scale * PDF_TO_CSS_UNITS })
+  const textContent = await pageProxy.getTextContent()
+
+  const textLayer = new TextLayer({
+    textContentSource: textContent,
+    container: textLayerRef.value,
+    viewport,
+  })
+  await textLayer.render()
+
+  if (props.highlightText) {
+    highlightOnPage()
+  }
 }
 
-async function highlightOnPage(pageProxy: PDFPageProxy) {
-  if (!props.highlightText || !containerRef.value) return
+async function highlightOnPage() {
+  if (!props.highlightText || !containerRef.value || !pageProxy) return
 
   const textContent = await pageProxy.getTextContent()
   const fullText = textContent.items
@@ -84,12 +118,6 @@ async function highlightOnPage(pageProxy: PDFPageProxy) {
 
   const overlay = document.createElement('div')
   overlay.className = 'pdf-highlight-overlay'
-  overlay.style.position = 'absolute'
-  overlay.style.top = '0'
-  overlay.style.left = '0'
-  overlay.style.right = '0'
-  overlay.style.bottom = '0'
-  overlay.style.pointerEvents = 'none'
   containerRef.value.appendChild(overlay)
 
   setTimeout(() => {
@@ -98,27 +126,24 @@ async function highlightOnPage(pageProxy: PDFPageProxy) {
   }, 3000)
 }
 
-onMounted(() => createAndDraw())
+onMounted(() => render())
 
 watch(
   () => [props.pdfDoc, props.pageNumber] as const,
-  () => createAndDraw(),
+  () => render(),
 )
 
 watch(
   () => props.scale,
-  () => {
-    if (!pageView) return
-    pageView.update({ scale: props.scale })
-    const viewport = pageView.viewport
-    if (viewport) {
-      emit('page-height', Math.floor(viewport.height))
-    }
-  },
+  () => render(),
 )
 
 onBeforeUnmount(() => {
-  destroyPageView()
+  if (renderTask) {
+    renderTask.cancel()
+    renderTask = null
+  }
+  pageProxy?.cleanup()
 })
 </script>
 
@@ -129,21 +154,35 @@ onBeforeUnmount(() => {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
   border-radius: 2px;
   margin: 0 auto;
-  --scale-round-x: 1px;
-  --scale-round-y: 1px;
-  --total-scale-factor: var(--scale-factor);
 }
 
-.pdf-page :deep(.page) {
-  box-shadow: none !important;
-  margin: 0 !important;
-}
-
-.pdf-page :deep(canvas) {
+.pdf-page-canvas {
   display: block;
 }
 
+.pdf-text-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  opacity: 0.2;
+  line-height: 1;
+}
+
+.pdf-text-layer ::selection {
+  background: var(--color-accent-soft, rgba(59, 130, 246, 0.25));
+}
+
+.pdf-text-layer > :deep(span) {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  transform-origin: 0% 0%;
+}
+
 .pdf-highlight-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
   background: rgba(59, 130, 246, 0.15);
   animation: highlight-pulse 0.3s ease-out;
 }

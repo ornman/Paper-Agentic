@@ -80,13 +80,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick, onBeforeUnmount, computed, provide } from 'vue'
+import { ref, watch, nextTick, onBeforeUnmount, computed } from 'vue'
 import type { PDFDocumentProxy } from 'pdfjs-dist'
-import { EventBus } from 'pdfjs-dist/web/pdf_viewer.mjs'
 import { usePdfjs } from '../composables/use-pdfjs'
 import { usePdfRenderer } from '../composables/use-pdf-renderer'
 import { buildPaperOpenUrl } from '../services/library-api'
-import { PDF_EVENT_BUS_KEY } from '../composables/pdf-event-bus'
 import PdfPage from './pdf-reader/PdfPage.vue'
 import PdfToolbar from './pdf-reader/PdfToolbar.vue'
 import PdfOutline from './pdf-reader/PdfOutline.vue'
@@ -94,9 +92,6 @@ import type { OutlineItem } from './pdf-reader/PdfOutline.vue'
 import { usePdfKeyboard } from '../composables/use-pdf-keyboard'
 
 const { lib: pdfjsLib, cMapOptions } = usePdfjs()
-
-const eventBus = new EventBus()
-provide(PDF_EVENT_BUS_KEY, eventBus)
 
 const props = defineProps<{
   visible: boolean
