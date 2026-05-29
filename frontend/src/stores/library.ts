@@ -143,7 +143,7 @@ export const useLibraryStore = defineStore('library', () => {
 
     if (progress.status === 'failed' || progress.status === 'error') {
       importStep.value = '导入失败'
-      importError.value = progress.error_msg || progress.step || '未知错误'
+      importError.value = progress.error_msg || progress.step || '遇到了意外问题，请稍后重试'
       importPercent.value = 100
       importing.value = false
       log.warn('导入失败', { paperId: progress.paper_id, step: progress.step, error: progress.error_msg })
@@ -191,10 +191,10 @@ export const useLibraryStore = defineStore('library', () => {
         })
         if (consecutiveFailures >= maxConsecutiveFailures) {
           importing.value = false
-          importStep.value = '导入状态丢失'
+          importStep.value = '导入中断'
           if (!importError.value) {
             const fileLabel = importFileName.value ? `：${importFileName.value}` : ''
-            importError.value = `导入状态丢失${fileLabel}`
+            importError.value = `导入似乎中断了，请尝试重新上传${fileLabel}`
           }
           return
         }

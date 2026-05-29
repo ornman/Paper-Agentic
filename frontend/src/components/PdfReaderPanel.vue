@@ -167,7 +167,7 @@ async function loadPdf() {
       renderer.currentPage.value = props.targetPage
     }
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'PDF 加载失败'
+    error.value = e instanceof Error ? e.message : 'PDF 加载失败，请检查文件是否完整'
   } finally {
     loading.value = false
   }

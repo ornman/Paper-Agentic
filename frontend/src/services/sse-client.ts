@@ -167,7 +167,7 @@ export async function postAskStream(
     clearTimeout(timeoutId)
 
     if (!response.ok) {
-      let errorMessage = `HTTP ${response.status}`
+      let errorMessage = `服务暂时不可用 (${response.status})，请稍后重试`
       try {
         const errorBody = await response.json()
         if (typeof errorBody.detail === 'string') {
@@ -184,7 +184,7 @@ export async function postAskStream(
 
     const reader = response.body?.getReader()
     if (!reader) {
-      handlers.onErrorEvent?.('浏览器不支持流式读取')
+      handlers.onErrorEvent?.('浏览器不支持流式传输，请使用 Chrome 或 Edge 最新版')
       return
     }
 
@@ -276,7 +276,7 @@ export async function postAskStream(
   } catch (error: unknown) {
     clearTimeout(timeoutId)
     if (error instanceof DOMException && error.name === 'AbortError') {
-      handlers.onErrorEvent?.('请求超时')
+      handlers.onErrorEvent?.('请求超时，请检查网络连接后重试')
     } else {
       const message = error instanceof Error ? error.message : String(error)
       log.error('SSE 请求失败', error)

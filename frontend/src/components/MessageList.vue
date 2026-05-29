@@ -25,7 +25,7 @@
     <!-- 错误状态 -->
     <div v-if="status === 'error'" class="error-banner">
       <span class="error-icon">⚠</span>
-      <span class="error-text">{{ errorMessage || '请求失败，请重试' }}</span>
+      <span class="error-text">{{ errorMessage || '网络似乎不太稳定，请稍后重试' }}</span>
       <button class="error-retry" type="button" @click="emit('retry')">重试</button>
     </div>
 
