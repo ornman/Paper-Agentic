@@ -72,14 +72,14 @@ async def convert_with_mineru(
             error=f"不支持的文件格式: {file_path.suffix}，支持: {', '.join(sorted(_MINERU_SUPPORTED_SUFFIXES))}",
         )
 
-    token = os.environ.get("MINERU_TOKEN", "")
+    token = os.environ.get("MINERU_API_KEY", "") or os.environ.get("MINERU_TOKEN", "")
     if not token:
         return MinerUConversionResult(
             markdown="",
             page_count=0,
             char_count=0,
             success=False,
-            error="MINERU_TOKEN 环境变量未配置",
+            error="MINERU_API_KEY 环境变量未配置",
         )
 
     from .mineru_client import MinerUClient
