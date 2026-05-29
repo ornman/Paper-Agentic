@@ -70,7 +70,7 @@
             >
               {{ saving ? '保存中...' : '保存并重启' }}
             </button>
-            <span class="config-tutorial-link config-tutorial-disabled">如何获取 API Key？查看教程 &rarr;</span>
+            <a href="https://zcnrv0jwshwd.feishu.cn/wiki/SnqmwFb6Ei4r8mkQrQWcAtHjnth?from=from_copylink" target="_blank" class="config-tutorial-link">如何获取 API Key？查看教程 &rarr;</a>
           </div>
         </div>
       </div>
@@ -89,7 +89,7 @@ interface Vendor {
 }
 
 const VENDOR_LIST: Vendor[] = [
-  { name: 'DeepSeek（默认）', baseUrl: 'https://api.deepseek.com', model: 'deepseek-chat' },
+  { name: 'DeepSeek（推荐）', baseUrl: 'https://api.deepseek.com', model: 'deepseek-chat' },
   { name: '智谱 GLM', baseUrl: 'https://open.bigmodel.cn/api/paas/v4', model: 'glm-4-flash' },
   { name: '硅基流动', baseUrl: 'https://api.siliconflow.cn/v1', model: 'deepseek-ai/DeepSeek-V3' },
   { name: '月之暗面 Kimi', baseUrl: 'https://api.moonshot.cn/v1', model: 'moonshot-v1-8k' },
@@ -115,7 +115,7 @@ const emit = defineEmits<{
   saved: []
 }>()
 
-const llmVendor = ref('DeepSeek（默认）')
+const llmVendor = ref('DeepSeek（推荐）')
 const llmApiKey = ref('')
 const llmBaseUrl = ref('https://api.deepseek.com')
 const llmModel = ref('deepseek-chat')
@@ -337,12 +337,6 @@ async function handleSave() {
 
 .config-tutorial-link:hover {
   text-decoration: underline;
-}
-
-.config-tutorial-disabled {
-  opacity: 0.5;
-  cursor: default;
-  pointer-events: none;
 }
 
 .config-error {

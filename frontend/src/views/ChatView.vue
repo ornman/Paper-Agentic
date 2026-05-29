@@ -556,9 +556,11 @@ onMounted(async () => {
       initDemoMode()
     } else {
       if (isWPSAvailable.value) startPolling()
-      // Always verify backend config from server (localStorage cache may be stale)
+      // Verify backend config from server, but trust localStorage to avoid
+      // popping the dialog on pages where it shouldn't appear
+      const cachedConfigured = localStorage.getItem('backendConfigured') === 'true'
       await settingsStore.fetchBackendConfig()
-      if (!settingsStore.backendConfigured) {
+      if (!settingsStore.backendConfigured && !cachedConfigured) {
         configDialogVisible.value = true
       }
     }
