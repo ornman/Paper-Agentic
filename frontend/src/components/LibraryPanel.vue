@@ -1,5 +1,23 @@
 <template>
-  <div class="library-panel">
+  <div
+    class="library-panel"
+    :class="{ 'library-panel--drag-over': dragActive }"
+    @dragenter.prevent="onDragEnter"
+    @dragover.prevent
+    @dragleave="onDragLeave"
+    @drop.prevent="onDrop"
+  >
+    <!-- Drag overlay -->
+    <Transition name="drag-fade">
+      <div v-if="dragActive" class="drag-overlay">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="17 8 12 3 7 8" />
+          <line x1="12" y1="3" x2="12" y2="15" />
+        </svg>
+        <span>松开以导入 PDF</span>
+      </div>
+    </Transition>
     <!-- Sticky header: search + filters + upload -->
     <div class="library-header">
       <div class="library-search">
@@ -263,6 +281,32 @@ const emit = defineEmits<{
 }>()
 
 const showSortMenu = ref(false)
+const dragActive = ref(false)
+let dragCounter = 0 // track nested enter/leave
+
+function onDragEnter() {
+  dragCounter++
+  dragActive.value = true
+}
+
+function onDragLeave() {
+  dragCounter--
+  if (dragCounter <= 0) {
+    dragCounter = 0
+    dragActive.value = false
+  }
+}
+
+function onDrop(e: DragEvent) {
+  dragCounter = 0
+  dragActive.value = false
+  const files = e.dataTransfer?.files
+  if (!files || files.length === 0) return
+  const pdfFiles = Array.from(files).filter((f) => f.name.toLowerCase().endsWith('.pdf'))
+  if (pdfFiles.length > 0) {
+    libraryStore.importFiles(pdfFiles)
+  }
+}
 
 // 删除确认状态
 const skipDeleteConfirm = ref(false)
@@ -361,6 +405,41 @@ function confirmDeleteAction() {
   flex-direction: column;
   min-height: 0;
   height: 100%;
+  position: relative;
+}
+
+.library-panel--drag-over {
+  outline: 2px dashed var(--color-accent);
+  outline-offset: -2px;
+}
+
+/* ─── Drag overlay ─── */
+.drag-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  background: color-mix(in srgb, var(--color-surface-card) 90%, transparent);
+  backdrop-filter: blur(4px);
+  border-radius: inherit;
+  font-size: var(--font-size-sm);
+  color: var(--color-accent);
+  font-weight: 500;
+  pointer-events: none;
+}
+
+.drag-fade-enter-active,
+.drag-fade-leave-active {
+  transition: opacity 0.15s ease;
+}
+
+.drag-fade-enter-from,
+.drag-fade-leave-to {
+  opacity: 0;
 }
 
 /* ─── Sticky header ─── */
