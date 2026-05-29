@@ -7,7 +7,7 @@
         <line x1="21" y1="21" x2="16.65" y2="16.65" />
       </svg>
       <input
-        v-model="search.query"
+        v-model="search.query.value"
         type="text"
         class="library-search-input"
         placeholder="搜索标题、作者、关键词..."
