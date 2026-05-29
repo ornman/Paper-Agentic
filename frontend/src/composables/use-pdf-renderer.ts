@@ -18,11 +18,12 @@ export function usePdfRenderer(
   let observer: IntersectionObserver | null = null
   const pageElements = new Map<number, HTMLElement>()
 
-  function init(doc: PDFDocumentProxy) {
+  async function init(doc: PDFDocumentProxy) {
     totalPages.value = doc.numPages
     currentPage.value = 1
     pageHeights.value = []
-    precomputeHeights(doc)
+    await precomputeHeights(doc)
+    updatePagesToRender()
   }
 
   async function precomputeHeights(doc: PDFDocumentProxy) {

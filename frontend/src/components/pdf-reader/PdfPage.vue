@@ -56,10 +56,7 @@ async function render() {
 
     emit('page-height', Math.floor(displayViewport.height))
 
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    renderTask = pageProxy.render({ canvas, canvasContext: ctx, viewport })
+    renderTask = pageProxy.render({ canvas, viewport })
     await renderTask.promise
 
     await renderTextLayer(pageProxy, displayViewport)

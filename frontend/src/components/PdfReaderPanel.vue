@@ -160,7 +160,7 @@ async function loadPdf() {
     pdfDocProxy = await loadingTask.promise
     paperTitle.value = isDemo ? 'Demo PDF' : 'PDF 预览'
 
-    renderer.init(pdfDocProxy)
+    await renderer.init(pdfDocProxy)
     await loadOutline()
 
     if (props.targetPage && props.targetPage >= 1 && props.targetPage <= pdfDocProxy.numPages) {
