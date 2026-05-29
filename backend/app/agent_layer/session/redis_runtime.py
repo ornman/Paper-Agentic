@@ -103,6 +103,9 @@ class NullConversationWindowStore:
     async def save_messages(self, session_id: str, messages: list[ConversationMessage]) -> None:
         return None
 
+    async def add_message(self, session_id: str, message: dict) -> None:
+        return None
+
 
 class NullEditorContextStore:
     available = False
@@ -137,6 +140,15 @@ class RedisConversationWindowStore:
     async def save_messages(self, session_id: str, messages: list[ConversationMessage]) -> None:
         payload = json.dumps([asdict(message) for message in messages], ensure_ascii=False)
         await self._redis.set(f"conversation_window:{session_id}", payload, ex=self._ttl)
+
+    async def add_message(self, session_id: str, message: dict) -> None:
+        messages = await self.get_messages(session_id)
+        messages.append(ConversationMessage(
+            session_id=session_id,
+            role=message["role"],
+            content=message["content"],
+        ))
+        await self.save_messages(session_id, messages)
 
 
 class RedisEditorContextStore:

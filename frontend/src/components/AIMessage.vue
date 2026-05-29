@@ -122,7 +122,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import type { AssistantMessage } from '../stores/conversation'
 import { renderInlineMarkdown } from '../utils/markdown-inline'
 
@@ -157,6 +157,10 @@ watch(() => props.phaseMessage, (msg) => {
   } else {
     if (phaseTimer) { clearInterval(phaseTimer); phaseTimer = null }
   }
+})
+
+onBeforeUnmount(() => {
+  if (phaseTimer) { clearInterval(phaseTimer); phaseTimer = null }
 })
 
 /** Deduplicated sources keyed by paper_id (or id as fallback), numbered [1], [2], … */

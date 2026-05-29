@@ -28,7 +28,7 @@ router = APIRouter(prefix="/library", tags=["library"])
 async def list_items(request: Request):
     container = request.app.state.container
     items = container.library_repo.list_items()
-    return [LibraryItemOut(**item.__dict__) for item in items]
+    return [_item_to_out(item) for item in items]
 
 
 @router.get("/items/{item_id}", response_model=LibraryItemOut)
@@ -37,7 +37,7 @@ async def get_item(item_id: str, request: Request):
     item = container.library_repo.get(item_id)
     if not item:
         raise HTTPException(status_code=404, detail="文献不存在")
-    return LibraryItemOut(**item.__dict__)
+    return _item_to_out(item)
 
 
 @router.delete("/items/{item_id}")
@@ -120,3 +120,18 @@ def _compute_file_hash(file_path: Path) -> str:
         for chunk in iter(lambda: f.read(8192), b""):
             h.update(chunk)
     return h.hexdigest()[:16]
+
+
+def _item_to_out(item: LibraryItem) -> LibraryItemOut:
+    return LibraryItemOut(
+        library_item_id=item.item_id,
+        kind=item.file_type.lstrip(".") or "pdf",
+        title=item.title,
+        file_path=item.file_path,
+        file_hash=item.file_hash,
+        authors=item.authors,
+        year=item.year,
+        total_pages=item.page_count or None,
+        status=item.status,
+        import_time=item.import_time,
+    )

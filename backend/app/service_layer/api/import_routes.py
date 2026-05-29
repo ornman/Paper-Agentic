@@ -47,7 +47,7 @@ async def start_import(file: UploadFile = FastAPIFile(...), request: Request = N
     task = ImportTask(task_id=task_id, file_path=str(dest))
     container.import_task_repo.create(task)
 
-    asyncio.create_task(_run_import_with_progress(container, task_id, dest))
+    asyncio.create_task(_run_import_with_progress(container, task_id, dest, file_hash))
 
     return ImportStartResponse(task_id=task_id, status="queued")
 
@@ -95,7 +95,7 @@ async def stream_import_progress(task_id: str, request: Request):
     )
 
 
-async def _run_import_with_progress(container, task_id: str, file_path: Path):
+async def _run_import_with_progress(container, task_id: str, file_path: Path, file_hash: str):
     """后台导入 worker（带进度推送）"""
     bus = container.import_progress_bus
 
@@ -136,6 +136,7 @@ async def _run_import_with_progress(container, task_id: str, file_path: Path):
                 item_id=result.paper_id,
                 title=meta.title or file_path.stem,
                 file_path=str(file_path),
+                file_hash=file_hash,
                 file_type=file_path.suffix.lower(),
                 status="ready",
                 authors=meta.authors,

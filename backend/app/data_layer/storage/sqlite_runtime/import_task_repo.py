@@ -89,7 +89,7 @@ class SQLiteImportTaskRepo:
                 SET status = ?,
                     message = ?,
                     paper_id = CASE WHEN ? != '' THEN ? ELSE paper_id END,
-                    completed_at = CASE WHEN ? IN ('done', 'failed', 'error') THEN datetime('now') ELSE completed_at END
+                    completed_at = CASE WHEN ? IN ('completed', 'done', 'failed', 'error') THEN datetime('now') ELSE completed_at END
                 WHERE task_id = ?
                 """,
                 (
