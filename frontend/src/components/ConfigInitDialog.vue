@@ -45,10 +45,6 @@
                 <label>API Key</label>
                 <input v-model="embeddingApiKey" type="password" placeholder="sk-..." autocomplete="off" />
               </div>
-              <div class="config-field">
-                <label>Base URL</label>
-                <input v-model="embeddingBaseUrl" type="text" />
-              </div>
             </div>
 
             <!-- MinerU Section -->
@@ -60,10 +56,6 @@
               <div class="config-field">
                 <label>API Key</label>
                 <input v-model="mineruApiKey" type="password" placeholder="不填则走轻量文本链" autocomplete="off" />
-              </div>
-              <div class="config-field">
-                <label>Base URL</label>
-                <input v-model="mineruBaseUrl" type="text" />
               </div>
             </div>
           </div>

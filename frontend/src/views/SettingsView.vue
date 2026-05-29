@@ -21,23 +21,6 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
           重新初始化配置
         </button>
-        <div class="settings-field">
-          <label>API URL</label>
-          <input v-model="settingsStore.apiUrl" type="text" placeholder="https://api.deepseek.com/v1" @blur="handleApiBlur">
-        </div>
-        <div class="settings-field">
-          <label>API Key</label>
-          <input v-model="settingsStore.apiKey" type="password" placeholder="sk-..." autocomplete="off" @blur="handleApiBlur">
-        </div>
-        <div class="settings-field">
-          <label>模型</label>
-          <div class="model-select-wrapper">
-            <select v-if="settingsStore.models.length > 0" v-model="settingsStore.selectedModel" class="model-select">
-              <option v-for="m in settingsStore.models" :key="m" :value="m">{{ m }}</option>
-            </select>
-            <input v-else v-model="settingsStore.selectedModel" type="text" placeholder="deepseek-chat">
-          </div>
-        </div>
         <div class="settings-field-row">
           <span>深度思考</span>
           <button class="toggle-btn" :class="{ active: settingsStore.thinkingEnabled }" @click="settingsStore.toggleThinking()">
@@ -94,10 +77,6 @@
               深色
             </button>
           </div>
-        </div>
-        <div class="settings-field">
-          <label>字体大小（{{ settingsStore.fontSize }}px）</label>
-          <input type="range" :min="12" :max="20" :step="1" :value="settingsStore.fontSize" @input="settingsStore.fontSize = Number(($event.target as HTMLInputElement).value)" class="font-slider">
         </div>
       </section>
 
@@ -210,12 +189,6 @@ watch(easterEggActive, async (active) => {
 onMounted(() => {
   storageUsage.value = settingsStore.estimateStorageUsage()
 })
-
-function handleApiBlur() {
-  if (settingsStore.apiUrl && settingsStore.apiKey) {
-    settingsStore.fetchModels()
-  }
-}
 
 function handleExport() {
   const data = settingsStore.exportData()
