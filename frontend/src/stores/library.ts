@@ -318,7 +318,6 @@ export const useLibraryStore = defineStore('library', () => {
 
   async function importFiles(files: File[]) {
     if (files.length === 0) return
-    if (files.length === 1) return importFile(files[0])
 
     importing.value = true
     importError.value = null

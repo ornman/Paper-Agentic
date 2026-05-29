@@ -476,7 +476,7 @@ function showCitationPreview(source: SourceCard) {
 // ─── 上传 PDF ───
 async function handleUploadPdf(file: File) {
   if (demoActive.value) return
-  await libraryStore.importFile(file)
+  await libraryStore.importFiles([file])
 }
 
 function togglePaperPanel() {
