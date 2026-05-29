@@ -38,9 +38,7 @@
           @input="autoResize"
         />
         <div class="input-actions">
-          <!-- 展开：仅当文本超出或已展开时显示 -->
           <button
-            v-if="showExpandHint || expanded"
             class="action-btn expand-btn"
             :class="{ active: expanded }"
             type="button"
@@ -108,7 +106,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, watch } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import iconSearch from '../assets/icons/search-sparkle.svg?raw'
 import iconDocAdd from '../assets/icons/document-add.svg?raw'
 import iconLightbulb from '../assets/icons/lightbulb-filament.svg?raw'
@@ -145,20 +143,11 @@ const fileInput = ref<HTMLInputElement>()
 const textareaEl = ref<HTMLTextAreaElement>()
 const expanded = ref(false)
 const badgeHover = ref(false)
-const showExpandHint = ref(false)
 
 const placeholderText = computed(() => {
   if (props.isBusy) return '发送新消息将打断当前回答...'
   if (props.selectedPaperCount > 0) return `基于 ${props.selectedPaperCount} 篇文献回答...`
   return '输入你的问题...'
-})
-
-watch(text, () => {
-  nextTick(() => {
-    const el = textareaEl.value
-    if (!el) return
-    showExpandHint.value = el.scrollHeight > 120
-  })
 })
 
 function toggleExpand() {
@@ -167,6 +156,13 @@ function toggleExpand() {
     nextTick(() => {
       if (textareaEl.value) textareaEl.value.style.height = ''
       textareaEl.value?.focus()
+    })
+  } else {
+    nextTick(() => {
+      const el = textareaEl.value
+      if (!el) return
+      el.style.height = 'auto'
+      el.style.height = Math.min(el.scrollHeight, 120) + 'px'
     })
   }
 }
@@ -345,6 +341,10 @@ function autoResize(event: Event) {
   align-items: stretch;
 }
 
+.input-bar.expanded .input-actions {
+  align-self: flex-end;
+}
+
 .composer-textarea {
   flex: 1;
   padding: 8px 0;
@@ -392,13 +392,13 @@ function autoResize(event: Event) {
   height: 20px;
 }
 
-/* 展开按钮：缩小，仅在需要时出现 */
+/* 展开按钮：始终可见，默认低调 */
 .expand-btn {
   width: 26px;
   height: 26px;
   background: transparent;
   color: var(--color-text-muted);
-  opacity: 0.7;
+  opacity: 0.4;
 }
 
 .expand-btn :deep(svg) {
