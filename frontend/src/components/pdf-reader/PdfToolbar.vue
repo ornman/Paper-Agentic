@@ -122,7 +122,9 @@ function handlePageInput() {
   if (isNaN(val)) { raw.value = String(props.currentPage); return }
   const clamped = Math.max(1, Math.min(props.totalPages, val))
   raw.value = String(clamped)
-  emit('go-to-page', clamped)
+  if (clamped !== props.currentPage) {
+    emit('go-to-page', clamped)
+  }
 }
 </script>
 

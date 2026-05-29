@@ -127,10 +127,10 @@ const emit = defineEmits<{
     top: 0;
     bottom: 0;
     z-index: 220;
-    box-shadow: var(--shadow-drawer);
   }
   .outline-wrapper--open {
     width: 260px;
+    box-shadow: var(--shadow-drawer);
   }
 }
 
