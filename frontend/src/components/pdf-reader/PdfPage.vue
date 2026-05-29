@@ -30,30 +30,26 @@ const eventBus = inject(PDF_EVENT_BUS_KEY) as EventBus
 
 let pageView: PDFPageView | null = null
 
-function adjustedScale() {
-  return props.scale / PDF_TO_CSS_UNITS
-}
-
 async function createAndDraw() {
   if (!containerRef.value) return
 
   destroyPageView()
 
   const pageProxy = await props.pdfDoc.getPage(props.pageNumber)
-  const viewport = pageProxy.getViewport({ scale: adjustedScale() })
+  // 匹配官方 viewer 的 scale 模型：viewport = getViewport({ scale: scale * PDF_TO_CSS_UNITS })
+  const viewport = pageProxy.getViewport({ scale: props.scale * PDF_TO_CSS_UNITS })
 
-  emit('page-height', Math.floor(viewport.height * PDF_TO_CSS_UNITS))
+  emit('page-height', Math.floor(viewport.height))
 
   pageView = new PDFPageView({
     container: containerRef.value,
     eventBus,
     id: props.pageNumber,
-    scale: adjustedScale(),
+    scale: props.scale,
     defaultViewport: viewport,
   })
 
   pageView.setPdfPage(pageProxy)
-  containerRef.value.appendChild(pageView.div)
   await pageView.draw()
 
   if (props.highlightText) {
@@ -113,10 +109,10 @@ watch(
   () => props.scale,
   () => {
     if (!pageView) return
-    pageView.update({ scale: adjustedScale() })
+    pageView.update({ scale: props.scale })
     const viewport = pageView.viewport
     if (viewport) {
-      emit('page-height', Math.floor(viewport.height * PDF_TO_CSS_UNITS))
+      emit('page-height', Math.floor(viewport.height))
     }
   },
 )
