@@ -367,23 +367,20 @@ export const useLibraryStore = defineStore('library', () => {
         log.error('批量导入中单文件失败', err, { name: files[i].name })
       }
 
-      // 完成的条目短暂展示后立即移除
-      if (importQueue.value[i]?.status === 'completed') {
-        await wait(600)
-        importQueue.value.splice(i, 1)
-        i-- // splice 后索引偏移
-      }
       persistQueue(importQueue.value)
     }
 
-    // 队列中剩余的都是真正失败的条目
+    // 全部完成后短暂展示结果，再清理队列
+    const hasSuccess = importQueue.value.some((item) => item.status === 'completed')
+    if (hasSuccess) await wait(2000)
+    importQueue.value = importQueue.value.filter((item) => item.status === 'failed')
 
     if (dupNames.length > 0) {
       importError.value = `${dupNames.length} 篇论文已导入过，已跳过：${dupNames.join('、')}`
     }
 
     importing.value = false
-    localStorage.removeItem(STORAGE_KEY)
+    persistQueue(importQueue.value)
     void loadPapers()
   }
 

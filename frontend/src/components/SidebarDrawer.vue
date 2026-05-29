@@ -205,8 +205,7 @@ const emit = defineEmits<{
 /* ─── Body ─── */
 .sidebar-body {
   flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
   padding: var(--space-4);
   display: flex;
   flex-direction: column;
