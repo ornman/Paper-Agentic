@@ -556,12 +556,12 @@ onMounted(async () => {
       initDemoMode()
     } else {
       if (isWPSAvailable.value) startPolling()
-      // Verify backend config from server, but trust localStorage to avoid
-      // popping the dialog on pages where it shouldn't appear
-      const cachedConfigured = localStorage.getItem('backendConfigured') === 'true'
+      // Only auto-show the config dialog once per browser session.
+      // After that, the user must manually open it from Settings.
       await settingsStore.fetchBackendConfig()
-      if (!settingsStore.backendConfigured && !cachedConfigured) {
+      if (!settingsStore.backendConfigured && !sessionStorage.getItem('configDialogShown')) {
         configDialogVisible.value = true
+        sessionStorage.setItem('configDialogShown', 'true')
       }
     }
   }
