@@ -75,7 +75,7 @@
       </div>
 
       <!-- Batch import queue (empty library) -->
-      <div v-else-if="papers.length === 0 && importQueue.length > 0" class="import-queue">
+      <div v-else-if="papers.length === 0 && importQueue.length > 0" class="import-queue import-queue--empty-library">
         <div
           v-for="(item, idx) in importQueue"
           :key="item.fileName"
@@ -651,11 +651,13 @@ function confirmDeleteAction() {
 
 /* ─── Importing state (single-file spinner) ─── */
 .library-importing-state {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: var(--space-3);
-  padding: var(--space-8) var(--space-4);
+  padding: var(--space-4);
 }
 
 .importing-spinner {
@@ -683,6 +685,13 @@ function confirmDeleteAction() {
   gap: 1px;
   max-height: 220px;
   overflow-y: auto;
+}
+
+.import-queue--empty-library {
+  flex: 1;
+  max-height: none;
+  justify-content: center;
+  overflow-y: visible;
 }
 
 .import-queue-item {
