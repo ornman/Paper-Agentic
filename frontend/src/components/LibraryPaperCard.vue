@@ -1,5 +1,7 @@
 <template>
+  <!-- Normal / successful paper card -->
   <label
+    v-if="paper.status !== 'failed'"
     class="paper-card"
     :class="{ 'paper-card--selected': selected }"
   >
@@ -49,6 +51,39 @@
       </button>
     </div>
   </label>
+
+  <!-- Failed import card -->
+  <div v-else class="paper-card paper-card--failed">
+    <div class="paper-card-body">
+      <span class="paper-card-title" v-html="highlightTitle" />
+      <span class="paper-card-failed-badge">导入失败</span>
+      <span class="paper-card-meta">
+        {{ authorDisplay }}
+        <template v-if="paper.year"> · {{ paper.year }}</template>
+      </span>
+    </div>
+    <div class="paper-card-actions">
+      <button
+        class="paper-card-action"
+        type="button"
+        title="重试"
+        @click.prevent.stop="emit('retry', paper.file_path)"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+      </button>
+      <button
+        class="paper-card-action paper-card-action--danger"
+        type="button"
+        title="移除"
+        @click.prevent.stop="emit('remove', paper.paper_id)"
+      >
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="3 6 5 6 21 6" />
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+        </svg>
+      </button>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -68,6 +103,7 @@ const emit = defineEmits<{
   (e: 'toggle', id: string): void
   (e: 'remove', id: string): void
   (e: 'similar', id: string): void
+  (e: 'retry', filePath: string): void
 }>()
 
 const highlightTitle = computed(() =>
@@ -173,6 +209,26 @@ const authorDisplay = computed(() => {
 .paper-card-pill--more {
   background: transparent;
   color: var(--color-text-muted);
+}
+
+.paper-card--failed {
+  background: color-mix(in srgb, var(--color-error, #c53030) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-error, #c53030) 15%, transparent);
+  cursor: default;
+}
+
+.paper-card--failed .paper-card-title {
+  opacity: 0.7;
+}
+
+.paper-card-failed-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  font-size: 11px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-error, #c53030) 15%, transparent);
+  color: var(--color-error, #c53030);
+  font-weight: 500;
 }
 
 .paper-card-actions {

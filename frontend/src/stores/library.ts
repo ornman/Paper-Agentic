@@ -251,6 +251,7 @@ export const useLibraryStore = defineStore('library', () => {
     togglePaperSelection,
     clearSelectedPapers,
     importFile,
+    monitorImportStatus,
     clearImportError,
     setImportError,
   }

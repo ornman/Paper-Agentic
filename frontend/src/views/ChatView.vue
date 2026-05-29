@@ -74,6 +74,7 @@
           @toggle="libraryStore.togglePaperSelection($event)"
           @upload="triggerFileUpload"
           @remove="handleRemovePaper"
+          @retry="handleRetryImport"
           @select-all="libraryStore.setSelectedPaperIds($event)"
         />
       </template>
@@ -489,6 +490,19 @@ async function handleRemovePaper(paperId: string) {
     await libraryStore.removePaper(paperId)
   } catch {
     // error state managed by the store
+  }
+}
+
+// ─── 重试失败的导入 ───
+async function handleRetryImport(filePath: string) {
+  const paperId = filePath.split(/[\\/]/).pop()?.replace('.pdf', '') ?? ''
+  try {
+    const { retryImport } = await import('../services/library-api')
+    const result = await retryImport(paperId)
+    await libraryStore.monitorImportStatus(result.task_id)
+    libraryStore.loadPapers()
+  } catch (err) {
+    console.error('重试导入失败', err)
   }
 }
 

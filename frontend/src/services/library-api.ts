@@ -71,6 +71,14 @@ export async function deletePaper(paperId: string): Promise<void> {
   await request(`/api/v1/library/items/${encodeURIComponent(paperId)}`, { method: 'DELETE' })
 }
 
+export async function retryImport(paperId: string): Promise<ImportStartResult> {
+  const result = await request<ImportStartResult>(`/api/v1/library/items/${encodeURIComponent(paperId)}/retry`, { method: 'POST' })
+  if (!result?.task_id) {
+    throw new ApiClientError('重试导入失败：缺少 task_id')
+  }
+  return result
+}
+
 export async function startImport(file: File): Promise<ImportStartResult> {
   const form = new FormData()
   form.append('file', file)

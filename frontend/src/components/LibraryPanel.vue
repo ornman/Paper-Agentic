@@ -118,6 +118,7 @@
         :highlight-fn="search.highlightText"
         @toggle="emit('toggle', $event)"
         @remove="emit('remove', $event)"
+        @retry="handleRetry($event)"
         @similar="handleSimilar"
       />
 
@@ -187,6 +188,7 @@ const emit = defineEmits<{
   (e: 'upload'): void
   (e: 'remove', id: string): void
   (e: 'select-all', ids: string[]): void
+  (e: 'retry', filePath: string): void
 }>()
 
 const showSortMenu = ref(false)
@@ -218,6 +220,10 @@ function handleSelectAll() {
 
 function handleSimilar(paperId: string) {
   similarPapers.value = search.findSimilar(paperId)
+}
+
+function handleRetry(filePath: string) {
+  emit('retry', filePath)
 }
 </script>
 
