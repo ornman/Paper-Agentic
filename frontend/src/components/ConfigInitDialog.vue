@@ -53,7 +53,6 @@
                 MinerU PDF 解析（可选）
                 <span class="optional-tag">可选</span>
               </h3>
-              <p class="config-hint">高质量 PDF 解析服务，不填则使用基础文本提取</p>
               <div class="config-field">
                 <label>API Key</label>
                 <input v-model="mineruApiKey" type="password" placeholder="不填则使用基础解析" autocomplete="off" />
