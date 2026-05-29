@@ -17,6 +17,10 @@
           <h2 class="settings-section-title">模型配置</h2>
           <p class="section-desc">连接到大语言模型服务，配置 API 地址、密钥和模型参数</p>
         </div>
+        <button class="reconfig-btn" @click="configDialogVisible = true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+          重新初始化配置
+        </button>
         <div class="settings-field">
           <label>API URL</label>
           <input v-model="settingsStore.apiUrl" type="text" placeholder="https://api.deepseek.com/v1" @blur="handleApiBlur">
@@ -143,6 +147,12 @@
         </div>
       </section>
     </main>
+
+    <ConfigInitDialog
+      :visible="configDialogVisible"
+      @close="configDialogVisible = false"
+      @saved="handleConfigSaved"
+    />
   </div>
 </template>
 
@@ -150,11 +160,13 @@
 import { ref, watch, onMounted, nextTick } from 'vue'
 import { useSettingsStore } from '../stores/settings'
 import { useTheme } from '../composables/use-theme'
+import ConfigInitDialog from '../components/ConfigInitDialog.vue'
 import logoSvg from '../assets/icons/ai-science-spark.svg?raw'
 import easterEggData from '../assets/animations/easter-egg.json'
 
 const settingsStore = useSettingsStore()
 const theme = useTheme()
+const configDialogVisible = ref(false)
 
 const storageUsage = ref('')
 
@@ -220,6 +232,11 @@ function handleClearCache() {
   if (!confirm('确定清理缓存？将保留 API 配置和偏好设置。')) return
   settingsStore.clearCache()
   storageUsage.value = settingsStore.estimateStorageUsage()
+}
+
+function handleConfigSaved() {
+  configDialogVisible.value = false
+  settingsStore.backendConfigured = true
 }
 </script>
 
@@ -296,6 +313,27 @@ function handleClearCache() {
   color: var(--color-text-muted);
   margin-top: 4px;
   line-height: 1.4;
+}
+
+.reconfig-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-accent);
+  background: var(--color-accent-soft, rgba(108, 140, 255, 0.08));
+  border: 1px solid var(--color-accent);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.reconfig-btn:hover {
+  opacity: 0.85;
 }
 
 .settings-field {
