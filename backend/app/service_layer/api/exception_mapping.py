@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import logging
+
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from app.data_layer.contracts.errors import ConflictError, DomainError, NotFoundError, ServiceUnavailableError, ValidationError
+
+logger = logging.getLogger("paper-assistant")
 
 
 def register_exception_handlers(app: FastAPI) -> None:
@@ -29,4 +33,5 @@ def register_exception_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(Exception)
     async def handle_unexpected_error(request: Request, exc: Exception):
+        logger.error("Unhandled exception on %s %s: %s", request.method, request.url.path, exc, exc_info=True)
         return JSONResponse(status_code=500, content={"code": "internal_error", "message": "内部错误"})

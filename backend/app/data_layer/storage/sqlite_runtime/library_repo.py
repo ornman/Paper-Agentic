@@ -16,7 +16,7 @@ class SQLiteLibraryRepo:
     # ------------------------------------------------------------------
 
     def init(self) -> None:
-        """Create table if it does not exist."""
+        """Create table if it does not exist, then migrate missing columns."""
         with sqlite3.connect(self._db_path) as conn:
             conn.execute(
                 """
@@ -34,6 +34,12 @@ class SQLiteLibraryRepo:
                 )
                 """
             )
+            # Migrate: add columns that may be missing in older databases
+            existing = {r[1] for r in conn.execute("PRAGMA table_info(library_items)").fetchall()}
+            if "authors" not in existing:
+                conn.execute("ALTER TABLE library_items ADD COLUMN authors TEXT DEFAULT ''")
+            if "year" not in existing:
+                conn.execute("ALTER TABLE library_items ADD COLUMN year TEXT DEFAULT ''")
             conn.commit()
 
     # ------------------------------------------------------------------
