@@ -153,6 +153,10 @@
         </div>
       </div>
 
+    </div>
+
+    <!-- Fixed footer: import status (always visible) -->
+    <div v-if="hasImportStatus" class="library-footer">
       <!-- Import queue (non-empty library) -->
       <div v-if="importQueue.length > 0 && papers.length > 0" class="import-queue">
         <div
@@ -179,7 +183,7 @@
       </div>
 
       <!-- Single file import progress -->
-      <div v-else-if="importing" class="import-progress">
+      <div v-else-if="importing && papers.length > 0" class="import-progress">
         <div class="import-info">
           <span class="import-filename">{{ importFileName || '正在导入...' }}</span>
           <span class="import-percent">{{ importPercent }}%</span>
@@ -255,6 +259,12 @@ const skipDeleteConfirm = ref(false)
 const confirmDelete = reactive({ visible: false, paperId: '', title: '', batchIds: [] as string[] })
 
 const search = useLibrarySearch(() => props.papers)
+
+const hasImportStatus = computed(() =>
+  (importQueue.value.length > 0 && props.papers.length > 0) ||
+  (importing.value && props.papers.length > 0) ||
+  !!importError.value,
+)
 
 const filteredPapers = computed(() => search.results.value)
 
@@ -351,11 +361,20 @@ function confirmDeleteAction() {
 /* ─── Scrollable body ─── */
 .library-body {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+}
+
+/* ─── Fixed footer for import status ─── */
+.library-footer {
+  flex-shrink: 0;
+  border-top: 1px solid var(--color-border-subtle);
+  background: var(--color-surface-card);
+  z-index: 5;
 }
 
 /* ─── Search ─── */
@@ -652,7 +671,6 @@ function confirmDeleteAction() {
   display: flex;
   flex-direction: column;
   gap: 1px;
-  border-top: 1px solid var(--color-border-subtle);
   max-height: 220px;
   overflow-y: auto;
 }
@@ -766,7 +784,6 @@ function confirmDeleteAction() {
 /* ─── Import progress ─── */
 .import-progress {
   padding: var(--space-3);
-  border-top: 1px solid var(--color-border-subtle);
 }
 
 .import-info {
