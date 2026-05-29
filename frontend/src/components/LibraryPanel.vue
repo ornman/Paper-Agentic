@@ -85,7 +85,6 @@
           <span class="import-queue-icon">
             <svg v-if="item.status === 'completed'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
             <span v-else-if="item.status === 'importing'" class="import-queue-spinner"></span>
-            <span v-else-if="item.status === 'failed'" class="import-queue-dot import-queue-dot--failed">×</span>
             <span v-else class="import-queue-dot"></span>
           </span>
           <div class="import-queue-body">
@@ -93,27 +92,16 @@
             <div v-if="item.status === 'importing'" class="import-queue-bar-track">
               <div class="import-queue-bar-fill" :style="{ width: item.percent + '%' }"></div>
             </div>
-            <div class="import-queue-step" :class="{ 'import-queue-step--error': item.status === 'failed' }">{{ item.error || item.step }}</div>
+            <div class="import-queue-step">{{ item.step }}</div>
           </div>
           <div class="import-queue-actions">
             <span v-if="item.status === 'importing'" class="import-queue-percent">{{ item.percent }}%</span>
-            <button
-              v-if="item.status === 'failed'"
-              type="button"
-              class="import-queue-retry"
-              title="重试"
-              @click="libraryStore.retryQueueItem(idx)"
-            >
+            <button v-if="item.status === 'failed'" type="button" class="import-queue-retry" title="重试" @click="libraryStore.retryQueueItem(idx)">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
             </button>
+            <button v-if="item.status === 'failed'" type="button" class="import-queue-remove" title="移除" @click="libraryStore.removeQueueItem(idx)">×</button>
           </div>
         </div>
-        <button
-          v-if="importQueue.every(q => q.status === 'failed' || q.status === 'completed')"
-          type="button"
-          class="import-queue-dismiss"
-          @click="libraryStore.clearImportQueue()"
-        >关闭</button>
       </div>
 
       <!-- Empty state -->
@@ -185,7 +173,6 @@
           <span class="import-queue-icon">
             <svg v-if="item.status === 'completed'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
             <span v-else-if="item.status === 'importing'" class="import-queue-spinner"></span>
-            <span v-else-if="item.status === 'failed'" class="import-queue-dot import-queue-dot--failed">×</span>
             <span v-else class="import-queue-dot"></span>
           </span>
           <div class="import-queue-body">
@@ -193,27 +180,16 @@
             <div v-if="item.status === 'importing'" class="import-queue-bar-track">
               <div class="import-queue-bar-fill" :style="{ width: item.percent + '%' }"></div>
             </div>
-            <div class="import-queue-step" :class="{ 'import-queue-step--error': item.status === 'failed' }">{{ item.error || item.step }}</div>
+            <div class="import-queue-step">{{ item.step }}</div>
           </div>
           <div class="import-queue-actions">
             <span v-if="item.status === 'importing'" class="import-queue-percent">{{ item.percent }}%</span>
-            <button
-              v-if="item.status === 'failed'"
-              type="button"
-              class="import-queue-retry"
-              title="重试"
-              @click="libraryStore.retryQueueItem(idx)"
-            >
+            <button v-if="item.status === 'failed'" type="button" class="import-queue-retry" title="重试" @click="libraryStore.retryQueueItem(idx)">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
             </button>
+            <button v-if="item.status === 'failed'" type="button" class="import-queue-remove" title="移除" @click="libraryStore.removeQueueItem(idx)">×</button>
           </div>
         </div>
-        <button
-          v-if="importQueue.every(q => q.status === 'failed' || q.status === 'completed')"
-          type="button"
-          class="import-queue-dismiss"
-          @click="libraryStore.clearImportQueue()"
-        >关闭</button>
       </div>
 
       <!-- Single file import progress -->
@@ -721,10 +697,6 @@ function confirmDeleteAction() {
   opacity: 0.65;
 }
 
-.import-queue-item--failed {
-  background: color-mix(in srgb, var(--color-error, #c53030) 5%, transparent);
-}
-
 .import-queue-icon {
   flex-shrink: 0;
   width: 16px;
@@ -749,18 +721,6 @@ function confirmDeleteAction() {
   height: 8px;
   border-radius: 50%;
   background: var(--color-border-subtle);
-}
-
-.import-queue-dot--failed {
-  background: var(--color-error, #c53030);
-  color: var(--color-error, #c53030);
-  font-size: 14px;
-  font-weight: 700;
-  line-height: 1;
-  width: auto;
-  height: auto;
-  border-radius: 0;
-  background: none;
 }
 
 .import-queue-body {
@@ -802,10 +762,6 @@ function confirmDeleteAction() {
   margin-top: 2px;
 }
 
-.import-queue-step--error {
-  color: var(--color-error, #c53030);
-}
-
 .import-queue-percent {
   flex-shrink: 0;
   font-size: 11px;
@@ -841,21 +797,25 @@ function confirmDeleteAction() {
   background: var(--color-surface-muted);
 }
 
-.import-queue-dismiss {
-  display: block;
-  width: 100%;
-  padding: var(--space-2);
+.import-queue-remove {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: none;
-  border-top: 1px solid var(--color-border-subtle);
+  border-radius: 4px;
   background: transparent;
   color: var(--color-text-muted);
-  font-size: 12px;
+  font-size: 15px;
+  line-height: 1;
   cursor: pointer;
-  transition: color 0.15s ease;
+  transition: color 0.15s ease, background 0.15s ease;
 }
 
-.import-queue-dismiss:hover {
+.import-queue-remove:hover {
   color: var(--color-text-primary);
+  background: var(--color-surface-muted);
 }
 
 /* ─── Import progress ─── */

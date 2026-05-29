@@ -281,6 +281,7 @@ export const useLibraryStore = defineStore('library', () => {
     }))
 
     let skippedCount = 0
+    const dupNames: string[] = []
 
     for (let i = 0; i < files.length; i++) {
       const item = importQueue.value[i]
@@ -298,32 +299,29 @@ export const useLibraryStore = defineStore('library', () => {
         await monitorImportStatus(result.task_id, i)
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : '导入失败'
+        // 重复导入：直接从队列移除，记入跳过
+        if (msg.includes('已导入过')) {
+          dupNames.push(item.fileName)
+          importQueue.value.splice(i, 1)
+          i-- // splice 后索引偏移
+          skippedCount++
+          continue
+        }
         item.status = 'failed'
         item.error = msg
         item.step = '导入失败'
         log.error('批量导入中单文件失败', err, { name: files[i].name })
       }
 
-      const completed = importQueue.value[i]?.status === 'completed'
-      if (completed) {
-        await wait(800)
+      // 完成的条目短暂展示后立即移除
+      if (importQueue.value[i]?.status === 'completed') {
+        await wait(600)
+        importQueue.value.splice(i, 1)
+        i-- // splice 后索引偏移
       }
     }
 
-    // 清除已完成的条目，收集跳过的重复文件
-    const failedItems = importQueue.value.filter((item) => item.status === 'failed')
-    const dupNames: string[] = []
-    const realFails: typeof failedItems = []
-    for (const item of failedItems) {
-      if (item.error?.includes('已导入过')) {
-        dupNames.push(item.fileName)
-        skippedCount++
-      } else {
-        realFails.push(item)
-      }
-    }
-
-    importQueue.value = realFails
+    // 队列中剩余的都是真正失败的条目
 
     if (dupNames.length > 0) {
       importError.value = `${dupNames.length} 篇论文已导入过，已跳过：${dupNames.join('、')}`
@@ -339,6 +337,10 @@ export const useLibraryStore = defineStore('library', () => {
 
   function clearImportQueue() {
     importQueue.value = []
+  }
+
+  function removeQueueItem(index: number) {
+    importQueue.value.splice(index, 1)
   }
 
   async function retryQueueItem(index: number) {
@@ -390,6 +392,7 @@ export const useLibraryStore = defineStore('library', () => {
     clearImportError,
     setImportError,
     clearImportQueue,
+    removeQueueItem,
     retryQueueItem,
   }
 })
