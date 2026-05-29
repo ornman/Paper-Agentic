@@ -70,6 +70,7 @@
 
           <!-- Footer -->
           <div class="config-footer">
+            <p v-if="errorMessage" class="config-error">{{ errorMessage }}</p>
             <button
               class="config-submit-btn"
               :disabled="!canSubmit || saving"
@@ -77,9 +78,7 @@
             >
               {{ saving ? '保存中...' : '保存并重启' }}
             </button>
-            <a class="config-tutorial-link" href="#" @click.prevent="openTutorial">
-              如何获取 API Key？查看教程 &rarr;
-            </a>
+            <span class="config-tutorial-link config-tutorial-disabled">如何获取 API Key？查看教程 &rarr;</span>
           </div>
         </div>
       </div>
@@ -172,10 +171,6 @@ async function handleSave() {
   } finally {
     saving.value = false
   }
-}
-
-function openTutorial() {
-  window.open('#', '_blank')
 }
 </script>
 
@@ -350,6 +345,22 @@ function openTutorial() {
 
 .config-tutorial-link:hover {
   text-decoration: underline;
+}
+
+.config-tutorial-disabled {
+  opacity: 0.5;
+  cursor: default;
+  pointer-events: none;
+}
+
+.config-error {
+  width: 100%;
+  margin: 0;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: #d32f2f;
+  background: rgba(211, 47, 47, 0.06);
+  border-radius: 6px;
 }
 
 /* Transitions */

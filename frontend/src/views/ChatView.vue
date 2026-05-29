@@ -556,12 +556,10 @@ onMounted(async () => {
       initDemoMode()
     } else {
       if (isWPSAvailable.value) startPolling()
-      // Check if backend config is complete
+      // Always verify backend config from server (localStorage cache may be stale)
+      await settingsStore.fetchBackendConfig()
       if (!settingsStore.backendConfigured) {
-        await settingsStore.fetchBackendConfig()
-        if (!settingsStore.backendConfigured) {
-          configDialogVisible.value = true
-        }
+        configDialogVisible.value = true
       }
     }
   }

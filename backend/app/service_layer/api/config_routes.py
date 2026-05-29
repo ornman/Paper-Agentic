@@ -1,20 +1,26 @@
 from __future__ import annotations
 
+import asyncio
+import os
 import re
+import tempfile
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 router = APIRouter(tags=["config"])
 
 _ENV_PATH = Path(__file__).resolve().parents[3] / ".env"
+_env_lock = asyncio.Lock()
 
 
 def _mask_key(value: str) -> str:
-    if not value or len(value) <= 8:
-        return "****" if value else ""
-    return value[:4] + "****"
+    if not value:
+        return ""
+    if len(value) <= 8:
+        return "****"
+    return "****" + value[-4:]
 
 
 class ConfigUpdateRequest(BaseModel):
@@ -25,6 +31,21 @@ class ConfigUpdateRequest(BaseModel):
     embedding_base_url: str | None = None
     mineru_api_key: str | None = None
     mineru_base_url: str | None = None
+
+    @field_validator(
+        "llm_api_key", "llm_base_url", "llm_model",
+        "embedding_api_key", "embedding_base_url",
+        "mineru_api_key", "mineru_base_url",
+        mode="before",
+    )
+    @classmethod
+    def strip_and_reject_newlines(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        v = v.strip()
+        if "\n" in v or "\r" in v:
+            raise ValueError("Value must not contain newlines")
+        return v
 
 
 def _parse_env_lines(text: str) -> dict[str, str]:
@@ -117,8 +138,6 @@ async def update_config(req: ConfigUpdateRequest):
         _ENV_PATH.parent.mkdir(parents=True, exist_ok=True)
         _ENV_PATH.write_text("", encoding="utf-8")
 
-    env_text = _ENV_PATH.read_text(encoding="utf-8")
-
     updates: dict[str, str] = {}
     for field, env_key in _FIELD_TO_ENV.items():
         value = getattr(req, field, None)
@@ -128,7 +147,18 @@ async def update_config(req: ConfigUpdateRequest):
     if not updates:
         raise HTTPException(status_code=400, detail="No fields to update")
 
-    new_text = _build_env_text(env_text, updates)
-    _ENV_PATH.write_text(new_text, encoding="utf-8")
+    async with _env_lock:
+        env_text = _ENV_PATH.read_text(encoding="utf-8")
+        new_text = _build_env_text(env_text, updates)
+        tmp_fd, tmp_path = tempfile.mkstemp(
+            dir=str(_ENV_PATH.parent), suffix=".env.tmp", prefix=".env_"
+        )
+        try:
+            with os.fdopen(tmp_fd, "w", encoding="utf-8") as f:
+                f.write(new_text)
+            os.replace(tmp_path, str(_ENV_PATH))
+        except BaseException:
+            Path(tmp_path).unlink(missing_ok=True)
+            raise
 
     return {"message": "Configuration saved", "restart_required": True}
