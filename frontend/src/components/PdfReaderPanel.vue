@@ -100,7 +100,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick, onBeforeUnmount, computed } from 'vue'
+import { ref, watch, nextTick, onBeforeUnmount, computed, type Ref } from 'vue'
 import type { PDFDocumentProxy } from 'pdfjs-dist'
 import { usePdfjs } from '../composables/use-pdfjs'
 import { usePdfRenderer, type ViewMode } from '../composables/use-pdf-renderer'
@@ -140,7 +140,9 @@ const hasOutline = ref(false)
 const outlineItems = ref<OutlineItem[]>([])
 const viewMode = ref<ViewMode>('continuous')
 
-const pdfDocProxy = ref<PDFDocumentProxy | null>(null)
+// pdfjs-dist types have #private fields that don't survive through ref() generic inference.
+// Use explicit cast to avoid TS errors while keeping runtime correctness.
+const pdfDocProxy = ref<PDFDocumentProxy | null>(null) as Ref<PDFDocumentProxy | null>
 
 const renderer = usePdfRenderer(pdfDocProxy, scale, viewMode)
 
