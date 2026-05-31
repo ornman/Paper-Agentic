@@ -51,7 +51,7 @@ export function usePdfAnnotation(scrollToPage: (pageNum: number) => void): {
       if (!pdfDocument) return
 
       try {
-        let resolvedDest = dest
+        let resolvedDest: unknown[] | string | null = dest as unknown[] | string
         // Named destination: resolve to explicit dest array
         if (typeof dest === 'string') {
           resolvedDest = await pdfDocument.getDestination(dest)
@@ -59,7 +59,8 @@ export function usePdfAnnotation(scrollToPage: (pageNum: number) => void): {
 
         if (Array.isArray(resolvedDest) && resolvedDest.length > 0) {
           // dest[0] is a page ref object; use getPageIndex to get 0-based index
-          const pageIdx = await pdfDocument.getPageIndex(resolvedDest[0])
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const pageIdx = await pdfDocument.getPageIndex(resolvedDest[0] as any)
           scrollToPage(pageIdx + 1)
         }
       } catch (e: unknown) {
@@ -131,20 +132,29 @@ export function usePdfAnnotation(scrollToPage: (pageNum: number) => void): {
     // Only proceed if there are annotations to render
     if (!annotations || annotations.length === 0) return
 
+    // The constructor uses duck typing internally — cast via unknown
     const annotationLayer = new AnnotationLayerClass({
       div: container,
       page: pageProxy,
       viewport,
-      linkService: linkService as unknown as import('pdfjs-dist').PDFLinkService,
-      renderForms: false,
+      linkService: linkService as unknown,
+      annotationStorage: undefined,
+      accessibilityManager: undefined,
+      annotationCanvasMap: undefined,
+      annotationEditorUIManager: undefined,
+      structTreeLayer: undefined,
+      commentManager: undefined,
     })
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ls = linkService as any
 
     await annotationLayer.render({
       annotations,
       viewport,
       div: container,
       page: pageProxy,
-      linkService: linkService as unknown as import('pdfjs-dist').PDFLinkService,
+      linkService: ls,
       renderForms: false,
       imageResourcesPath: '',
       enableScripting: false,

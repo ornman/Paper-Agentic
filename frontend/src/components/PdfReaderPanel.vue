@@ -68,6 +68,7 @@
                   :scale="scale"
                   :container-width="containerWidth"
                   :highlight-text="pageNum === highlightTargetPage ? highlightText : undefined"
+                  :annotation-adapter="annotationAdapter"
                   @page-height="(h: number) => onPageHeight(pageNum, h)"
                 />
               </div>
@@ -84,6 +85,7 @@ import { ref, watch, nextTick, onBeforeUnmount, computed } from 'vue'
 import type { PDFDocumentProxy } from 'pdfjs-dist'
 import { usePdfjs } from '../composables/use-pdfjs'
 import { usePdfRenderer } from '../composables/use-pdf-renderer'
+import { usePdfAnnotation } from '../composables/use-pdf-annotation'
 import { buildPaperOpenUrl } from '../services/library-api'
 import PdfPage from './pdf-reader/PdfPage.vue'
 import PdfToolbar from './pdf-reader/PdfToolbar.vue'
@@ -124,6 +126,8 @@ const renderer = usePdfRenderer(
   scale,
 )
 
+const { adapter: annotationAdapter } = usePdfAnnotation(renderer.scrollToPage)
+
 usePdfKeyboard({
   active: computed(() => props.visible),
   currentPage: renderer.currentPage,
@@ -159,6 +163,7 @@ async function loadPdf() {
     const loadingTask = pdfjsLib.getDocument({ url, ...cMapOptions })
     pdfDocProxy = await loadingTask.promise
     paperTitle.value = isDemo ? 'Demo PDF' : 'PDF 预览'
+    annotationAdapter.setDocument(pdfDocProxy)
 
     await renderer.init(pdfDocProxy)
     await loadOutline()
