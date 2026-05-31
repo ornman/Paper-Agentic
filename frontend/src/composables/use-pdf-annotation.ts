@@ -1,0 +1,164 @@
+// frontend/src/composables/use-pdf-annotation.ts
+import type { PDFDocumentProxy, PDFPageProxy, PageViewport } from 'pdfjs-dist'
+
+/**
+ * Duck-typed linkService that satisfies pdfjs AnnotationLayer's expectations.
+ * Only the methods actually called by LinkAnnotationElement are implemented.
+ */
+interface LinkService {
+  getDestinationHash(dest: string | unknown[]): string
+  getAnchorUrl(anchor: string): string
+  goToDestination(dest: string | unknown[]): Promise<void>
+  executeNamedAction(action: string): void
+  executeSetOCGState(action: unknown): Promise<void>
+  addLinkAttributes(link: HTMLAnchorElement, url: string, newWindow?: boolean): void
+}
+
+export interface AnnotationAdapter {
+  linkService: LinkService
+  pdfDocument: PDFDocumentProxy | null
+  setDocument(doc: PDFDocumentProxy): void
+  renderAnnotations(
+    pageProxy: PDFPageProxy,
+    viewport: PageViewport,
+    container: HTMLDivElement,
+  ): Promise<void>
+}
+
+/**
+ * Create an AnnotationAdapter for rendering clickable links in PDF pages.
+ *
+ * @param scrollToPage - Callback to scroll the viewer to a given page number
+ */
+export function usePdfAnnotation(scrollToPage: (pageNum: number) => void): {
+  adapter: AnnotationAdapter
+} {
+  let pdfDocument: PDFDocumentProxy | null = null
+
+  const linkService: LinkService = {
+    getDestinationHash(dest: string | unknown[]): string {
+      if (typeof dest === 'string') {
+        return `#dest=${dest}`
+      }
+      return '#'
+    },
+
+    getAnchorUrl(anchor: string): string {
+      return anchor
+    },
+
+    async goToDestination(dest: string | unknown[]): Promise<void> {
+      if (!pdfDocument) return
+
+      try {
+        let resolvedDest = dest
+        // Named destination: resolve to explicit dest array
+        if (typeof dest === 'string') {
+          resolvedDest = await pdfDocument.getDestination(dest)
+        }
+
+        if (Array.isArray(resolvedDest) && resolvedDest.length > 0) {
+          // dest[0] is a page ref object; use getPageIndex to get 0-based index
+          const pageIdx = await pdfDocument.getPageIndex(resolvedDest[0])
+          scrollToPage(pageIdx + 1)
+        }
+      } catch (e: unknown) {
+        console.warn('[AnnotationAdapter] goToDestination failed:', e)
+      }
+    },
+
+    executeNamedAction(action: string): void {
+      // Named actions like NextPage, PrevPage, GoBack, etc.
+      // Best-effort mapping for the most common ones
+      switch (action) {
+        case 'NextPage':
+          // Cannot determine current page here without more context; no-op
+          break
+        case 'PrevPage':
+          break
+        default:
+          console.warn(`[AnnotationAdapter] Unhandled named action: ${action}`)
+      }
+    },
+
+    async executeSetOCGState(_action: unknown): Promise<void> {
+      // Optional Content Group state changes — no-op for our viewer
+    },
+
+    addLinkAttributes(link: HTMLAnchorElement, url: string, newWindow?: boolean): void {
+      link.href = url
+      link.rel = 'noopener noreferrer nofollow'
+      link.target = newWindow ? '_blank' : ''
+      link.onclick = (event: MouseEvent) => {
+        event.preventDefault()
+        window.open(url, '_blank', 'noopener,noreferrer')
+      }
+    },
+  }
+
+  function setDocument(doc: PDFDocumentProxy): void {
+    pdfDocument = doc
+  }
+
+  async function renderAnnotations(
+    pageProxy: PDFPageProxy,
+    viewport: PageViewport,
+    container: HTMLDivElement,
+  ): Promise<void> {
+    // Clear previous annotation layer content
+    container.innerHTML = ''
+
+    let AnnotationLayerClass: typeof import('pdfjs-dist').AnnotationLayer | null = null
+    try {
+      const module = await import('pdfjs-dist')
+      AnnotationLayerClass = module.AnnotationLayer
+    } catch {
+      // WPS compatibility: if import fails, silently skip annotation rendering
+      console.warn('[AnnotationAdapter] AnnotationLayer not available, skipping')
+      return
+    }
+
+    if (!AnnotationLayerClass) return
+
+    let annotations: unknown[]
+    try {
+      annotations = await pageProxy.getAnnotations()
+    } catch {
+      // Some pages may not support annotations
+      return
+    }
+
+    // Only proceed if there are annotations to render
+    if (!annotations || annotations.length === 0) return
+
+    const annotationLayer = new AnnotationLayerClass({
+      div: container,
+      page: pageProxy,
+      viewport,
+      linkService: linkService as unknown as import('pdfjs-dist').PDFLinkService,
+      renderForms: false,
+    })
+
+    await annotationLayer.render({
+      annotations,
+      viewport,
+      div: container,
+      page: pageProxy,
+      linkService: linkService as unknown as import('pdfjs-dist').PDFLinkService,
+      renderForms: false,
+      imageResourcesPath: '',
+      enableScripting: false,
+    })
+  }
+
+  const adapter: AnnotationAdapter = {
+    linkService,
+    get pdfDocument() {
+      return pdfDocument
+    },
+    setDocument,
+    renderAnnotations,
+  }
+
+  return { adapter }
+}
