@@ -3,7 +3,10 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import {
   fetchPapers,
+  fetchTrashedPapers,
   deletePaper,
+  restorePaper,
+  permanentDeletePaper,
   startImport,
   fetchImportStatus,
   type PaperItem,
@@ -67,6 +70,7 @@ function restoreQueue(): ImportQueueItem[] {
 
 export const useLibraryStore = defineStore('library', () => {
   const papers = ref<PaperItem[]>([])
+  const trashedPapers = ref<PaperItem[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
   const selectedPaperIds = ref<string[]>([])
@@ -158,6 +162,40 @@ export const useLibraryStore = defineStore('library', () => {
     } catch (err: unknown) {
       error.value = err instanceof Error ? err.message : '删除失败'
       log.error('删除论文失败', err, { paperId })
+      throw err
+    }
+  }
+
+  async function loadTrashedPapers() {
+    try {
+      trashedPapers.value = await fetchTrashedPapers()
+      log.info('加载回收站列表成功', { count: trashedPapers.value.length })
+    } catch (err: unknown) {
+      log.error('加载回收站列表失败', err)
+    }
+  }
+
+  async function restorePaperFromTrash(paperId: string) {
+    try {
+      await restorePaper(paperId)
+      trashedPapers.value = trashedPapers.value.filter((p) => p.paper_id !== paperId)
+      await loadPapers()
+      log.info('恢复论文成功', { paperId })
+    } catch (err: unknown) {
+      error.value = err instanceof Error ? err.message : '恢复失败'
+      log.error('恢复论文失败', err, { paperId })
+      throw err
+    }
+  }
+
+  async function permanentDeleteFromTrash(paperId: string) {
+    try {
+      await permanentDeletePaper(paperId)
+      trashedPapers.value = trashedPapers.value.filter((p) => p.paper_id !== paperId)
+      log.info('永久删除论文成功', { paperId })
+    } catch (err: unknown) {
+      error.value = err instanceof Error ? err.message : '永久删除失败'
+      log.error('永久删除论文失败', err, { paperId })
       throw err
     }
   }
@@ -437,6 +475,7 @@ export const useLibraryStore = defineStore('library', () => {
 
   return {
     papers,
+    trashedPapers,
     loading,
     error,
     selectedPaperIds,
@@ -451,6 +490,9 @@ export const useLibraryStore = defineStore('library', () => {
     loadPapers,
     resumeImports,
     removePaper,
+    loadTrashedPapers,
+    restorePaperFromTrash,
+    permanentDeleteFromTrash,
     setSelectedPaperIds,
     togglePaperSelection,
     clearSelectedPapers,
