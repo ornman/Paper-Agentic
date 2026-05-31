@@ -26,6 +26,10 @@
           :scale="scale"
           :outline-open="outlineOpen"
           :show-outline-button="hasOutline"
+          :search-open="search.isOpen.value"
+          :search-query="search.query.value"
+          :search-match-count="search.matchCount.value"
+          :search-current-index="search.currentMatchIndex.value"
           @close="emit('close')"
           @prev="renderer.scrollToPage(renderer.currentPage.value - 1)"
           @next="renderer.scrollToPage(renderer.currentPage.value + 1)"
@@ -33,6 +37,11 @@
           @zoom-out="setScale(Math.max(0.5, scale - 0.25))"
           @go-to-page="renderer.scrollToPage"
           @toggle-outline="outlineOpen = !outlineOpen"
+          @open-search="search.openSearch()"
+          @search="(q: string) => search.search(q)"
+          @search-next="search.nextMatch()"
+          @search-prev="search.prevMatch()"
+          @search-close="search.closeSearch()"
         />
 
         <!-- PDF viewport -->
@@ -68,6 +77,7 @@
                   :scale="scale"
                   :container-width="containerWidth"
                   :highlight-text="pageNum === highlightTargetPage ? highlightText : undefined"
+                  :search-matches="getSearchMatchesForPage(pageNum)"
                   :annotation-adapter="annotationAdapter"
                   @page-height="(h: number) => onPageHeight(pageNum, h)"
                 />
@@ -86,6 +96,7 @@ import type { PDFDocumentProxy } from 'pdfjs-dist'
 import { usePdfjs } from '../composables/use-pdfjs'
 import { usePdfRenderer } from '../composables/use-pdf-renderer'
 import { usePdfAnnotation } from '../composables/use-pdf-annotation'
+import { usePdfSearch, type SearchMatch } from '../composables/use-pdf-search'
 import { buildPaperOpenUrl } from '../services/library-api'
 import PdfPage from './pdf-reader/PdfPage.vue'
 import PdfToolbar from './pdf-reader/PdfToolbar.vue'
@@ -128,6 +139,24 @@ const renderer = usePdfRenderer(
 
 const { adapter: annotationAdapter } = usePdfAnnotation(renderer.scrollToPage)
 
+// Search composable — pass reactive doc ref and scroll function
+const pdfDocRef = computed(() => pdfDocProxy)
+const search = usePdfSearch(pdfDocRef, renderer.scrollToPage)
+
+/** Compute per-page search matches for PdfPage's searchMatches prop */
+function getSearchMatchesForPage(pageNum: number): Array<{ charStart: number; charEnd: number; isCurrent: boolean }> | undefined {
+  if (!search.isOpen.value || search.results.value.length === 0) return undefined
+  const pageIndex = pageNum - 1 // 0-based
+  const currentMatch = search.results.value[search.currentMatchIndex.value]
+  return search.results.value
+    .filter((m: SearchMatch) => m.pageIndex === pageIndex)
+    .map((m: SearchMatch) => ({
+      charStart: m.charStart,
+      charEnd: m.charEnd,
+      isCurrent: currentMatch != null && currentMatch.pageIndex === m.pageIndex && currentMatch.charStart === m.charStart,
+    }))
+}
+
 usePdfKeyboard({
   active: computed(() => props.visible),
   currentPage: renderer.currentPage,
@@ -136,6 +165,8 @@ usePdfKeyboard({
   onScrollToPage: renderer.scrollToPage,
   onZoomIn: () => setScale(Math.min(3, scale.value + 0.25)),
   onZoomOut: () => setScale(Math.max(0.5, scale.value - 0.25)),
+  onOpenSearch: () => search.openSearch(),
+  isSearchOpen: search.isOpen,
 })
 
 function onPageHeight(pageNum: number, height: number) {
@@ -238,6 +269,7 @@ watch(() => props.visible, async (visible) => {
       renderer.scrollToPage(props.targetPage)
     }
   } else {
+    search.closeSearch()
     annotationAdapter.setDocument(null)
     pdfDocProxy?.destroy()
     pdfDocProxy = null

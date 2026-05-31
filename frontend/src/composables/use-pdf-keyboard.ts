@@ -9,6 +9,10 @@ interface KeyboardOptions {
   onScrollToPage: (page: number) => void
   onZoomIn: () => void
   onZoomOut: () => void
+  /** Open the Ctrl+F search bar */
+  onOpenSearch?: () => void
+  /** Whether search bar is currently open (for Escape handling) */
+  isSearchOpen?: Ref<boolean>
 }
 
 export function usePdfKeyboard(options: KeyboardOptions) {
@@ -19,6 +23,11 @@ export function usePdfKeyboard(options: KeyboardOptions) {
     if (tag === 'INPUT' || tag === 'TEXTAREA') return
 
     switch (true) {
+      case (e.key === 'f' || e.key === 'F') && (e.ctrlKey || e.metaKey):
+        e.preventDefault()
+        options.onOpenSearch?.()
+        break
+
       case e.key === 'ArrowUp' || e.key === 'k':
         e.preventDefault()
         options.onScrollToPage(options.currentPage.value - 1)

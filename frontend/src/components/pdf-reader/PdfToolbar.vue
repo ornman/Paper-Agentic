@@ -75,6 +75,30 @@
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       </button>
+
+      <span class="reader-divider" />
+
+      <button
+        class="reader-btn"
+        :class="{ 'reader-btn-active': searchOpen }"
+        aria-label="搜索"
+        @click="emit('open-search')"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+      </button>
+
+      <PdfSearchBar
+        v-if="searchOpen"
+        :query="searchQuery"
+        :match-count="searchMatchCount"
+        :current-match-index="searchCurrentIndex"
+        @search="(q: string) => emit('search', q)"
+        @next="emit('search-next')"
+        @prev="emit('search-prev')"
+        @close="emit('search-close')"
+      />
     </div>
 
     <button
@@ -93,6 +117,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import PdfSearchBar from './PdfSearchBar.vue'
 
 const props = defineProps<{
   title: string
@@ -101,6 +126,10 @@ const props = defineProps<{
   scale: number
   outlineOpen: boolean
   showOutlineButton: boolean
+  searchOpen: boolean
+  searchQuery: string
+  searchMatchCount: number
+  searchCurrentIndex: number
 }>()
 
 const emit = defineEmits<{
@@ -111,6 +140,11 @@ const emit = defineEmits<{
   (e: 'zoom-out'): void
   (e: 'go-to-page', page: number): void
   (e: 'toggle-outline'): void
+  (e: 'open-search'): void
+  (e: 'search', query: string): void
+  (e: 'search-next'): void
+  (e: 'search-prev'): void
+  (e: 'search-close'): void
 }>()
 
 const pageInputRef = ref<HTMLInputElement | null>(null)

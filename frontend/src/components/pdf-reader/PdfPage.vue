@@ -35,6 +35,14 @@ export interface HighlightRect {
   height: number
 }
 
+/** A search match on this page, with char offsets into the page's concatenated text */
+export interface SearchMatchOnPage {
+  charStart: number
+  charEnd: number
+  /** Whether this match is the currently-selected one */
+  isCurrent: boolean
+}
+
 const props = defineProps<{
   pdfDoc: PDFDocumentProxy
   pageNumber: number
@@ -45,6 +53,8 @@ const props = defineProps<{
   highlightRects?: HighlightRect[]
   /** Index of the "current" search match among highlightRects */
   currentHighlightIndex?: number
+  /** Search matches for this page with char offsets (Ctrl+F results) */
+  searchMatches?: SearchMatchOnPage[]
   annotationAdapter?: AnnotationAdapter
 }>()
 
@@ -137,7 +147,7 @@ async function renderTextLayer() {
   })
   await textLayer.render()
 
-  if (props.highlightText || (props.highlightRects && props.highlightRects.length > 0)) {
+  if (props.highlightText || (props.highlightRects && props.highlightRects.length > 0) || (props.searchMatches && props.searchMatches.length > 0)) {
     highlightOnPage()
   }
 }
@@ -276,6 +286,40 @@ async function highlightOnPage() {
     return
   }
 
+  // Ctrl+F search mode: compute rects from searchMatches (char offsets)
+  if (props.searchMatches && props.searchMatches.length > 0) {
+    const textContent = await pageProxy.getTextContent()
+    const textItems: PdfTextItem[] = textContent.items
+      .filter((item) => 'str' in item)
+      .map((item) => {
+        const ti = item as unknown as PdfTextItem
+        return {
+          str: ti.str,
+          transform: ti.transform,
+          width: ti.width,
+          height: ti.height,
+        }
+      })
+      .filter((ti) => ti.str.length > 0)
+
+    for (const match of props.searchMatches) {
+      const rects = computeHighlightRects(textItems, match.charStart, match.charEnd, currentViewport)
+      for (const r of rects) {
+        const el = document.createElement('div')
+        el.className = 'pdf-highlight-rect'
+        if (match.isCurrent) {
+          el.classList.add('pdf-highlight-rect--current')
+        }
+        el.style.left = `${r.x}px`
+        el.style.top = `${r.y}px`
+        el.style.width = `${r.width}px`
+        el.style.height = `${r.height}px`
+        containerRef.value.appendChild(el)
+      }
+    }
+    return
+  }
+
   // Citation highlight mode: compute rects from highlightText
   if (!props.highlightText) return
 
@@ -320,9 +364,9 @@ watch(
   () => render(),
 )
 
-// Re-render highlights when search rects change (without full re-render)
+// Re-render highlights when search rects or search matches change (without full re-render)
 watch(
-  () => [props.highlightRects, props.currentHighlightIndex] as const,
+  () => [props.highlightRects, props.currentHighlightIndex, props.searchMatches] as const,
   () => highlightOnPage(),
 )
 
