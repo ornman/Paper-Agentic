@@ -257,9 +257,19 @@ export const useLibraryStore = defineStore('library', () => {
       if (queueIdx === undefined) {
         importing.value = false
       } else if (queueIdx < importQueue.value.length) {
-        importQueue.value[queueIdx].status = 'completed'
-        importQueue.value[queueIdx].step = '已完成'
-        importQueue.value[queueIdx].percent = 100
+        const completedItem = importQueue.value[queueIdx]
+        completedItem.status = 'completed'
+        completedItem.step = '已完成'
+        completedItem.percent = 100
+        // 延迟 2 秒后自动移除已完成的队列项（用 fileName 匹配避免索引偏移）
+        const fileName = completedItem.fileName
+        window.setTimeout(() => {
+          const idx = importQueue.value.findIndex((q) => q.fileName === fileName && q.status === 'completed')
+          if (idx !== -1) {
+            importQueue.value.splice(idx, 1)
+            persistQueue(importQueue.value)
+          }
+        }, 2000)
       }
       log.info('导入完成', { paperId: progress.paper_id })
       void loadPapers()
