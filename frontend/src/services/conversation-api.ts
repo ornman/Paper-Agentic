@@ -13,6 +13,7 @@ export interface ConversationMessage {
   content: string
   created_at: string
   sources_json: string | null
+  blocks_json: string | null
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {

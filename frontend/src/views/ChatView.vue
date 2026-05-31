@@ -393,13 +393,29 @@ async function switchToSession(sessionId: string) {
           createdAt: msg.created_at,
         } as UserMessage)
       } else if (msg.role === 'assistant') {
+        // Use structured blocks_json if available; otherwise fall back to single paragraph
+        let blocks: AssistantMessage['blocks']
+        if (msg.blocks_json) {
+          try {
+            const parsed = JSON.parse(msg.blocks_json)
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              blocks = parsed
+            } else {
+              blocks = [{ type: 'paragraph' as const, text: msg.content }]
+            }
+          } catch {
+            blocks = [{ type: 'paragraph' as const, text: msg.content }]
+          }
+        } else {
+          blocks = [{ type: 'paragraph' as const, text: msg.content }]
+        }
         mapped.push({
           id: `assistant-${msg.created_at}`,
           role: 'assistant',
           createdAt: msg.created_at,
           thinking: '',
           thinkingTimeMs: 0,
-          blocks: [{ type: 'paragraph', text: msg.content }],
+          blocks,
           sources: msg.sources_json ? JSON.parse(msg.sources_json) : [],
         } as AssistantMessage)
       }
