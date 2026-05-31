@@ -136,6 +136,10 @@ async def _run_import_with_progress(container, task_id: str, file_path: Path):
             container.import_task_repo.update_status(
                 task_id, "completed", message=f"导入成功，{result.chunk_count} 个 chunk", paper_id=result.paper_id,
             )
+            # 从 PDF 文件读取实际页数和文件大小
+            page_count = _read_pdf_page_count(file_path)
+            file_size = _read_file_size(file_path)
+
             container.library_repo.upsert(LibraryItem(
                 item_id=result.paper_id,
                 title=file_path.stem,
@@ -143,8 +147,9 @@ async def _run_import_with_progress(container, task_id: str, file_path: Path):
                 file_hash=_compute_file_hash(file_path),
                 file_type=file_path.suffix.lower(),
                 import_time=utc_now_iso(),
-                page_count=result.chunk_count,
+                page_count=page_count,
                 status="ready",
+                file_size=file_size,
             ))
             await publish({"status": "completed", "step": "done", "paper_id": result.paper_id})
         else:
@@ -156,6 +161,25 @@ async def _run_import_with_progress(container, task_id: str, file_path: Path):
         await publish({"status": "failed", "step": "error", "error_msg": str(e)})
     finally:
         await publish({"status": "done", "step": None, "paper_id": None})
+
+
+def _read_pdf_page_count(file_path: Path) -> int:
+    """尝试从 PDF 文件读取实际页数，失败返回 0"""
+    try:
+        import pypdf
+        with open(file_path, "rb") as f:
+            reader = pypdf.PdfReader(f)
+            return len(reader.pages)
+    except Exception:
+        return 0
+
+
+def _read_file_size(file_path: Path) -> int:
+    """从文件系统读取文件大小"""
+    try:
+        return file_path.stat().st_size
+    except Exception:
+        return 0
 
 
 def _compute_file_hash(file_path: Path) -> str:

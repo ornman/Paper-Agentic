@@ -20,6 +20,7 @@ class LibraryItem:
     status: str = "ready"
     authors: str = ""
     year: str = ""
+    file_size: int = 0
 
 
 @dataclass

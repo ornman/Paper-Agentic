@@ -33,12 +33,14 @@ class SQLiteLibraryRepo:
                 """
             )
             conn.commit()
-            # 向后兼容迁移：添加 authors 和 year 列
+            # 向后兼容迁移：添加 authors、year、file_size 列
             existing = {row[1] for row in conn.execute("PRAGMA table_info(library_items)").fetchall()}
             if "authors" not in existing:
                 conn.execute("ALTER TABLE library_items ADD COLUMN authors TEXT DEFAULT ''")
             if "year" not in existing:
                 conn.execute("ALTER TABLE library_items ADD COLUMN year INTEGER")
+            if "file_size" not in existing:
+                conn.execute("ALTER TABLE library_items ADD COLUMN file_size INTEGER DEFAULT 0")
             conn.commit()
 
     # ------------------------------------------------------------------
@@ -51,7 +53,7 @@ class SQLiteLibraryRepo:
                 """
                 SELECT item_id, title, file_path, file_hash,
                        file_type, import_time, page_count, status,
-                       authors, year
+                       authors, year, file_size
                 FROM library_items
                 ORDER BY import_time DESC
                 """,
@@ -88,7 +90,7 @@ class SQLiteLibraryRepo:
                 f"""
                 SELECT item_id, title, file_path, file_hash,
                        file_type, import_time, page_count, status,
-                       authors, year
+                       authors, year, file_size
                 FROM library_items
                 {where}
                 ORDER BY import_time DESC
@@ -103,7 +105,7 @@ class SQLiteLibraryRepo:
                 """
                 SELECT item_id, title, file_path, file_hash,
                        file_type, import_time, page_count, status,
-                       authors, year
+                       authors, year, file_size
                 FROM library_items
                 WHERE item_id = ?
                 """,
@@ -121,7 +123,7 @@ class SQLiteLibraryRepo:
                 """
                 SELECT item_id, title, file_path, file_hash,
                        file_type, import_time, page_count, status,
-                       authors, year
+                       authors, year, file_size
                 FROM library_items
                 WHERE file_hash = ?
                 """,
@@ -140,8 +142,8 @@ class SQLiteLibraryRepo:
                 INSERT INTO library_items
                     (item_id, title, file_path, file_hash,
                      file_type, import_time, page_count, status,
-                     authors, year)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     authors, year, file_size)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(item_id) DO UPDATE SET
                     title = excluded.title,
                     file_path = excluded.file_path,
@@ -151,7 +153,8 @@ class SQLiteLibraryRepo:
                     page_count = excluded.page_count,
                     status = excluded.status,
                     authors = excluded.authors,
-                    year = excluded.year
+                    year = excluded.year,
+                    file_size = excluded.file_size
                 """,
                 (
                     item.item_id,
@@ -164,6 +167,7 @@ class SQLiteLibraryRepo:
                     item.status,
                     item.authors,
                     item.year,
+                    item.file_size,
                 ),
             )
             conn.commit()
@@ -192,5 +196,6 @@ class SQLiteLibraryRepo:
             page_count=row[6],
             status=row[7],
             authors=row[8] if len(row) > 8 else "",
-            year=row[9] if len(row) > 9 and row[9] is not None else None,
+            year=row[9] if len(row) > 9 and row[9] is not None else "",
+            file_size=row[10] if len(row) > 10 else 0,
         )

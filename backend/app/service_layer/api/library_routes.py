@@ -46,6 +46,8 @@ async def delete_item(item_id: str, request: Request):
     if not item:
         raise HTTPException(status_code=404, detail="文献不存在")
     container.document_ingest.delete_document(item_id)
+    container.library_repo.delete(item_id)
+    logger.info("已删除文献: %s (%s)", item.title, item_id)
     return {"status": "ok", "message": f"已删除: {item.title}"}
 
 
@@ -87,7 +89,9 @@ async def _run_import(container, task_id: str, file_path: Path):
             container.import_task_repo.update_status(
                 task_id, "completed", message=f"导入成功，{result.chunk_count} 个 chunk", paper_id=result.paper_id,
             )
-            # 同步到 library_repo
+            # 从 PDF 文件读取实际页数和文件大小
+            page_count = _read_pdf_page_count(file_path)
+            file_size = _read_file_size(file_path)
             container.library_repo.upsert(LibraryItem(
                 item_id=result.paper_id,
                 title=file_path.stem,
@@ -95,8 +99,9 @@ async def _run_import(container, task_id: str, file_path: Path):
                 file_hash=_compute_file_hash(file_path),
                 file_type=file_path.suffix.lower(),
                 import_time=utc_now_iso(),
-                page_count=result.chunk_count,
+                page_count=page_count,
                 status="ready",
+                file_size=file_size,
             ))
         else:
             container.import_task_repo.update_status(task_id, "failed", message=result.error or "导入失败")
@@ -112,6 +117,25 @@ async def get_import_status(task_id: str, request: Request):
     if not task:
         raise HTTPException(status_code=404, detail="导入任务不存在")
     return ImportTaskOut(**task.__dict__)
+
+
+def _read_pdf_page_count(file_path: Path) -> int:
+    """尝试从 PDF 文件读取实际页数，失败返回 0"""
+    try:
+        import pypdf
+        with open(file_path, "rb") as f:
+            reader = pypdf.PdfReader(f)
+            return len(reader.pages)
+    except Exception:
+        return 0
+
+
+def _read_file_size(file_path: Path) -> int:
+    """从文件系统读取文件大小"""
+    try:
+        return file_path.stat().st_size
+    except Exception:
+        return 0
 
 
 def _compute_file_hash(file_path: Path) -> str:
