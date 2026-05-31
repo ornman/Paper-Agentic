@@ -1,9 +1,12 @@
 import { ref, watch, onBeforeUnmount, type Ref } from 'vue'
 import type { PDFDocumentProxy } from 'pdfjs-dist'
 
+export type ViewMode = 'single' | 'double' | 'continuous'
+
 export function usePdfRenderer(
   pdfDoc: Ref<PDFDocumentProxy | null>,
   scale: Ref<number>,
+  viewMode: Ref<ViewMode>,
 ) {
   const currentPage = ref(1)
   const totalPages = ref(0)
@@ -53,6 +56,12 @@ export function usePdfRenderer(
       observer = null
     }
     visiblePages.value.clear()
+
+    // single/double 模式不需要 IntersectionObserver
+    if (viewMode.value !== 'continuous') {
+      updatePagesToRender()
+      return
+    }
 
     observer = new IntersectionObserver(
       (entries) => {
@@ -117,6 +126,29 @@ export function usePdfRenderer(
   }
 
   function updatePagesToRender() {
+    const mode = viewMode.value
+
+    if (mode === 'single') {
+      pagesToRender.value = [currentPage.value]
+      return
+    }
+
+    if (mode === 'double') {
+      // 偶数起始：确保 spread 从奇数页开始
+      let start = currentPage.value
+      if (start % 2 === 0) {
+        start = start - 1
+      }
+      const end = Math.min(start + 1, totalPages.value)
+      const pages: number[] = []
+      for (let i = start; i <= end; i++) {
+        pages.push(i)
+      }
+      pagesToRender.value = pages
+      return
+    }
+
+    // continuous 模式：可见页 ± buffer
     const pages = new Set<number>()
     const visible = Array.from(visiblePages.value)
 
@@ -145,6 +177,28 @@ export function usePdfRenderer(
 
   function scrollToPage(pageNum: number) {
     if (pageNum < 1 || pageNum > totalPages.value) return
+
+    const mode = viewMode.value
+
+    if (mode === 'single') {
+      currentPage.value = pageNum
+      updatePagesToRender()
+      return
+    }
+
+    if (mode === 'double') {
+      // 双页模式：确保 spread 从奇数页开始
+      let spreadStart = pageNum
+      if (spreadStart % 2 === 0) {
+        spreadStart = spreadStart - 1
+      }
+      spreadStart = Math.max(1, spreadStart)
+      currentPage.value = spreadStart
+      updatePagesToRender()
+      return
+    }
+
+    // continuous 模式：scrollIntoView
     const el = pageElements.get(pageNum)
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -158,6 +212,22 @@ export function usePdfRenderer(
     }
   })
 
+  // 视图模式切换时：重新计算渲染页，continuous 模式需重建 observer
+  watch(viewMode, () => {
+    if (viewMode.value !== 'continuous') {
+      // 非 continuous 模式：断开 observer
+      if (observer) {
+        for (const el of pageElements.values()) {
+          observer.unobserve(el)
+        }
+        observer.disconnect()
+        observer = null
+      }
+      visiblePages.value.clear()
+    }
+    updatePagesToRender()
+  })
+
   onBeforeUnmount(() => {
     teardownObserver()
   })
@@ -168,6 +238,7 @@ export function usePdfRenderer(
     pageHeights,
     pagesToRender,
     visiblePages,
+    viewMode,
     init,
     setupObserver,
     registerPage,
