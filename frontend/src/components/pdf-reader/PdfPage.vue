@@ -16,12 +16,35 @@ import 'pdfjs-dist/web/pdf_viewer.css'
 
 const PDF_TO_CSS_UNITS = 96 / 72
 
+/**
+ * Subset of pdfjs-dist TextItem fields used for highlight computation.
+ * Defined locally because pdfjs-dist does not re-export TextItem from its top-level.
+ */
+interface PdfTextItem {
+  str: string
+  transform: number[]
+  width: number
+  height: number
+}
+
+/** A highlight rectangle in CSS-pixel coordinates relative to the page container */
+export interface HighlightRect {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
 const props = defineProps<{
   pdfDoc: PDFDocumentProxy
   pageNumber: number
   scale: number
   containerWidth: number
   highlightText?: string
+  /** Pre-computed highlight rects (e.g. from search) */
+  highlightRects?: HighlightRect[]
+  /** Index of the "current" search match among highlightRects */
+  currentHighlightIndex?: number
   annotationAdapter?: AnnotationAdapter
 }>()
 
@@ -114,7 +137,7 @@ async function renderTextLayer() {
   })
   await textLayer.render()
 
-  if (props.highlightText) {
+  if (props.highlightText || (props.highlightRects && props.highlightRects.length > 0)) {
     highlightOnPage()
   }
 }
@@ -134,31 +157,155 @@ async function renderAnnotationLayer() {
   }
 }
 
+/**
+ * Compute precise highlight rectangles for a text match within a set of PDF TextItems.
+ *
+ * Algorithm:
+ * 1. Build char-offset → TextItem mapping
+ * 2. Locate the match range [matchStart, matchEnd) in the concatenated text
+ * 3. For each TextItem overlapping the match range, compute its CSS bounding rect
+ *    using the PDF transform + viewport coordinate conversion
+ */
+function computeHighlightRects(
+  items: PdfTextItem[],
+  matchStart: number,
+  matchEnd: number,
+  viewport: PageViewport,
+): HighlightRect[] {
+  // Build char-offset ranges for each TextItem
+  let charOffset = 0
+  const itemRanges: { item: PdfTextItem; start: number; end: number }[] = []
+  for (const item of items) {
+    const len = item.str.length
+    itemRanges.push({ item, start: charOffset, end: charOffset + len })
+    charOffset += len
+  }
+
+  const rects: HighlightRect[] = []
+
+  for (const { item, start, end } of itemRanges) {
+    // Check if this item overlaps with the match range
+    if (end <= matchStart || start >= matchEnd) continue
+
+    // How much of this item's text falls within the match
+    const overlapStart = Math.max(start, matchStart) - start
+    const overlapEnd = Math.min(end, matchEnd) - start
+    const overlapRatio = (overlapEnd - overlapStart) / item.str.length
+
+    // Transform: [scaleX, skewY, skewX, scaleY, tx, ty]
+    // tx/ty are in PDF coordinate space (origin bottom-left)
+    const [, , , d, tx, ty] = item.transform
+    const [cssX, cssYFlipped] = viewport.convertToViewportPoint(tx, ty)
+    // convertToViewportPoint flips Y so origin is top-left;
+    // the returned Y is the *top* of the text line
+    const fontSize = Math.abs(d) * viewport.scale
+    const cssY = cssYFlipped - fontSize
+
+    // Width proportional to the overlapping portion of the text
+    const fullItemWidth = item.width * viewport.scale
+    const rectWidth = fullItemWidth * overlapRatio
+    // Offset X by the portion before the overlap
+    const rectX = cssX + fullItemWidth * (overlapStart / item.str.length)
+
+    rects.push({
+      x: rectX,
+      y: cssY,
+      width: rectWidth,
+      height: fontSize,
+    })
+  }
+
+  return rects
+}
+
+/** Remove existing highlight rect DOM elements from the container */
+function clearHighlightRects() {
+  if (!containerRef.value) return
+  const existing = containerRef.value.querySelectorAll('.pdf-highlight-rect')
+  existing.forEach((el) => el.remove())
+}
+
+/** Render highlight rects as absolutely-positioned divs */
+function renderHighlightRects(rects: HighlightRect[], autoFade: boolean) {
+  if (!containerRef.value) return
+
+  for (let i = 0; i < rects.length; i++) {
+    const r = rects[i]
+    const el = document.createElement('div')
+    el.className = 'pdf-highlight-rect'
+    el.style.left = `${r.x}px`
+    el.style.top = `${r.y}px`
+    el.style.width = `${r.width}px`
+    el.style.height = `${r.height}px`
+    containerRef.value.appendChild(el)
+  }
+
+  if (autoFade) {
+    setTimeout(() => {
+      const elements = containerRef.value?.querySelectorAll('.pdf-highlight-rect')
+      elements?.forEach((el) => {
+        el.classList.add('pdf-highlight-rect--fadeout')
+        el.addEventListener('animationend', () => el.remove())
+      })
+    }, 3000)
+  }
+}
+
 async function highlightOnPage() {
-  if (!props.highlightText || !containerRef.value || !pageProxy) return
+  if (!containerRef.value || !pageProxy || !currentViewport) return
+
+  clearHighlightRects()
+
+  // Phase 4 search mode: use pre-computed rects
+  if (props.highlightRects && props.highlightRects.length > 0) {
+    // Mark the "current" match index
+    const rects = props.highlightRects
+    for (let i = 0; i < rects.length; i++) {
+      const r = rects[i]
+      const el = document.createElement('div')
+      el.className = 'pdf-highlight-rect'
+      if (i === props.currentHighlightIndex) {
+        el.classList.add('pdf-highlight-rect--current')
+      }
+      el.style.left = `${r.x}px`
+      el.style.top = `${r.y}px`
+      el.style.width = `${r.width}px`
+      el.style.height = `${r.height}px`
+      containerRef.value.appendChild(el)
+    }
+    return
+  }
+
+  // Citation highlight mode: compute rects from highlightText
+  if (!props.highlightText) return
 
   const textContent = await pageProxy.getTextContent()
-  const fullText = textContent.items
-    .map((item) => ('str' in item ? item.str : ''))
-    .join('')
+  const textItems: PdfTextItem[] = textContent.items
+    .filter((item) => 'str' in item)
+    .map((item) => {
+      const ti = item as unknown as PdfTextItem
+      return {
+        str: ti.str,
+        transform: ti.transform,
+        width: ti.width,
+        height: ti.height,
+      }
+    })
+    .filter((ti) => ti.str.length > 0)
+  const fullText = textItems.map((item) => item.str).join('')
 
   const searchStr = props.highlightText.trim()
   const idx = fullText.indexOf(searchStr)
 
   if (idx === -1) {
+    // No match: flash border to indicate the page was targeted but text not found
     containerRef.value.classList.add('pdf-page-flash')
     setTimeout(() => containerRef.value?.classList.remove('pdf-page-flash'), 2000)
     return
   }
 
-  const overlay = document.createElement('div')
-  overlay.className = 'pdf-highlight-overlay'
-  containerRef.value.appendChild(overlay)
-
-  setTimeout(() => {
-    overlay.classList.add('pdf-highlight-fadeout')
-    setTimeout(() => overlay.remove(), 3000)
-  }, 3000)
+  const rects = computeHighlightRects(textItems, idx, idx + searchStr.length, currentViewport)
+  renderHighlightRects(rects, true)
 }
 
 onMounted(() => render())
@@ -171,6 +318,12 @@ watch(
 watch(
   () => props.scale,
   () => render(),
+)
+
+// Re-render highlights when search rects change (without full re-render)
+watch(
+  () => [props.highlightRects, props.currentHighlightIndex] as const,
+  () => highlightOnPage(),
 )
 
 onBeforeUnmount(() => {
@@ -208,24 +361,25 @@ onBeforeUnmount(() => {
 
 /* pdf_viewer.css handles all .textLayer / .textLayer span positioning & sizing */
 
-.pdf-highlight-overlay {
+.pdf-highlight-rect {
   position: absolute;
-  inset: 0;
+  background: rgba(59, 130, 246, 0.25);
   pointer-events: none;
-  background: rgba(59, 130, 246, 0.15);
-  animation: highlight-pulse 0.3s ease-out;
+  border-radius: 2px;
+  z-index: 1;
 }
 
-@keyframes highlight-pulse {
-  from { background: rgba(59, 130, 246, 0.3); }
-  to { background: rgba(59, 130, 246, 0.15); }
+/* Current match highlight (used during search navigation) */
+.pdf-highlight-rect--current {
+  background: rgba(251, 146, 60, 0.4);
 }
 
-.pdf-highlight-fadeout {
-  animation: highlight-fade 3s ease-out forwards;
+/* Citation highlight auto-fade */
+.pdf-highlight-rect--fadeout {
+  animation: highlight-rect-fade 3s ease-out forwards;
 }
 
-@keyframes highlight-fade {
+@keyframes highlight-rect-fade {
   from { opacity: 1; }
   to { opacity: 0; }
 }
