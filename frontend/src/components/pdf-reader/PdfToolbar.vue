@@ -89,6 +89,48 @@
         </svg>
       </button>
 
+      <span class="reader-divider" />
+
+      <!-- View mode toggles -->
+      <button
+        class="reader-btn"
+        :class="{ 'reader-btn-active': viewMode === 'single' }"
+        aria-label="单页模式"
+        title="单页"
+        @click="emit('set-view-mode', 'single')"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="6" y="3" width="12" height="18" rx="1"/>
+        </svg>
+      </button>
+
+      <button
+        class="reader-btn"
+        :class="{ 'reader-btn-active': viewMode === 'double' }"
+        aria-label="双页模式"
+        title="双页"
+        @click="emit('set-view-mode', 'double')"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="3" width="8" height="18" rx="1"/>
+          <rect x="14" y="3" width="8" height="18" rx="1"/>
+        </svg>
+      </button>
+
+      <button
+        class="reader-btn"
+        :class="{ 'reader-btn-active': viewMode === 'continuous' }"
+        aria-label="连续滚动模式"
+        title="连续滚动"
+        @click="emit('set-view-mode', 'continuous')"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="6" y="1" width="12" height="6" rx="1"/>
+          <rect x="6" y="9" width="12" height="6" rx="1"/>
+          <rect x="6" y="17" width="12" height="6" rx="1"/>
+        </svg>
+      </button>
+
       <PdfSearchBar
         v-if="searchOpen"
         :query="searchQuery"
@@ -118,6 +160,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import PdfSearchBar from './PdfSearchBar.vue'
+import type { ViewMode } from '../../composables/use-pdf-renderer'
 
 const props = defineProps<{
   title: string
@@ -130,6 +173,7 @@ const props = defineProps<{
   searchQuery: string
   searchMatchCount: number
   searchCurrentIndex: number
+  viewMode: ViewMode
 }>()
 
 const emit = defineEmits<{
@@ -145,6 +189,7 @@ const emit = defineEmits<{
   (e: 'search-next'): void
   (e: 'search-prev'): void
   (e: 'search-close'): void
+  (e: 'set-view-mode', mode: ViewMode): void
 }>()
 
 const pageInputRef = ref<HTMLInputElement | null>(null)
