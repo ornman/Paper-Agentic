@@ -77,6 +77,29 @@ export async function deletePaper(paperId: string): Promise<void> {
   await request(`/api/v1/library/items/${encodeURIComponent(paperId)}`, { method: 'DELETE' })
 }
 
+export async function fetchTrashedPapers(): Promise<PaperItem[]> {
+  const items = await request<unknown>('/api/v1/library/trash')
+  return (items as Record<string, unknown>[]).map(item => ({
+    ...item,
+    paper_id: (item.item_id as string) || (item.library_item_id as string) || (item.paper_id as string),
+    library_item_id: (item.item_id as string) || (item.library_item_id as string),
+    year: String(item.year ?? ''),
+    keywords: (item.keywords as string[]) ?? [],
+    total_pages: (item.page_count as number) ?? (item.total_pages as number) ?? 0,
+    chunk_count: (item.chunk_count as number) ?? 0,
+    kind: (item.file_type as string) || (item.kind as string) || '',
+    file_size: (item.file_size as number | null) ?? null,
+  })) as PaperItem[]
+}
+
+export async function restorePaper(paperId: string): Promise<void> {
+  await request(`/api/v1/library/items/${encodeURIComponent(paperId)}/restore`, { method: 'POST' })
+}
+
+export async function permanentDeletePaper(paperId: string): Promise<void> {
+  await request(`/api/v1/library/items/${encodeURIComponent(paperId)}/permanent`, { method: 'DELETE' })
+}
+
 export async function retryImport(paperId: string): Promise<ImportStartResult> {
   const result = await request<ImportStartResult>(`/api/v1/library/items/${encodeURIComponent(paperId)}/retry`, { method: 'POST' })
   if (!result?.task_id) {
