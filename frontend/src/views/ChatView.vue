@@ -76,7 +76,6 @@
           @remove="handleRemovePaper"
           @retry="handleRetryImport"
           @select-all="libraryStore.setSelectedPaperIds($event)"
-          @open-trash="() => console.log('[Library] 回收站功能待实现')"
         />
       </template>
     </SidebarDrawer>
