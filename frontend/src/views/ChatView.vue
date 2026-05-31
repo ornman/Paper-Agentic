@@ -510,9 +510,9 @@ function showCitationPreview(source: SourceCard) {
 }
 
 // ─── 上传 PDF ───
-async function handleUploadPdf(file: File) {
+async function handleUploadPdf(files: File[]) {
   if (demoActive.value) return
-  await libraryStore.importFiles([file])
+  await libraryStore.importFiles(files)
 }
 
 function togglePaperPanel() {

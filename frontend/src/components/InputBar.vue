@@ -101,7 +101,7 @@
         </Transition>
       </div>
     </div>
-    <input ref="fileInput" type="file" accept=".pdf" hidden @change="handleFileChange" />
+    <input ref="fileInput" type="file" accept=".pdf" multiple hidden @change="handleFileChange" />
   </div>
 </template>
 
@@ -132,7 +132,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'send', text: string): void
   (e: 'stop'): void
-  (e: 'upload-pdf', file: File): void
+  (e: 'upload-pdf', files: File[]): void
   (e: 'toggle-papers'): void
   (e: 'clear-papers'): void
   (e: 'toggle-thinking'): void
@@ -184,11 +184,13 @@ function triggerUpload() {
 
 function handleFileChange(event: Event) {
   const target = event.target as HTMLInputElement
-  const file = target.files?.[0]
-  if (file) {
-    emit('upload-pdf', file)
-    target.value = ''
+  const files = target.files
+  if (!files || files.length === 0) return
+  const pdfFiles = Array.from(files).filter(f => f.name.toLowerCase().endsWith('.pdf'))
+  if (pdfFiles.length > 0) {
+    emit('upload-pdf', pdfFiles)
   }
+  target.value = ''
 }
 
 function autoResize(event: Event) {
