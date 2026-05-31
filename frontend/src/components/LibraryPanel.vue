@@ -84,7 +84,7 @@
       <TrashPanel
         v-if="viewMode === 'trash'"
         :papers="trashedPapers"
-        :loading="false"
+        :loading="trashedLoading"
         @restore="handleRestore"
         @permanent-delete="handlePermanentDelete"
         @back="viewMode = 'library'"
@@ -248,7 +248,7 @@
         type="button"
         class="library-recycle-btn"
         title="回收站"
-        @click="viewMode = 'trash'; libraryStore.loadTrashedPapers()"
+        @click="switchToTrash()"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="3 6 5 6 21 6" />
@@ -298,6 +298,7 @@ const { importing, importFileName, importPercent, importStep, importError, impor
 const { trashedPapers } = storeToRefs(libraryStore)
 
 const viewMode = ref<'library' | 'trash'>('library')
+const trashedLoading = ref(false)
 
 const props = defineProps<{
   papers: PaperItem[]
@@ -432,12 +433,30 @@ function confirmDeleteAction() {
   confirmDelete.visible = false
 }
 
-function handleRestore(paperId: string) {
-  libraryStore.restorePaperFromTrash(paperId)
+async function switchToTrash() {
+  viewMode.value = 'trash'
+  trashedLoading.value = true
+  try {
+    await libraryStore.loadTrashedPapers()
+  } finally {
+    trashedLoading.value = false
+  }
 }
 
-function handlePermanentDelete(paperId: string) {
-  libraryStore.permanentDeleteFromTrash(paperId)
+async function handleRestore(paperId: string) {
+  try {
+    await libraryStore.restorePaperFromTrash(paperId)
+  } catch {
+    // store 已设置 error，UI 可通过 libraryStore.error 获取
+  }
+}
+
+async function handlePermanentDelete(paperId: string) {
+  try {
+    await libraryStore.permanentDeleteFromTrash(paperId)
+  } catch {
+    // store 已设置 error，UI 可通过 libraryStore.error 获取
+  }
 }
 </script>
 

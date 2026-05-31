@@ -45,10 +45,7 @@ async def delete_item(item_id: str, request: Request):
     item = container.library_repo.get(item_id)
     if not item:
         raise HTTPException(status_code=404, detail="文献不存在")
-    try:
-        container.document_ingest.delete_document(item_id)
-    except Exception as e:
-        logger.warning("索引删除失败，继续软删除 library 记录: %s", e)
+    # 软删除：只标记 deleted_at，保留索引以便恢复
     container.library_repo.soft_delete(item_id)
     logger.info("已软删除文献: %s (%s)", item.title, item_id)
     return {"status": "ok", "message": f"已移入回收站: {item.title}"}
@@ -80,6 +77,8 @@ async def permanent_delete_item(item_id: str, request: Request):
     item = container.library_repo.get(item_id)
     if not item:
         raise HTTPException(status_code=404, detail="文献不存在")
+    if item.deleted_at is None:
+        raise HTTPException(status_code=400, detail="该文献不在回收站中，请先移入回收站")
     try:
         container.document_ingest.delete_document(item_id)
     except Exception as e:

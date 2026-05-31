@@ -132,7 +132,7 @@ class SQLiteLibraryRepo:
                        file_type, import_time, page_count, status,
                        authors, year, file_size, deleted_at
                 FROM library_items
-                WHERE file_hash = ?
+                WHERE file_hash = ? AND deleted_at IS NULL
                 """,
                 (file_hash,),
             ).fetchone()
@@ -161,7 +161,8 @@ class SQLiteLibraryRepo:
                     status = excluded.status,
                     authors = excluded.authors,
                     year = excluded.year,
-                    file_size = excluded.file_size
+                    file_size = excluded.file_size,
+                    deleted_at = NULL
                 """,
                 (
                     item.item_id,
