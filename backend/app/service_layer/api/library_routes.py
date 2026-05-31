@@ -45,7 +45,11 @@ async def delete_item(item_id: str, request: Request):
     item = container.library_repo.get(item_id)
     if not item:
         raise HTTPException(status_code=404, detail="文献不存在")
-    container.document_ingest.delete_document(item_id)
+    try:
+        container.document_ingest.delete_document(item_id)
+    except Exception as e:
+        logger.warning("软删除失败，继续删除 library 记录: %s", e)
+    # 确保 SQLite 记录一定被删除
     container.library_repo.delete(item_id)
     logger.info("已删除文献: %s (%s)", item.title, item_id)
     return {"status": "ok", "message": f"已删除: {item.title}"}
