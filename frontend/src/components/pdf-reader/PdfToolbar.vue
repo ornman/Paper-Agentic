@@ -91,45 +91,69 @@
 
       <span class="reader-divider" />
 
-      <!-- View mode toggles -->
-      <button
-        class="reader-btn"
-        :class="{ 'reader-btn-active': viewMode === 'single' }"
-        aria-label="单页模式"
-        title="单页"
-        @click="emit('set-view-mode', 'single')"
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="6" y="3" width="12" height="18" rx="1"/>
-        </svg>
-      </button>
+      <!-- View mode dropdown -->
+      <div class="view-mode-wrapper" ref="viewModeWrapperRef">
+        <button
+          class="reader-btn"
+          :class="{ 'reader-btn-active': viewMode !== 'single' }"
+          aria-label="视图模式"
+          title="视图模式"
+          @click="viewModeMenuOpen = !viewModeMenuOpen"
+        >
+          <!-- Icon matches current mode -->
+          <svg v-if="viewMode === 'single'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="6" y="3" width="12" height="18" rx="1"/>
+          </svg>
+          <svg v-else-if="viewMode === 'double'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="3" width="8" height="18" rx="1"/>
+            <rect x="14" y="3" width="8" height="18" rx="1"/>
+          </svg>
+          <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="6" y="1" width="12" height="6" rx="1"/>
+            <rect x="6" y="9" width="12" height="6" rx="1"/>
+            <rect x="6" y="17" width="12" height="6" rx="1"/>
+          </svg>
+          <svg class="view-mode-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </button>
 
-      <button
-        class="reader-btn"
-        :class="{ 'reader-btn-active': viewMode === 'double' }"
-        aria-label="双页模式"
-        title="双页"
-        @click="emit('set-view-mode', 'double')"
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="2" y="3" width="8" height="18" rx="1"/>
-          <rect x="14" y="3" width="8" height="18" rx="1"/>
-        </svg>
-      </button>
-
-      <button
-        class="reader-btn"
-        :class="{ 'reader-btn-active': viewMode === 'continuous' }"
-        aria-label="连续滚动模式"
-        title="连续滚动"
-        @click="emit('set-view-mode', 'continuous')"
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="6" y="1" width="12" height="6" rx="1"/>
-          <rect x="6" y="9" width="12" height="6" rx="1"/>
-          <rect x="6" y="17" width="12" height="6" rx="1"/>
-        </svg>
-      </button>
+        <div v-if="viewModeMenuOpen" class="view-mode-dropdown">
+          <button
+            class="view-mode-option"
+            :class="{ 'view-mode-option-active': viewMode === 'single' }"
+            @click="selectViewMode('single')"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="6" y="3" width="12" height="18" rx="1"/>
+            </svg>
+            <span>单页</span>
+          </button>
+          <button
+            class="view-mode-option"
+            :class="{ 'view-mode-option-active': viewMode === 'double' }"
+            @click="selectViewMode('double')"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="3" width="8" height="18" rx="1"/>
+              <rect x="14" y="3" width="8" height="18" rx="1"/>
+            </svg>
+            <span>双页</span>
+          </button>
+          <button
+            class="view-mode-option"
+            :class="{ 'view-mode-option-active': viewMode === 'continuous' }"
+            @click="selectViewMode('continuous')"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="6" y="1" width="12" height="6" rx="1"/>
+              <rect x="6" y="9" width="12" height="6" rx="1"/>
+              <rect x="6" y="17" width="12" height="6" rx="1"/>
+            </svg>
+            <span>连续滚动</span>
+          </button>
+        </div>
+      </div>
 
       <PdfSearchBar
         v-if="searchOpen"
@@ -158,7 +182,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import PdfSearchBar from './PdfSearchBar.vue'
 import type { ViewMode } from '../../composables/use-pdf-renderer'
 
@@ -193,6 +217,22 @@ const emit = defineEmits<{
 }>()
 
 const pageInputRef = ref<HTMLInputElement | null>(null)
+const viewModeMenuOpen = ref(false)
+const viewModeWrapperRef = ref<HTMLElement | null>(null)
+
+function selectViewMode(mode: ViewMode) {
+  emit('set-view-mode', mode)
+  viewModeMenuOpen.value = false
+}
+
+function handleClickOutside(e: MouseEvent) {
+  if (viewModeWrapperRef.value && !viewModeWrapperRef.value.contains(e.target as Node)) {
+    viewModeMenuOpen.value = false
+  }
+}
+
+onMounted(() => document.addEventListener('click', handleClickOutside))
+onBeforeUnmount(() => document.removeEventListener('click', handleClickOutside))
 
 function handlePageInput() {
   const raw = pageInputRef.value
@@ -233,6 +273,7 @@ function handlePageInput() {
   align-items: center;
   gap: var(--space-2);
   flex: 1;
+  min-width: 0;
   justify-content: center;
 }
 
@@ -333,5 +374,50 @@ function handlePageInput() {
 .reader-close-btn:hover {
   background: var(--color-surface-muted);
   color: var(--color-text-primary);
+}
+
+/* View mode dropdown */
+.view-mode-wrapper {
+  position: relative;
+}
+
+.view-mode-chevron {
+  margin-left: 1px;
+  opacity: 0.6;
+}
+
+.view-mode-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  background: var(--color-surface-primary);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  padding: var(--space-1);
+  z-index: 100;
+  min-width: 120px;
+}
+
+.view-mode-option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-sm);
+  transition: background 0.15s, color 0.15s;
+}
+
+.view-mode-option:hover {
+  background: var(--color-surface-muted);
+  color: var(--color-text-primary);
+}
+
+.view-mode-option-active {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
 }
 </style>
