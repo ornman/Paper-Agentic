@@ -16,7 +16,7 @@
         aria-modal="true"
         aria-label="PDF 阅读面板"
         tabindex="-1"
-        @keydown.escape="emit('close')"
+        @keydown.escape="handleEscape"
       >
         <!-- Toolbar -->
         <PdfToolbar
@@ -130,18 +130,14 @@ const outlineOpen = ref(false)
 const hasOutline = ref(false)
 const outlineItems = ref<OutlineItem[]>([])
 
-let pdfDocProxy: PDFDocumentProxy | null = null
+const pdfDocProxy = ref<PDFDocumentProxy | null>(null)
 
-const renderer = usePdfRenderer(
-  computed(() => pdfDocProxy),
-  scale,
-)
+const renderer = usePdfRenderer(pdfDocProxy, scale)
 
 const { adapter: annotationAdapter } = usePdfAnnotation(renderer.scrollToPage)
 
 // Search composable — pass reactive doc ref and scroll function
-const pdfDocRef = computed(() => pdfDocProxy)
-const search = usePdfSearch(pdfDocRef, renderer.scrollToPage)
+const search = usePdfSearch(pdfDocProxy, renderer.scrollToPage)
 
 /** Compute per-page search matches for PdfPage's searchMatches prop */
 function getSearchMatchesForPage(pageNum: number): Array<{ charStart: number; charEnd: number; isCurrent: boolean }> | undefined {
@@ -166,8 +162,18 @@ usePdfKeyboard({
   onZoomIn: () => setScale(Math.min(3, scale.value + 0.25)),
   onZoomOut: () => setScale(Math.max(0.5, scale.value - 0.25)),
   onOpenSearch: () => search.openSearch(),
+  onCloseSearch: () => search.closeSearch(),
   isSearchOpen: search.isOpen,
 })
+
+/** Handle Escape from the panel div: close search if open, otherwise close panel */
+function handleEscape() {
+  if (search.isOpen.value) {
+    search.closeSearch()
+  } else {
+    emit('close')
+  }
+}
 
 function onPageHeight(pageNum: number, height: number) {
   if (renderer.pageHeights.value[pageNum - 1] !== height) {
@@ -184,7 +190,7 @@ async function loadPdf() {
 
   loading.value = true
   error.value = null
-  pdfDocProxy = null
+  pdfDocProxy.value = null
   renderer.totalPages.value = 0
   renderer.currentPage.value = 1
 
@@ -192,14 +198,14 @@ async function loadPdf() {
     const isDemo = props.demoMode || props.paperId.startsWith('paper-')
     const url = isDemo ? '/demo-paper.pdf' : buildPaperOpenUrl(props.paperId)
     const loadingTask = pdfjsLib.getDocument({ url, ...cMapOptions })
-    pdfDocProxy = await loadingTask.promise
+    pdfDocProxy.value = await loadingTask.promise
     paperTitle.value = isDemo ? 'Demo PDF' : 'PDF 预览'
-    annotationAdapter.setDocument(pdfDocProxy)
+    annotationAdapter.setDocument(pdfDocProxy.value)
 
-    await renderer.init(pdfDocProxy)
+    await renderer.init(pdfDocProxy.value)
     await loadOutline()
 
-    if (props.targetPage && props.targetPage >= 1 && props.targetPage <= pdfDocProxy.numPages) {
+    if (props.targetPage && props.targetPage >= 1 && props.targetPage <= pdfDocProxy.value.numPages) {
       renderer.currentPage.value = props.targetPage
     }
   } catch (e: unknown) {
@@ -210,8 +216,8 @@ async function loadPdf() {
 }
 
 async function loadOutline() {
-  if (!pdfDocProxy) return
-  const rawOutline = await pdfDocProxy.getOutline()
+  if (!pdfDocProxy.value) return
+  const rawOutline = await pdfDocProxy.value.getOutline()
   if (!rawOutline || rawOutline.length === 0) {
     hasOutline.value = false
     outlineItems.value = []
@@ -231,10 +237,10 @@ async function resolveOutlineItem(raw: { title: string; dest: unknown; items: un
   try {
     let dest = raw.dest
     if (typeof dest === 'string') {
-      dest = await pdfDocProxy!.getDestination(dest)
+      dest = await pdfDocProxy.value!.getDestination(dest)
     }
     if (Array.isArray(dest) && dest.length > 0) {
-      const pageIdx = await pdfDocProxy!.getPageIndex(dest[0])
+      const pageIdx = await pdfDocProxy.value!.getPageIndex(dest[0])
       pageNumber = pageIdx + 1
     }
   } catch {
@@ -255,7 +261,7 @@ watch(() => props.visible, async (visible) => {
   if (visible && props.paperId) {
     await loadPdf()
     await nextTick()
-    if (scrollContainerRef.value && pdfDocProxy) {
+    if (scrollContainerRef.value && pdfDocProxy.value) {
       // Register all page-slot elements with the renderer before setting up observer
       const slots = scrollContainerRef.value.querySelectorAll<HTMLElement>('[data-page-number]')
       for (const slot of slots) {
@@ -271,14 +277,14 @@ watch(() => props.visible, async (visible) => {
   } else {
     search.closeSearch()
     annotationAdapter.setDocument(null)
-    pdfDocProxy?.destroy()
-    pdfDocProxy = null
+    pdfDocProxy.value?.destroy()
+    pdfDocProxy.value = null
   }
 })
 
 onBeforeUnmount(() => {
-  pdfDocProxy?.destroy()
-  pdfDocProxy = null
+  pdfDocProxy.value?.destroy()
+  pdfDocProxy.value = null
 })
 </script>
 

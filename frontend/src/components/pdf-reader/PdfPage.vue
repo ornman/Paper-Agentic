@@ -273,7 +273,7 @@ async function highlightOnPage() {
     for (let i = 0; i < rects.length; i++) {
       const r = rects[i]
       const el = document.createElement('div')
-      el.className = 'pdf-highlight-rect'
+      el.className = 'pdf-highlight-rect pdf-highlight-rect--search'
       if (i === props.currentHighlightIndex) {
         el.classList.add('pdf-highlight-rect--current')
       }
@@ -306,7 +306,7 @@ async function highlightOnPage() {
       const rects = computeHighlightRects(textItems, match.charStart, match.charEnd, currentViewport)
       for (const r of rects) {
         const el = document.createElement('div')
-        el.className = 'pdf-highlight-rect'
+        el.className = 'pdf-highlight-rect pdf-highlight-rect--search'
         if (match.isCurrent) {
           el.classList.add('pdf-highlight-rect--current')
         }
@@ -411,6 +411,11 @@ onBeforeUnmount(() => {
   pointer-events: none;
   border-radius: 2px;
   z-index: 1;
+}
+
+/* Search match highlight — yellow per spec */
+.pdf-highlight-rect--search {
+  background: rgba(255, 255, 0, 0.35);
 }
 
 /* Current match highlight (used during search navigation) */

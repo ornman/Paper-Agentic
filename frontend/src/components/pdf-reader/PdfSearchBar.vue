@@ -54,7 +54,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, watch, onMounted, nextTick } from 'vue'
 
 const props = defineProps<{
   /** Current search query (controlled from parent) */
@@ -85,39 +85,14 @@ watch(
   },
 )
 
-// Debounced emit to parent
-let debounceTimer: ReturnType<typeof setTimeout> | null = null
-
+// Emit immediately — usePdfSearch.search() handles the 300ms debounce
 watch(localQuery, (val) => {
-  if (debounceTimer) {
-    clearTimeout(debounceTimer)
-    debounceTimer = null
-  }
-
-  // Emit immediately on empty to clear results
-  if (!val.trim()) {
-    emit('search', val)
-    return
-  }
-
-  debounceTimer = setTimeout(() => {
-    emit('search', val)
-  }, 300)
+  emit('search', val)
 })
 
 function onEnter(): void {
-  // Shift+Enter = previous match, Enter = next match
-  if (debounceTimer) {
-    clearTimeout(debounceTimer)
-    debounceTimer = null
-    // Flush pending search first
-    emit('search', localQuery.value)
-  }
-
   // Small delay to let search results arrive before navigating
   nextTick(() => {
-    // Use window event to determine shiftKey since we don't have the event here
-    // Instead, always go next on Enter
     emit('next')
   })
 }
@@ -126,13 +101,6 @@ onMounted(() => {
   nextTick(() => {
     inputRef.value?.focus()
   })
-})
-
-onBeforeUnmount(() => {
-  if (debounceTimer) {
-    clearTimeout(debounceTimer)
-    debounceTimer = null
-  }
 })
 </script>
 

@@ -11,6 +11,8 @@ interface KeyboardOptions {
   onZoomOut: () => void
   /** Open the Ctrl+F search bar */
   onOpenSearch?: () => void
+  /** Close the Ctrl+F search bar (Escape with search open) */
+  onCloseSearch?: () => void
   /** Whether search bar is currently open (for Escape handling) */
   isSearchOpen?: Ref<boolean>
 }
@@ -60,7 +62,11 @@ export function usePdfKeyboard(options: KeyboardOptions) {
 
       case e.key === 'Escape':
         e.preventDefault()
-        options.onClose()
+        if (options.isSearchOpen?.value && options.onCloseSearch) {
+          options.onCloseSearch()
+        } else {
+          options.onClose()
+        }
         break
 
       default:
