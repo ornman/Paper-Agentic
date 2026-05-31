@@ -243,7 +243,7 @@ class SQLiteLibraryRepo:
             page_count=row[6],
             status=row[7],
             authors=row[8] if len(row) > 8 else "",
-            year=row[9] if len(row) > 9 and row[9] is not None else "",
+            year=row[9] if len(row) > 9 and row[9] is not None else None,
             file_size=row[10] if len(row) > 10 else 0,
             deleted_at=row[11] if len(row) > 11 else None,
         )

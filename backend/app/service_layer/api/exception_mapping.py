@@ -29,4 +29,6 @@ def register_exception_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(Exception)
     async def handle_unexpected_error(request: Request, exc: Exception):
+        import logging, traceback
+        logging.getLogger("paper-assistant").error("未处理异常: %s\n%s", exc, traceback.format_exc())
         return JSONResponse(status_code=500, content={"code": "internal_error", "message": "内部错误"})
