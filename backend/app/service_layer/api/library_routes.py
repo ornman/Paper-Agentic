@@ -48,11 +48,45 @@ async def delete_item(item_id: str, request: Request):
     try:
         container.document_ingest.delete_document(item_id)
     except Exception as e:
-        logger.warning("软删除失败，继续删除 library 记录: %s", e)
-    # 确保 SQLite 记录一定被删除
-    container.library_repo.delete(item_id)
-    logger.info("已删除文献: %s (%s)", item.title, item_id)
-    return {"status": "ok", "message": f"已删除: {item.title}"}
+        logger.warning("索引删除失败，继续软删除 library 记录: %s", e)
+    container.library_repo.soft_delete(item_id)
+    logger.info("已软删除文献: %s (%s)", item.title, item_id)
+    return {"status": "ok", "message": f"已移入回收站: {item.title}"}
+
+
+@router.get("/trash", response_model=list[LibraryItemOut])
+async def list_trashed(request: Request):
+    container = request.app.state.container
+    items = container.library_repo.list_trashed()
+    return [LibraryItemOut(**item.__dict__) for item in items]
+
+
+@router.post("/items/{item_id}/restore")
+async def restore_item(item_id: str, request: Request):
+    container = request.app.state.container
+    item = container.library_repo.get(item_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="文献不存在")
+    if item.deleted_at is None:
+        raise HTTPException(status_code=400, detail="该文献不在回收站中")
+    container.library_repo.restore(item_id)
+    logger.info("已恢复文献: %s (%s)", item.title, item_id)
+    return {"status": "ok", "message": f"已恢复: {item.title}"}
+
+
+@router.delete("/items/{item_id}/permanent")
+async def permanent_delete_item(item_id: str, request: Request):
+    container = request.app.state.container
+    item = container.library_repo.get(item_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="文献不存在")
+    try:
+        container.document_ingest.delete_document(item_id)
+    except Exception as e:
+        logger.warning("索引硬删除失败: %s", e)
+    container.library_repo.hard_delete(item_id)
+    logger.info("已永久删除文献: %s (%s)", item.title, item_id)
+    return {"status": "ok", "message": f"已永久删除: {item.title}"}
 
 
 @router.post("/import", response_model=ImportResponse)
