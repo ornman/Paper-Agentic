@@ -512,6 +512,11 @@ class TurnRunner:
             logger.warning("persistence persist failed for session %s", snapshot.session_id, exc_info=True)
 
         # ── SQLite conversation_repo：持久化 blocks_json + sources_json ──
+        # 三个持久化通道各司其职：
+        #   1. window_store  — 内存上下文窗口（LLM 输入截断）
+        #   2. persistence   — 内存 SessionPersistence（会话摘要）
+        #   3. conversation_repo — SQLite 长期存储（历史对话 API 消费）
+        # 三者独立降级，任一失败不影响 SSE 输出。
         if self._conversation_repo is not None:
             try:
                 from app.data_layer.storage.sqlite_runtime._types import ConversationMessage, utc_now_iso
@@ -532,12 +537,14 @@ class TurnRunner:
                     sources_json=sources_json,
                     blocks_json=blocks_json,
                 ))
-                # Update session timestamp
+                # Update session timestamp (create session if first message)
+                from dataclasses import replace as _replace
                 from app.data_layer.storage.sqlite_runtime._types import ConversationSession
                 session = self._conversation_repo.get_session(snapshot.session_id)
                 if session:
-                    session.updated_at = now
-                    self._conversation_repo.upsert_session(session)
+                    self._conversation_repo.upsert_session(
+                        _replace(session, updated_at=now)
+                    )
                 else:
                     self._conversation_repo.upsert_session(ConversationSession(
                         session_id=snapshot.session_id,

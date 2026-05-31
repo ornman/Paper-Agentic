@@ -35,7 +35,7 @@
       @mouseleave.capture="onContentMouseLeave"
     >
       <!-- Streaming text preview (shown before structured blocks arrive) -->
-      <p v-if="message.streamingText" class="block-paragraph streaming-text" v-html="renderStreamingText(message.streamingText)"></p>
+      <p v-if="message.streamingText" class="block-paragraph streaming-text" v-html="renderInline(message.streamingText)"></p>
 
       <template v-for="(block, index) in message.blocks" :key="index">
         <!-- Paragraph -->
@@ -293,14 +293,9 @@ function escapeHtml(str: string): string {
     .replace(/'/g, '&#39;')
 }
 
-/** Render inline markdown (bold, italic, code) for headings & list items */
+/** Render inline markdown (bold, italic, code) for headings, list items, and streaming text */
 function renderInline(text: string | undefined): string {
   if (!text) return ''
-  return renderInlineMarkdown(escapeHtml(text))
-}
-
-/** Render streaming text with inline markdown support */
-function renderStreamingText(text: string): string {
   return renderInlineMarkdown(escapeHtml(text))
 }
 

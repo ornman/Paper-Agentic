@@ -43,12 +43,15 @@ class SQLiteConversationRepo:
                 """
             )
             # Migration: add blocks_json column if missing (existing DBs)
-            self._migrate_add_column(conn, "blocks_json", "TEXT")
+            self.__migrate_add_column(conn, "blocks_json", "TEXT")
             conn.commit()
 
     @staticmethod
-    def _migrate_add_column(conn: sqlite3.Connection, column: str, col_type: str) -> None:
-        """Add a column to conversation_messages if it doesn't already exist."""
+    def __migrate_add_column(conn: sqlite3.Connection, column: str, col_type: str) -> None:
+        """Add a column to conversation_messages if it doesn't already exist.
+
+        Only called with hardcoded literals from init() — column/col_type are trusted.
+        """
         try:
             cols = {
                 row[1]
@@ -58,8 +61,8 @@ class SQLiteConversationRepo:
                 conn.execute(
                     f"ALTER TABLE conversation_messages ADD COLUMN {column} {col_type}"
                 )
-        except Exception:
-            pass  # Column already exists or table is new
+        except sqlite3.OperationalError:
+            pass  # Column already exists
 
     # ------------------------------------------------------------------
     # Sessions

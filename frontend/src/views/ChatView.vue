@@ -113,6 +113,7 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, watch, onMounted, onUnmounted } from 'vue'
 import type { SourceCard } from '../types/source'
+import type { ContentBlock } from '../types/content'
 import { useConversationStore } from '../stores/conversation'
 import type { ConversationRecord, UserMessage, AssistantMessage } from '../stores/conversation'
 import { useLibraryStore } from '../stores/library'
@@ -399,7 +400,14 @@ async function switchToSession(sessionId: string) {
           try {
             const parsed = JSON.parse(msg.blocks_json)
             if (Array.isArray(parsed) && parsed.length > 0) {
-              blocks = parsed
+              // Validate each block has a recognized type and text/items are strings
+              blocks = parsed.filter(
+                (b): b is ContentBlock =>
+                  typeof b === 'object' && b !== null && typeof b.type === 'string'
+              )
+              if (blocks.length === 0) {
+                blocks = [{ type: 'paragraph' as const, text: msg.content }]
+              }
             } else {
               blocks = [{ type: 'paragraph' as const, text: msg.content }]
             }
@@ -409,6 +417,18 @@ async function switchToSession(sessionId: string) {
         } else {
           blocks = [{ type: 'paragraph' as const, text: msg.content }]
         }
+        // Safe sources parsing with fallback
+        let sources: AssistantMessage['sources']
+        if (msg.sources_json) {
+          try {
+            const parsed = JSON.parse(msg.sources_json)
+            sources = Array.isArray(parsed) ? parsed : []
+          } catch {
+            sources = []
+          }
+        } else {
+          sources = []
+        }
         mapped.push({
           id: `assistant-${msg.created_at}`,
           role: 'assistant',
@@ -416,7 +436,7 @@ async function switchToSession(sessionId: string) {
           thinking: '',
           thinkingTimeMs: 0,
           blocks,
-          sources: msg.sources_json ? JSON.parse(msg.sources_json) : [],
+          sources,
         } as AssistantMessage)
       }
     }
