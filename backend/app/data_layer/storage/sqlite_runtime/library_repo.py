@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sqlite3
 
-from ._types import LibraryItem
+from ._types import LibraryItem, utc_now_iso
 
 
 class SQLiteLibraryRepo:
@@ -41,6 +41,8 @@ class SQLiteLibraryRepo:
                 conn.execute("ALTER TABLE library_items ADD COLUMN year INTEGER")
             if "file_size" not in existing:
                 conn.execute("ALTER TABLE library_items ADD COLUMN file_size INTEGER DEFAULT 0")
+            if "deleted_at" not in existing:
+                conn.execute("ALTER TABLE library_items ADD COLUMN deleted_at TEXT DEFAULT NULL")
             conn.commit()
 
     # ------------------------------------------------------------------
@@ -53,8 +55,9 @@ class SQLiteLibraryRepo:
                 """
                 SELECT item_id, title, file_path, file_hash,
                        file_type, import_time, page_count, status,
-                       authors, year, file_size
+                       authors, year, file_size, deleted_at
                 FROM library_items
+                WHERE deleted_at IS NULL
                 ORDER BY import_time DESC
                 """,
             ).fetchall()
@@ -84,15 +87,19 @@ class SQLiteLibraryRepo:
             clauses.append("(year IS NOT NULL AND year <= ?)")
             params.append(year_to)
 
-        where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+        base_where = "deleted_at IS NULL"
+        if clauses:
+            full_where = f"WHERE {base_where} AND {' AND '.join(clauses)}"
+        else:
+            full_where = f"WHERE {base_where}"
         with sqlite3.connect(self._db_path) as conn:
             rows = conn.execute(
                 f"""
                 SELECT item_id, title, file_path, file_hash,
                        file_type, import_time, page_count, status,
-                       authors, year, file_size
+                       authors, year, file_size, deleted_at
                 FROM library_items
-                {where}
+                {full_where}
                 ORDER BY import_time DESC
                 """,
                 params,
@@ -105,7 +112,7 @@ class SQLiteLibraryRepo:
                 """
                 SELECT item_id, title, file_path, file_hash,
                        file_type, import_time, page_count, status,
-                       authors, year, file_size
+                       authors, year, file_size, deleted_at
                 FROM library_items
                 WHERE item_id = ?
                 """,
@@ -123,7 +130,7 @@ class SQLiteLibraryRepo:
                 """
                 SELECT item_id, title, file_path, file_hash,
                        file_type, import_time, page_count, status,
-                       authors, year, file_size
+                       authors, year, file_size, deleted_at
                 FROM library_items
                 WHERE file_hash = ?
                 """,
@@ -180,6 +187,45 @@ class SQLiteLibraryRepo:
             )
             conn.commit()
 
+    def soft_delete(self, item_id: str) -> None:
+        now = utc_now_iso()
+        with sqlite3.connect(self._db_path) as conn:
+            conn.execute(
+                "UPDATE library_items SET deleted_at = ? WHERE item_id = ?",
+                (now, item_id),
+            )
+            conn.commit()
+
+    def list_trashed(self) -> list[LibraryItem]:
+        with sqlite3.connect(self._db_path) as conn:
+            rows = conn.execute(
+                """
+                SELECT item_id, title, file_path, file_hash,
+                       file_type, import_time, page_count, status,
+                       authors, year, file_size, deleted_at
+                FROM library_items
+                WHERE deleted_at IS NOT NULL
+                ORDER BY deleted_at DESC
+                """,
+            ).fetchall()
+        return [self._row_to_item(r) for r in rows]
+
+    def restore(self, item_id: str) -> None:
+        with sqlite3.connect(self._db_path) as conn:
+            conn.execute(
+                "UPDATE library_items SET deleted_at = NULL WHERE item_id = ?",
+                (item_id,),
+            )
+            conn.commit()
+
+    def hard_delete(self, item_id: str) -> None:
+        with sqlite3.connect(self._db_path) as conn:
+            conn.execute(
+                "DELETE FROM library_items WHERE item_id = ?",
+                (item_id,),
+            )
+            conn.commit()
+
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
@@ -198,4 +244,5 @@ class SQLiteLibraryRepo:
             authors=row[8] if len(row) > 8 else "",
             year=row[9] if len(row) > 9 and row[9] is not None else "",
             file_size=row[10] if len(row) > 10 else 0,
+            deleted_at=row[11] if len(row) > 11 else None,
         )

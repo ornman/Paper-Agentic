@@ -24,6 +24,7 @@ class LibraryItemOut(BaseModel):
     status: str = "ready"
     keywords: list[str] = []
     file_size: int | None = None
+    deleted_at: str | None = None
 
     @model_validator(mode="after")
     def _set_aliases(self) -> "LibraryItemOut":

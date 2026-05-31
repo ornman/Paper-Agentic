@@ -21,6 +21,7 @@ class LibraryItem:
     authors: str = ""
     year: str = ""
     file_size: int = 0
+    deleted_at: str | None = None
 
 
 @dataclass
