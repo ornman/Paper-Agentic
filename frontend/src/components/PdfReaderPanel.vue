@@ -30,6 +30,7 @@
           :search-query="search.query.value"
           :search-match-count="search.matchCount.value"
           :search-current-index="search.currentMatchIndex.value"
+          :view-mode="viewMode"
           @close="emit('close')"
           @prev="renderer.scrollToPage(renderer.currentPage.value - 1)"
           @next="renderer.scrollToPage(renderer.currentPage.value + 1)"
@@ -42,6 +43,7 @@
           @search-next="search.nextMatch()"
           @search-prev="search.prevMatch()"
           @search-close="search.closeSearch()"
+          @set-view-mode="setViewMode"
         />
 
         <!-- PDF viewport -->
@@ -53,7 +55,14 @@
             @close="outlineOpen = false"
             @navigate="(p: number) => renderer.scrollToPage(p)"
           />
-          <div ref="scrollContainerRef" class="reader-body">
+          <div
+            ref="scrollContainerRef"
+            class="reader-body"
+            :class="{
+              'reader-body--single': viewMode === 'single',
+              'reader-body--double': viewMode === 'double',
+            }"
+          >
             <div v-if="loading" class="reader-loading">
               <div class="reader-spinner" />
               <span>加载中…</span>
@@ -62,7 +71,7 @@
               <span>{{ error }}</span>
               <button class="reader-btn" @click="loadPdf">重试</button>
             </div>
-            <div v-else-if="pdfDocProxy" class="reader-pages">
+            <div v-else-if="pdfDocProxy" class="reader-pages" :class="{ 'reader-pages--double': viewMode === 'double' }">
               <div
                 v-for="pageNum in renderer.totalPages.value"
                 :key="pageNum"
@@ -94,7 +103,7 @@
 import { ref, watch, nextTick, onBeforeUnmount, computed } from 'vue'
 import type { PDFDocumentProxy } from 'pdfjs-dist'
 import { usePdfjs } from '../composables/use-pdfjs'
-import { usePdfRenderer } from '../composables/use-pdf-renderer'
+import { usePdfRenderer, type ViewMode } from '../composables/use-pdf-renderer'
 import { usePdfAnnotation } from '../composables/use-pdf-annotation'
 import { usePdfSearch, type SearchMatch } from '../composables/use-pdf-search'
 import { buildPaperOpenUrl } from '../services/library-api'
@@ -129,10 +138,11 @@ const containerWidth = ref(480)
 const outlineOpen = ref(false)
 const hasOutline = ref(false)
 const outlineItems = ref<OutlineItem[]>([])
+const viewMode = ref<ViewMode>('continuous')
 
 const pdfDocProxy = ref<PDFDocumentProxy | null>(null)
 
-const renderer = usePdfRenderer(pdfDocProxy, scale)
+const renderer = usePdfRenderer(pdfDocProxy, scale, viewMode)
 
 const { adapter: annotationAdapter } = usePdfAnnotation(renderer.scrollToPage)
 
@@ -183,6 +193,10 @@ function onPageHeight(pageNum: number, height: number) {
 
 function setScale(next: number) {
   scale.value = next
+}
+
+function setViewMode(mode: ViewMode) {
+  viewMode.value = mode
 }
 
 async function loadPdf() {
@@ -282,6 +296,14 @@ watch(() => props.visible, async (visible) => {
   }
 })
 
+// 视图模式切换时：切回 continuous 需重建 observer
+watch(viewMode, async (mode) => {
+  if (mode === 'continuous' && scrollContainerRef.value && pdfDocProxy.value) {
+    await nextTick()
+    renderer.setupObserver(scrollContainerRef.value)
+  }
+})
+
 onBeforeUnmount(() => {
   pdfDocProxy.value?.destroy()
   pdfDocProxy.value = null
@@ -367,12 +389,37 @@ onBeforeUnmount(() => {
   justify-content: center;
 }
 
+/* Single page mode: hide overflow, center the single page */
+.reader-body--single {
+  overflow: hidden !important;
+  align-items: center;
+}
+
+/* Double page mode: hide overflow, center the pair */
+.reader-body--double {
+  overflow: hidden !important;
+  align-items: center;
+}
+
 .reader-pages {
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: var(--space-4) 0;
   gap: var(--space-3);
+}
+
+.reader-pages--double {
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  padding: var(--space-4);
+}
+
+.reader-pages--double .reader-page-slot {
+  width: calc(50% - 6px);
+  margin-bottom: 0;
 }
 
 .reader-page-slot {
