@@ -32,8 +32,8 @@
           :search-current-index="search.currentMatchIndex.value"
           :view-mode="viewMode"
           @close="emit('close')"
-          @prev="renderer.scrollToPage(renderer.currentPage.value - 1)"
-          @next="renderer.scrollToPage(renderer.currentPage.value + 1)"
+          @prev="goPrev"
+          @next="goNext"
           @zoom-in="setScale(Math.min(3, scale + 0.25))"
           @zoom-out="setScale(Math.max(0.5, scale - 0.25))"
           @go-to-page="renderer.scrollToPage"
@@ -175,6 +175,16 @@ usePdfKeyboard({
   onCloseSearch: () => search.closeSearch(),
   isSearchOpen: search.isOpen,
 })
+
+/** Navigation: step by 1 in single/continuous, step by 2 in double mode */
+function goPrev() {
+  const step = viewMode.value === 'double' ? 2 : 1
+  renderer.scrollToPage(renderer.currentPage.value - step)
+}
+function goNext() {
+  const step = viewMode.value === 'double' ? 2 : 1
+  renderer.scrollToPage(renderer.currentPage.value + step)
+}
 
 /** Handle Escape from the panel div: close search if open, otherwise close panel */
 function handleEscape() {
