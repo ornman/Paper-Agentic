@@ -37,11 +37,29 @@ class SQLiteConversationRepo:
                     content TEXT NOT NULL,
                     created_at TEXT NOT NULL DEFAULT '',
                     sources_json TEXT,
+                    blocks_json TEXT,
                     FOREIGN KEY (session_id) REFERENCES conversation_sessions(session_id)
                 )
                 """
             )
+            # Migration: add blocks_json column if missing (existing DBs)
+            self._migrate_add_column(conn, "blocks_json", "TEXT")
             conn.commit()
+
+    @staticmethod
+    def _migrate_add_column(conn: sqlite3.Connection, column: str, col_type: str) -> None:
+        """Add a column to conversation_messages if it doesn't already exist."""
+        try:
+            cols = {
+                row[1]
+                for row in conn.execute("PRAGMA table_info(conversation_messages)").fetchall()
+            }
+            if column not in cols:
+                conn.execute(
+                    f"ALTER TABLE conversation_messages ADD COLUMN {column} {col_type}"
+                )
+        except Exception:
+            pass  # Column already exists or table is new
 
     # ------------------------------------------------------------------
     # Sessions
@@ -167,7 +185,7 @@ class SQLiteConversationRepo:
             if session_id:
                 rows = conn.execute(
                     """
-                    SELECT session_id, role, content, created_at, sources_json
+                    SELECT session_id, role, content, created_at, sources_json, blocks_json
                     FROM conversation_messages
                     WHERE content LIKE ? AND session_id = ?
                     ORDER BY id DESC
@@ -178,7 +196,7 @@ class SQLiteConversationRepo:
             else:
                 rows = conn.execute(
                     """
-                    SELECT session_id, role, content, created_at, sources_json
+                    SELECT session_id, role, content, created_at, sources_json, blocks_json
                     FROM conversation_messages
                     WHERE content LIKE ?
                     ORDER BY id DESC
@@ -193,6 +211,7 @@ class SQLiteConversationRepo:
                 content=r[2],
                 created_at=r[3],
                 sources_json=r[4],
+                blocks_json=r[5] if len(r) > 5 else None,
             )
             for r in rows
         ]
@@ -209,7 +228,7 @@ class SQLiteConversationRepo:
         with sqlite3.connect(self._db_path) as conn:
             rows = conn.execute(
                 """
-                SELECT session_id, role, content, created_at, sources_json
+                SELECT session_id, role, content, created_at, sources_json, blocks_json
                 FROM conversation_messages
                 WHERE session_id = ?
                 ORDER BY id DESC
@@ -225,6 +244,7 @@ class SQLiteConversationRepo:
                 content=r[2],
                 created_at=r[3],
                 sources_json=r[4],
+                blocks_json=r[5] if len(r) > 5 else None,
             )
             for r in reversed(rows)
         ]
@@ -234,8 +254,8 @@ class SQLiteConversationRepo:
             conn.execute(
                 """
                 INSERT INTO conversation_messages
-                    (session_id, role, content, created_at, sources_json)
-                VALUES (?, ?, ?, ?, ?)
+                    (session_id, role, content, created_at, sources_json, blocks_json)
+                VALUES (?, ?, ?, ?, ?, ?)
                 """,
                 (
                     msg.session_id,
@@ -243,6 +263,7 @@ class SQLiteConversationRepo:
                     msg.content,
                     msg.created_at,
                     msg.sources_json,
+                    msg.blocks_json,
                 ),
             )
             conn.commit()

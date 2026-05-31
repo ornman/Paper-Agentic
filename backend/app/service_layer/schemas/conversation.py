@@ -30,6 +30,7 @@ class ConversationMessageOut(BaseModel):
     content: str
     created_at: str = ""
     sources_json: str | None = None
+    blocks_json: str | None = None
 
 
 class RenameRequest(BaseModel):

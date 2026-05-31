@@ -141,6 +141,7 @@ class TurnRunner:
         tool_registry: ToolRegistry | None = None,
         cache_mode: str = "memory",
         reflection_model: ChatModel | None = None,
+        conversation_repo: Any | None = None,
     ) -> None:
         self._chat_model = chat_model
         self._reflection_model = reflection_model
@@ -156,6 +157,7 @@ class TurnRunner:
         self._embedding_client = embedding_client
         self._tool_registry = tool_registry
         self._cache_mode = cache_mode
+        self._conversation_repo = conversation_repo
 
     async def run(self, request: AskRequest) -> AsyncIterator[str]:
         request_id = uuid.uuid4().hex
@@ -508,3 +510,43 @@ class TurnRunner:
             )
         except Exception:
             logger.warning("persistence persist failed for session %s", snapshot.session_id, exc_info=True)
+
+        # ── SQLite conversation_repo：持久化 blocks_json + sources_json ──
+        if self._conversation_repo is not None:
+            try:
+                from app.data_layer.storage.sqlite_runtime._types import ConversationMessage, utc_now_iso
+                now = utc_now_iso()
+                self._conversation_repo.save_message(ConversationMessage(
+                    session_id=snapshot.session_id,
+                    role="user",
+                    content=snapshot.prompt,
+                    created_at=now,
+                    sources_json=None,
+                    blocks_json=None,
+                ))
+                self._conversation_repo.save_message(ConversationMessage(
+                    session_id=snapshot.session_id,
+                    role="assistant",
+                    content=full_text,
+                    created_at=now,
+                    sources_json=sources_json,
+                    blocks_json=blocks_json,
+                ))
+                # Update session timestamp
+                from app.data_layer.storage.sqlite_runtime._types import ConversationSession
+                session = self._conversation_repo.get_session(snapshot.session_id)
+                if session:
+                    session.updated_at = now
+                    self._conversation_repo.upsert_session(session)
+                else:
+                    self._conversation_repo.upsert_session(ConversationSession(
+                        session_id=snapshot.session_id,
+                        title=snapshot.prompt[:40] or "新对话",
+                        created_at=now,
+                        updated_at=now,
+                    ))
+            except Exception:
+                logger.warning(
+                    "conversation_repo persist failed for session %s",
+                    snapshot.session_id, exc_info=True,
+                )

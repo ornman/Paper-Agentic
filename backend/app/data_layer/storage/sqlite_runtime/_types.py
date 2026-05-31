@@ -60,3 +60,4 @@ class ConversationMessage:
     content: str
     created_at: str = ""
     sources_json: str | None = None
+    blocks_json: str | None = None
