@@ -169,7 +169,12 @@ export const useConversationStore = defineStore('conversation', () => {
       activeAssistantId.value = null
       const { cancel } = mockSendPrompt(promptContent.prompt, promptContent.paper_ids ?? [], {
         onStatus(_phase, message) {
+          if (status.value === 'requesting') {
+            status.value = 'thinking'
+          }
           phaseMessage.value = message
+          // 确保 assistant message 已创建，这样 phase indicator 能渲染
+          ensureActiveAssistant()
         },
         onThinking(text, timeMs) {
           if (status.value === 'requesting') status.value = 'thinking'
@@ -213,7 +218,12 @@ export const useConversationStore = defineStore('conversation', () => {
       const signal = abortController.value.signal
       await postAskStream(payload, {
         onStatus(_phase, message) {
+          if (status.value === 'requesting') {
+            status.value = 'thinking'
+          }
           phaseMessage.value = message
+          // 确保 assistant message 已创建，这样 phase indicator 能渲染
+          ensureActiveAssistant()
         },
         onThinking(text, timeMs) {
           if (status.value === 'requesting') {

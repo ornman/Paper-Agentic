@@ -19,6 +19,7 @@ from app.agent_layer.contracts.sse_events import (
     MetadataEvent,
     ReflectionEvent,
     SourcesEvent,
+    StatusEvent,
     ThinkingEvent,
 )
 from app.agent_layer.runtime.token_budget import estimate_tokens
@@ -235,6 +236,9 @@ class TurnRunner:
             context = ""
 
             if need_rag:
+                yield StatusEvent(
+                    phase="retrieving", message="正在查询文献库..."
+                ).to_sse_frame()
                 from app.service_layer.config.settings import get_settings
                 _settings = get_settings()
                 max_reflection_rounds = _settings.reflection_max_rounds
@@ -278,10 +282,16 @@ class TurnRunner:
             if snapshot.thinking_enabled:
                 yield ThinkingEvent(text="", time_ms=0).to_sse_frame()
 
+            yield StatusEvent(
+                phase="generating", message="正在生成回答..."
+            ).to_sse_frame()
+
             full_text = ""
             model_override = snapshot.model_name or None
             async for chunk in self._chat_model.chat_stream(messages, model=model_override):
                 full_text += chunk
+                if chunk:
+                    yield f"event: delta\ndata: {json.dumps({'text': chunk}, ensure_ascii=False)}\n\n"
 
             # ── Tool Loop：LLM 可决定调用内部工具 ──
             if self._tool_registry and self._tool_registry.tool_names:
