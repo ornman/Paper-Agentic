@@ -2,14 +2,15 @@
 <template>
   <div ref="containerRef" class="pdf-page" :data-page-number="pageNumber">
     <canvas ref="canvasRef" class="pdf-page-canvas" />
-    <div ref="textLayerRef" class="pdf-text-layer" />
+    <div ref="textLayerRef" class="textLayer" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { TextLayer } from 'pdfjs-dist'
-import type { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist'
+import type { PDFDocumentProxy, PDFPageProxy, PageViewport } from 'pdfjs-dist'
+import 'pdfjs-dist/web/pdf_viewer.css'
 
 const PDF_TO_CSS_UNITS = 96 / 72
 
@@ -31,9 +32,11 @@ const textLayerRef = ref<HTMLDivElement | null>(null)
 
 let renderTask: { promise: Promise<void>; cancel(): void } | null = null
 let pageProxy: PDFPageProxy | null = null
+/** Shared viewport — computed once, reused by canvas and TextLayer */
+let currentViewport: PageViewport | null = null
 
 async function render() {
-  if (!canvasRef.value || !textLayerRef.value) return
+  if (!canvasRef.value || !textLayerRef.value || !containerRef.value) return
 
   if (renderTask) {
     renderTask.cancel()
@@ -43,11 +46,14 @@ async function render() {
   try {
     pageProxy = await props.pdfDoc.getPage(props.pageNumber)
     const dpr = window.devicePixelRatio || 1
-    const viewport = pageProxy.getViewport({ scale: props.scale * PDF_TO_CSS_UNITS })
-    const canvas = canvasRef.value
 
-    const actualWidth = Math.floor(viewport.width)
-    const actualHeight = Math.floor(viewport.height)
+    // ── 改动 1.1: 共享 viewport，只计算一次 ──
+    currentViewport = pageProxy.getViewport({ scale: props.scale * PDF_TO_CSS_UNITS })
+    const canvas = canvasRef.value
+    const container = containerRef.value
+
+    const actualWidth = Math.floor(currentViewport.width)
+    const actualHeight = Math.floor(currentViewport.height)
 
     canvas.width = actualWidth * dpr
     canvas.height = actualHeight * dpr
@@ -55,6 +61,16 @@ async function render() {
     canvas.style.height = `${actualHeight}px`
 
     emit('page-height', actualHeight)
+
+    // ── 改动 1.2: 在容器上设置 CSS 变量 ──
+    // pdf_viewer.css 的 TextLayer span 使用 --total-scale-factor 计算 font-size
+    container.style.setProperty('--scale-factor', String(currentViewport.scale))
+    container.style.setProperty('--user-unit', '1')
+    container.style.setProperty('--total-scale-factor', String(currentViewport.scale))
+
+    // ── 改动 1.3: 显式设置容器尺寸 ──
+    container.style.width = `${actualWidth}px`
+    container.style.height = `${actualHeight}px`
 
     const ctx = canvas.getContext('2d')
     if (!ctx) return
@@ -64,7 +80,7 @@ async function render() {
     renderTask = pageProxy.render({
       canvas,
       canvasContext: ctx,
-      viewport,
+      viewport: currentViewport,
     })
     await renderTask.promise
     ctx.restore()
@@ -79,18 +95,17 @@ async function render() {
 }
 
 async function renderTextLayer() {
-  if (!textLayerRef.value || !pageProxy) return
+  if (!textLayerRef.value || !pageProxy || !currentViewport) return
 
   // Clear previous text layer
   textLayerRef.value.innerHTML = ''
 
-  const viewport = pageProxy.getViewport({ scale: props.scale * PDF_TO_CSS_UNITS })
   const textContent = await pageProxy.getTextContent()
 
   const textLayer = new TextLayer({
     textContentSource: textContent,
     container: textLayerRef.value,
-    viewport,
+    viewport: currentViewport,
   })
   await textLayer.render()
 
@@ -143,6 +158,7 @@ onBeforeUnmount(() => {
     renderTask.cancel()
     renderTask = null
   }
+  currentViewport = null
   pageProxy?.cleanup()
 })
 </script>
@@ -160,24 +176,7 @@ onBeforeUnmount(() => {
   display: block;
 }
 
-.pdf-text-layer {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  opacity: 0.2;
-  line-height: 1;
-}
-
-.pdf-text-layer ::selection {
-  background: var(--color-accent-soft, rgba(59, 130, 246, 0.25));
-}
-
-.pdf-text-layer > :deep(span) {
-  color: transparent;
-  position: absolute;
-  white-space: pre;
-  transform-origin: 0% 0%;
-}
+/* pdf_viewer.css handles all .textLayer / .textLayer span positioning & sizing */
 
 .pdf-highlight-overlay {
   position: absolute;
@@ -208,5 +207,18 @@ onBeforeUnmount(() => {
 @keyframes page-flash-border {
   0%, 100% { box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08); }
   50% { box-shadow: 0 0 0 2px var(--color-accent); }
+}
+</style>
+
+<!--
+  改动 1.4: CSS 防护
+  非 scoped — pdf_viewer.css 的选择器（如 .pdfViewer .page）需要匹配这些类名。
+  这里用 .pdf-page 作为自定义容器类名，提供 pdf_viewer.css 期望的 CSS 变量回退。
+-->
+<style>
+.pdf-page {
+  --user-unit: 1;
+  --total-scale-factor: calc(var(--scale-factor, 1) * var(--user-unit, 1));
+  box-sizing: content-box; /* 防止全局 border-box 干扰尺寸计算 */
 }
 </style>
