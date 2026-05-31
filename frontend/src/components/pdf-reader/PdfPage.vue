@@ -3,6 +3,7 @@
   <div ref="containerRef" class="pdf-page" :data-page-number="pageNumber">
     <canvas ref="canvasRef" class="pdf-page-canvas" />
     <div ref="textLayerRef" class="textLayer" />
+    <div ref="annotationLayerRef" class="annotationLayer" />
   </div>
 </template>
 
@@ -10,6 +11,7 @@
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { TextLayer } from 'pdfjs-dist'
 import type { PDFDocumentProxy, PDFPageProxy, PageViewport } from 'pdfjs-dist'
+import type { AnnotationAdapter } from '../../composables/use-pdf-annotation'
 import 'pdfjs-dist/web/pdf_viewer.css'
 
 const PDF_TO_CSS_UNITS = 96 / 72
@@ -20,6 +22,7 @@ const props = defineProps<{
   scale: number
   containerWidth: number
   highlightText?: string
+  annotationAdapter?: AnnotationAdapter
 }>()
 
 const emit = defineEmits<{
@@ -29,6 +32,7 @@ const emit = defineEmits<{
 const containerRef = ref<HTMLDivElement | null>(null)
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 const textLayerRef = ref<HTMLDivElement | null>(null)
+const annotationLayerRef = ref<HTMLDivElement | null>(null)
 
 let renderTask: { promise: Promise<void>; cancel(): void } | null = null
 let pageProxy: PDFPageProxy | null = null
@@ -86,6 +90,7 @@ async function render() {
     ctx.restore()
 
     await renderTextLayer()
+    await renderAnnotationLayer()
   } catch (e: unknown) {
     if (e instanceof Error && e.name === 'RenderingCancelledException') return
     console.error(`Page ${props.pageNumber} render error:`, e)
@@ -111,6 +116,21 @@ async function renderTextLayer() {
 
   if (props.highlightText) {
     highlightOnPage()
+  }
+}
+
+async function renderAnnotationLayer() {
+  if (!annotationLayerRef.value || !pageProxy || !currentViewport) return
+  if (!props.annotationAdapter) return
+
+  try {
+    await props.annotationAdapter.renderAnnotations(
+      pageProxy,
+      currentViewport,
+      annotationLayerRef.value,
+    )
+  } catch (e: unknown) {
+    console.warn(`Page ${props.pageNumber} annotation layer error:`, e)
   }
 }
 
@@ -174,6 +194,16 @@ onBeforeUnmount(() => {
 
 .pdf-page-canvas {
   display: block;
+}
+
+.annotationLayer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.annotationLayer :deep(a) {
+  pointer-events: auto;
 }
 
 /* pdf_viewer.css handles all .textLayer / .textLayer span positioning & sizing */
