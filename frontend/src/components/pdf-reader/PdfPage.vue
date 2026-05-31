@@ -129,8 +129,8 @@ async function renderAnnotationLayer() {
       currentViewport,
       annotationLayerRef.value,
     )
-  } catch (e: unknown) {
-    console.warn(`Page ${props.pageNumber} annotation layer error:`, e)
+  } catch {
+    // Annotation layer rendering failed — silently skip
   }
 }
 

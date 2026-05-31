@@ -1,6 +1,18 @@
 // frontend/src/composables/use-pdf-annotation.ts
 import type { PDFDocumentProxy, PDFPageProxy, PageViewport } from 'pdfjs-dist'
 
+const SAFE_PROTOCOLS = new Set(['http:', 'https:', 'mailto:', 'ftp:'])
+
+function isSafeUrl(url: string): boolean {
+  if (url.startsWith('#')) return true
+  try {
+    const parsed = new URL(url, window.location.href)
+    return SAFE_PROTOCOLS.has(parsed.protocol)
+  } catch {
+    return false
+  }
+}
+
 /**
  * Duck-typed linkService that satisfies pdfjs AnnotationLayer's expectations.
  * Only the methods actually called by LinkAnnotationElement are implemented.
@@ -17,7 +29,7 @@ interface LinkService {
 export interface AnnotationAdapter {
   linkService: LinkService
   pdfDocument: PDFDocumentProxy | null
-  setDocument(doc: PDFDocumentProxy): void
+  setDocument(doc: PDFDocumentProxy | null): void
   renderAnnotations(
     pageProxy: PDFPageProxy,
     viewport: PageViewport,
@@ -63,8 +75,8 @@ export function usePdfAnnotation(scrollToPage: (pageNum: number) => void): {
           const pageIdx = await pdfDocument.getPageIndex(resolvedDest[0] as any)
           scrollToPage(pageIdx + 1)
         }
-      } catch (e: unknown) {
-        console.warn('[AnnotationAdapter] goToDestination failed:', e)
+      } catch {
+        // Destination resolution failed — no-op
       }
     },
 
@@ -78,7 +90,7 @@ export function usePdfAnnotation(scrollToPage: (pageNum: number) => void): {
         case 'PrevPage':
           break
         default:
-          console.warn(`[AnnotationAdapter] Unhandled named action: ${action}`)
+          break
       }
     },
 
@@ -87,17 +99,30 @@ export function usePdfAnnotation(scrollToPage: (pageNum: number) => void): {
     },
 
     addLinkAttributes(link: HTMLAnchorElement, url: string, newWindow?: boolean): void {
+      if (!isSafeUrl(url)) {
+        link.removeAttribute('href')
+        link.onclick = (event: MouseEvent) => { event.preventDefault() }
+        return
+      }
       link.href = url
       link.rel = 'noopener noreferrer nofollow'
-      link.target = newWindow ? '_blank' : ''
-      link.onclick = (event: MouseEvent) => {
-        event.preventDefault()
-        window.open(url, '_blank', 'noopener,noreferrer')
+      if (newWindow) {
+        link.target = '_blank'
+        link.onclick = (event: MouseEvent) => {
+          event.preventDefault()
+          window.open(url, '_blank', 'noopener,noreferrer')
+        }
+      } else {
+        link.target = ''
+        link.onclick = (event: MouseEvent) => {
+          event.preventDefault()
+          window.location.href = url
+        }
       }
     },
   }
 
-  function setDocument(doc: PDFDocumentProxy): void {
+  function setDocument(doc: PDFDocumentProxy | null): void {
     pdfDocument = doc
   }
 
@@ -115,7 +140,6 @@ export function usePdfAnnotation(scrollToPage: (pageNum: number) => void): {
       AnnotationLayerClass = module.AnnotationLayer
     } catch {
       // WPS compatibility: if import fails, silently skip annotation rendering
-      console.warn('[AnnotationAdapter] AnnotationLayer not available, skipping')
       return
     }
 

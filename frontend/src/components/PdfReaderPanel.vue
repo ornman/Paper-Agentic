@@ -238,6 +238,7 @@ watch(() => props.visible, async (visible) => {
       renderer.scrollToPage(props.targetPage)
     }
   } else {
+    annotationAdapter.setDocument(null)
     pdfDocProxy?.destroy()
     pdfDocProxy = null
   }
