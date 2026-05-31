@@ -59,6 +59,13 @@ class SoftDeleteManager:
         self._save_records()
         logger.info("标记软删除: %s", paper_id)
 
+    def unmark_deleted(self, paper_id: str):
+        """取消软删除标记（恢复论文）"""
+        if paper_id in self._records:
+            del self._records[paper_id]
+            self._save_records()
+            logger.info("取消软删除标记: %s", paper_id)
+
     def cleanup_expired(
         self,
         vector_index=None,

@@ -71,6 +71,12 @@ async def restore_item(item_id: str, request: Request):
         raise HTTPException(status_code=404, detail="文献不存在")
     if item.deleted_at is None:
         raise HTTPException(status_code=400, detail="该文献不在回收站中")
+    # 恢复索引层软删除标记
+    try:
+        container.document_ingest.restore_document(item_id)
+    except Exception as e:
+        logger.warning("索引层恢复失败: %s", e)
+    # 恢复 SQLite 记录
     container.library_repo.restore(item_id)
     logger.info("已恢复文献: %s (%s)", item.title, item_id)
     return {"status": "ok", "message": f"已恢复: {item.title}"}

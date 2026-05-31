@@ -185,6 +185,9 @@ class PipelineOrchestrator:
     def delete_document(self, paper_id: str) -> None:
         self._doc_mgr.delete(paper_id)
 
+    def restore_document(self, paper_id: str) -> None:
+        self._doc_mgr.restore(paper_id)
+
     def hard_delete_document(self, paper_id: str) -> None:
         self._doc_mgr.hard_delete(paper_id)
 
