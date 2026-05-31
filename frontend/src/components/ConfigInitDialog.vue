@@ -180,7 +180,8 @@ async function handleSave() {
 
 .config-dialog {
   width: 420px;
-  max-height: 90vh;
+  max-height: 85vh;
+  margin: 16px;
   display: flex;
   flex-direction: column;
   background: var(--color-surface-card);
@@ -193,14 +194,14 @@ async function handleSave() {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 28px 24px 16px;
+  padding: 20px 24px 12px;
   border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .config-illustration {
-  width: 140px;
-  height: 140px;
-  margin-bottom: 12px;
+  width: 80px;
+  height: 80px;
+  margin-bottom: 8px;
 }
 
 .config-title {
@@ -219,7 +220,7 @@ async function handleSave() {
 .config-body {
   flex: 1;
   overflow-y: auto;
-  padding: 16px 24px;
+  padding: 12px 24px;
 }
 
 .config-section {
@@ -303,7 +304,7 @@ async function handleSave() {
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  padding: 16px 24px 20px;
+  padding: 12px 24px 16px;
   border-top: 1px solid var(--color-border-subtle);
 }
 
