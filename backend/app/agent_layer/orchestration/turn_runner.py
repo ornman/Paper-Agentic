@@ -563,7 +563,8 @@ class TurnRunner:
                         updated_at=now,
                     ))
             except Exception:
-                logger.warning(
-                    "conversation_repo persist failed for session %s",
+                logger.error(
+                    "conversation_repo persist failed for session %s — "
+                    "messages will NOT be recoverable after page reload",
                     snapshot.session_id, exc_info=True,
                 )
