@@ -137,12 +137,22 @@ async def _run_import(container, task_id: str, file_path: Path):
             container.import_task_repo.update_status(
                 task_id, "completed", message=f"导入成功，{result.chunk_count} 个 chunk", paper_id=result.paper_id,
             )
-            # 从 PDF 文件读取实际页数和文件大小
+            # 从 PDF 文件读取实际页数、文件大小和元数据
             page_count = _read_pdf_page_count(file_path)
             file_size = _read_file_size(file_path)
+            pdf_meta = _extract_pdf_metadata(file_path)
+
+            # 标题优先级：PDF 元数据 > stem（去掉可能的 UUID 前缀）
+            title = pdf_meta.get("title") or ""
+            if not title:
+                stem = file_path.stem
+                title = stem.split("_", 1)[1] if "_" in stem else stem
+
             container.library_repo.upsert(LibraryItem(
                 item_id=result.paper_id,
-                title=file_path.stem,
+                title=title,
+                authors=pdf_meta.get("authors", ""),
+                year=pdf_meta.get("year"),
                 file_path=str(file_path),
                 file_hash=_compute_file_hash(file_path),
                 file_type=file_path.suffix.lower(),
@@ -192,3 +202,31 @@ def _compute_file_hash(file_path: Path) -> str:
         for chunk in iter(lambda: f.read(8192), b""):
             h.update(chunk)
     return h.hexdigest()[:16]
+
+
+def _extract_pdf_metadata(file_path: Path) -> dict:
+    """从 PDF 文件提取元数据（标题、作者、年份）"""
+    result: dict = {"title": "", "authors": "", "year": None}
+    try:
+        import pypdf
+        with open(file_path, "rb") as f:
+            reader = pypdf.PdfReader(f)
+            meta = reader.metadata
+            if not meta:
+                return result
+            title = (meta.title or "").strip()
+            if title:
+                result["title"] = title
+            author = (meta.author or "").strip()
+            if author:
+                result["authors"] = author
+            for date_field in (meta.get("/CreationDate", ""), meta.get("/ModDate", "")):
+                if isinstance(date_field, str) and date_field.startswith("D:"):
+                    try:
+                        result["year"] = int(date_field[2:6])
+                    except (ValueError, IndexError):
+                        pass
+                    break
+    except Exception:
+        pass
+    return result
