@@ -30,7 +30,7 @@
 </template>
 
 <script setup lang="ts">
-import type { ImportQueueItem } from '../stores/library'
+import type { ImportQueueItem } from '../types/paper'
 
 defineProps<{
   items: ImportQueueItem[]

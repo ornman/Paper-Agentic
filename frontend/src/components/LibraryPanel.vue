@@ -29,7 +29,7 @@
           v-model="search.query.value"
           type="text"
           class="library-search-input"
-          placeholder="搜索标题、作者、关键词..."
+          :placeholder="viewMode === 'trash' ? '搜索回收站...' : '搜索标题、作者、关键词...'"
           aria-label="搜索文献库"
         />
         <div class="search-actions">
@@ -52,7 +52,7 @@
         </div>
       </div>
 
-      <div v-if="papers.length > 0" class="library-filters">
+      <div v-if="viewMode === 'library' && papers.length > 0" class="library-filters">
         <select v-model="search.yearFilter.value" class="filter-select" :class="{ 'filter-active': search.yearFilter.value }">
           <option value="">年份</option>
           <option v-for="y in search.yearOptions.value" :key="y" :value="y">{{ y }}</option>
@@ -64,7 +64,7 @@
       </div>
 
       <button
-        v-if="filteredPapers.length > 0 || papers.length > 0"
+        v-if="viewMode === 'library' && (filteredPapers.length > 0 || papers.length > 0)"
         class="library-upload-btn"
         type="button"
         @click="emit('upload')"
@@ -83,11 +83,11 @@
       <!-- Trash view -->
       <TrashPanel
         v-if="viewMode === 'trash'"
-        :papers="trashedPapers"
+        :papers="filteredPapers"
         :loading="trashedLoading"
         @restore="handleRestore"
         @permanent-delete="handlePermanentDelete"
-        @back="viewMode = 'library'"
+        @back="switchToLibrary"
       />
 
       <!-- Library view -->
@@ -272,7 +272,9 @@ const showSortMenu = ref(false)
 const skipDeleteConfirm = ref(false)
 const confirmDelete = reactive({ visible: false, paperId: '', title: '', batchIds: [] as string[] })
 
-const search = useLibrarySearch(() => props.papers)
+const search = useLibrarySearch(() =>
+  viewMode.value === 'trash' ? trashedPapers.value : props.papers,
+)
 
 const hasImportStatus = computed(() =>
   importQueue.value.length > 0 || !!importError.value,
@@ -355,6 +357,10 @@ function handleBatchDelete() {
   confirmDelete.title = `${props.selectedIds.length} 篇论文`
   confirmDelete.batchIds = [...props.selectedIds]
   confirmDelete.visible = true
+}
+
+function switchToLibrary() {
+  viewMode.value = 'library'
 }
 
 async function switchToTrash() {
@@ -769,6 +775,7 @@ async function handlePermanentDelete(paperId: string) {
 }
 
 /* ─── Import error ─── */
+.import-error {
   display: flex;
   align-items: center;
   gap: var(--space-2);
