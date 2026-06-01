@@ -319,15 +319,9 @@ async function handleRemovePaper(paperId: string) {
 }
 
 // ─── 重试失败的导入 ───
-async function handleRetryImport(paperId: string) {
-  try {
-    const { retryImport } = await import('../services/library-api')
-    const result = await retryImport(paperId)
-    await libraryStore.monitorImportStatus(result.task_id)
-    libraryStore.loadPapers()
-  } catch (err) {
-    console.error('重试导入失败', err)
-  }
+// 后端无 retry 接口，触发文件选择器让用户重新上传
+function handleRetryImport(_paperId: string) {
+  fileUpload.triggerUpload()
 }
 
 // ─── 键盘快捷键 ───
