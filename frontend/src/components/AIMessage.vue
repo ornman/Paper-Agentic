@@ -35,7 +35,7 @@
       @mouseleave.capture="onContentMouseLeave"
     >
       <!-- Streaming text preview (shown before structured blocks arrive) -->
-      <p v-if="message.streamingText" class="block-paragraph streaming-text" v-html="renderInline(message.streamingText)"></p>
+      <div v-if="message.streamingText" class="streaming-content" v-html="renderStreaming(message.streamingText)"></div>
 
       <template v-for="(block, index) in message.blocks" :key="index">
         <!-- Paragraph -->
@@ -147,7 +147,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import type { AssistantMessage } from '../types/message'
-import { renderInline, renderParagraphWithCitations } from '../utils/citation-renderer'
+import { renderInline, renderStreaming, renderParagraphWithCitations } from '../utils/citation-renderer'
 
 const props = defineProps<{
   message: AssistantMessage
@@ -385,6 +385,72 @@ function onContentMouseLeave(event: MouseEvent): void {
   font-size: var(--font-size-base);
   line-height: 1.7;
   color: var(--color-text-primary);
+}
+
+/* Streaming content uses the same block styles */
+.streaming-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  font-size: var(--font-size-base);
+  line-height: 1.7;
+  color: var(--color-text-primary);
+}
+
+.streaming-content .block-paragraph {
+  word-break: break-word;
+}
+
+.streaming-content .block-heading {
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-top: var(--space-2);
+}
+
+.streaming-content .block-list {
+  padding-left: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.streaming-content .block-list--ordered {
+  list-style: decimal;
+}
+
+.streaming-content .block-list li {
+  word-break: break-word;
+}
+
+.streaming-content .block-list li::marker {
+  color: var(--color-text-muted);
+}
+
+.streaming-content .block-blockquote {
+  padding: var(--space-2) var(--space-4);
+  border-left: 3px solid var(--color-accent);
+  background: var(--color-accent-soft);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  color: var(--color-text-secondary);
+  font-style: italic;
+  word-break: break-word;
+}
+
+.streaming-content .block-code {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  overflow-x: auto;
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+  color: var(--color-text-primary);
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+}
+
+.streaming-content .block-code code {
+  font-family: inherit;
 }
 
 .block-paragraph {
