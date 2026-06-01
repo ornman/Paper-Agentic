@@ -98,13 +98,7 @@
         <!-- Error -->
         <div v-else-if="error" class="library-error">{{ error }}</div>
 
-        <!-- Importing placeholder -->
-        <div v-else-if="papers.length === 0 && importing && importQueue.length === 0" class="library-importing-state">
-          <div class="importing-spinner"></div>
-          <p class="importing-text">正在导入文献，请稍候...</p>
-        </div>
-
-        <!-- Batch import queue (empty library) -->
+        <!-- Import queue (empty library) -->
         <ImportQueueList
           v-else-if="papers.length === 0 && importQueue.length > 0"
           :items="importQueue"
@@ -169,30 +163,16 @@
       </template>
     </div>
 
-    <!-- Fixed footer: import status (always visible) -->
+    <!-- Import status footer (appears when importing or error) -->
     <div v-if="hasImportStatus" class="library-footer">
-      <!-- Import queue (non-empty library) -->
       <ImportQueueList
-        v-if="importQueue.length > 0 && papers.length > 0"
+        v-if="importQueue.length > 0"
         :items="importQueue"
-        :is-empty-library="false"
+        :is-empty-library="papers.length === 0"
         @retry="libraryStore.retryQueueItem($event)"
         @remove="libraryStore.removeQueueItem($event)"
       />
 
-      <!-- Single file import progress -->
-      <div v-else-if="importing && papers.length > 0" class="import-progress">
-        <div class="import-info">
-          <span class="import-filename">{{ importFileName || '正在导入...' }}</span>
-          <span class="import-percent">{{ importPercent }}%</span>
-        </div>
-        <div class="import-bar-track">
-          <div class="import-bar-fill" :style="{ width: importPercent + '%' }"></div>
-        </div>
-        <div v-if="importStep" class="import-step">{{ importStep }}</div>
-      </div>
-
-      <!-- Import error -->
       <div v-if="importError" class="import-error">
         <span class="import-error-icon">!</span>
         <span class="import-error-text">{{ importError }}</span>
@@ -260,7 +240,7 @@ import { storeToRefs } from 'pinia'
 
 const libraryStore = useLibraryStore()
 const uiStore = useUiStore()
-const { importing, importFileName, importPercent, importStep, importError, importQueue } = storeToRefs(libraryStore)
+const { importError, importQueue } = storeToRefs(libraryStore)
 const { trashedPapers } = storeToRefs(libraryStore)
 
 const viewMode = ref<'library' | 'trash'>('library')
@@ -295,15 +275,13 @@ const confirmDelete = reactive({ visible: false, paperId: '', title: '', batchId
 const search = useLibrarySearch(() => props.papers)
 
 const hasImportStatus = computed(() =>
-  (importQueue.value.length > 0 && props.papers.length > 0) ||
-  (importing.value && props.papers.length > 0) ||
-  !!importError.value,
+  importQueue.value.length > 0 || !!importError.value,
 )
 
 const filteredPapers = computed(() => search.results.value)
 
 onMounted(() => {
-  if (libraryStore.importQueue.length > 0 && !libraryStore.importing) {
+  if (libraryStore.importQueue.length > 0 && !libraryStore.isImporting) {
     libraryStore.resumeImports()
   }
 })
@@ -790,84 +768,7 @@ async function handlePermanentDelete(paperId: string) {
   font-weight: 600;
 }
 
-/* ─── Importing state (single-file spinner) ─── */
-.library-importing-state {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-3);
-  padding: var(--space-4);
-}
-
-.importing-spinner {
-  width: 24px;
-  height: 24px;
-  border: 2.5px solid var(--color-border-subtle);
-  border-top-color: var(--color-accent);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.importing-text {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-sm);
-}
-
-/* ─── Import progress (single-file) ─── */
-.import-progress {
-  padding: var(--space-3);
-}
-
-.import-info {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--space-2);
-}
-
-.import-filename {
-  font-size: 12px;
-  color: var(--color-text-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 70%;
-}
-
-.import-percent {
-  font-size: 12px;
-  color: var(--color-accent);
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-}
-
-.import-bar-track {
-  height: 4px;
-  background: var(--color-surface-muted);
-  border-radius: var(--radius-full);
-  overflow: hidden;
-}
-
-.import-bar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--color-accent), color-mix(in srgb, var(--color-accent) 70%, #fff));
-  border-radius: var(--radius-full);
-  transition: width 0.3s ease;
-}
-
-.import-step {
-  font-size: 11px;
-  color: var(--color-text-muted);
-  margin-top: var(--space-1);
-}
-
-.import-error {
+/* ─── Import error ─── */
   display: flex;
   align-items: center;
   gap: var(--space-2);
