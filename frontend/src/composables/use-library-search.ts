@@ -4,7 +4,6 @@ import type { PaperItem } from '../types/paper'
 
 export type SortMode = 'relevance' | 'time' | 'year' | 'title'
 
-
 const fuseOptions: IFuseOptions<PaperItem> = {
   keys: [
     { name: 'title', weight: 0.5 },
@@ -22,12 +21,12 @@ export function useLibrarySearch(papers: () => PaperItem[]) {
   const authorFilter = ref('')
   const sortBy = ref<SortMode>('time')
 
-  // --- Aggregations for filter dropdowns ---
+  // ─── 过滤器选项聚合 ───────────────────────────────────
 
   const yearOptions = computed(() => {
     const years = new Set<string>()
     for (const p of papers()) {
-      if (p.year) years.add(p.year)
+      if (p.year != null) years.add(String(p.year))
     }
     return [...years].sort().reverse()
   })
@@ -47,7 +46,7 @@ export function useLibrarySearch(papers: () => PaperItem[]) {
       .map(([name]) => name)
   })
 
-  // --- Search ---
+  // ─── 搜索 ──────────────────────────────────────────────
 
   const fuseInstance = computed(() => new Fuse(papers(), fuseOptions))
 
@@ -59,10 +58,9 @@ export function useLibrarySearch(papers: () => PaperItem[]) {
 
   const hasQuery = computed(() => query.value.trim().length > 0)
 
-  // --- Filtered + sorted ---
+  // ─── 过滤 + 排序 ──────────────────────────────────────
 
   const results = computed(() => {
-    // Base list: fuse results or all papers
     let list: PaperItem[]
     if (hasQuery.value) {
       list = fuseResults.value.map((r) => r.item)
@@ -70,31 +68,33 @@ export function useLibrarySearch(papers: () => PaperItem[]) {
       list = [...papers()]
     }
 
-    // Year filter
+    // 年份过滤（year 现在是 number | null）
     if (yearFilter.value) {
-      list = list.filter((p) => p.year === yearFilter.value)
+      const filterYear = yearFilter.value
+      list = list.filter((p) => p.year != null && String(p.year) === filterYear)
     }
 
-    // Author filter
+    // 作者过滤
     if (authorFilter.value) {
+      const filterAuthor = authorFilter.value
       list = list.filter((p) =>
         p.authors
           .split(/[,;、]/)
           .map((a) => a.trim())
-          .includes(authorFilter.value),
+          .includes(filterAuthor),
       )
     }
 
-    // Sort
+    // 排序
     if (hasQuery.value && sortBy.value === 'relevance') {
-      // Already in relevance order from fuse
+      // Fuse 结果已按相关性排序
     } else {
       list.sort((a, b) => {
         switch (sortBy.value) {
           case 'title':
             return a.title.localeCompare(b.title)
           case 'year':
-            return (b.year ?? '').localeCompare(a.year ?? '')
+            return (b.year ?? 0) - (a.year ?? 0)
           case 'time':
           default:
             return new Date(b.import_time).getTime() - new Date(a.import_time).getTime()
@@ -107,38 +107,7 @@ export function useLibrarySearch(papers: () => PaperItem[]) {
 
   const totalResults = computed(() => results.value.length)
 
-  // --- Find similar ---
-
-  function findSimilar(paperId: string): PaperItem[] {
-    const target = papers().find((p) => p.paper_id === paperId)
-    if (!target) return []
-
-    const targetKeywords = new Set(target.keywords.map((k) => k.toLowerCase()))
-    if (targetKeywords.size === 0) return []
-
-    const scored = papers()
-      .filter((p) => p.paper_id !== paperId)
-      .map((p) => {
-        const overlap = p.keywords.filter((k) => targetKeywords.has(k.toLowerCase())).length
-        return { paper: p, score: overlap }
-      })
-      .filter((s) => s.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 5)
-
-    return scored.map((s) => s.paper)
-  }
-
-  // --- Highlight helper ---
-
-  function highlightText(text: string): string {
-    const q = query.value.trim()
-    if (!q) return escapeHtml(text)
-    // Escape HTML first to prevent XSS via v-html
-    const safeText = escapeHtml(text)
-    const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    return safeText.replace(new RegExp(`(${escaped})`, 'gi'), '<mark>$1</mark>')
-  }
+  // ─── 搜索高亮 ─────────────────────────────────────────
 
   function escapeHtml(str: string): string {
     return str
@@ -149,7 +118,15 @@ export function useLibrarySearch(papers: () => PaperItem[]) {
       .replace(/'/g, '&#39;')
   }
 
-  // --- Reset filters ---
+  function highlightText(text: string): string {
+    const q = query.value.trim()
+    if (!q) return escapeHtml(text)
+    const safeText = escapeHtml(text)
+    const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    return safeText.replace(new RegExp(`(${escaped})`, 'gi'), '<mark>$1</mark>')
+  }
+
+  // ─── 重置 ──────────────────────────────────────────────
 
   function resetFilters() {
     query.value = ''
@@ -167,7 +144,6 @@ export function useLibrarySearch(papers: () => PaperItem[]) {
     results,
     totalResults,
     hasQuery,
-    findSimilar,
     highlightText,
     resetFilters,
   }
