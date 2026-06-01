@@ -2,7 +2,7 @@ import { ref } from 'vue'
 import type { ConversationSession } from '../types/conversation'
 import type { ConversationRecord, UserMessage, AssistantMessage } from '../types/message'
 import type { ContentBlock } from '../types/content'
-import { listSessions, deleteSession, getMessages } from '../services/conversation-api'
+import { listSessions, deleteSession, getMessages, renameSession } from '../services/conversation-api'
 import type { useConversationStore } from '../stores/conversation'
 import type { useLibraryStore } from '../stores/library'
 import type { useUiStore } from '../stores/ui'
@@ -138,11 +138,30 @@ export function useSessionManager(opts: SessionManagerOptions) {
     }
   }
 
+  /**
+   * 首条消息发送后，用消息前 30 字符作为会话标题，并同步更新本地列表。
+   */
+  async function autoRenameOnFirstMessage(sessionId: string, prompt: string) {
+    const MAX_TITLE_LEN = 30
+    const title = prompt.slice(0, MAX_TITLE_LEN).replace(/\n/g, ' ').trim() || '新对话'
+    try {
+      await renameSession(sessionId, title)
+      // 同步本地列表
+      const idx = sessions.value.findIndex(s => s.session_id === sessionId)
+      if (idx !== -1) {
+        sessions.value[idx] = { ...sessions.value[idx], title }
+      }
+    } catch {
+      // 重命名失败不影响主流程，下次打开历史面板会从后端拉到正确标题
+    }
+  }
+
   return {
     sessions,
     sessionsLoading,
     handleOpenHistory,
     switchToSession,
     handleDeleteSession,
+    autoRenameOnFirstMessage,
   }
 }

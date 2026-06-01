@@ -221,7 +221,8 @@ async function handleSend(promptText: string) {
   if (isBusy.value) {
     store.abortStreaming()
   }
-  if (!demoActive.value && store.messages.length === 0) {
+  const isFirstMessage = store.messages.length === 0
+  if (!demoActive.value && isFirstMessage) {
     try {
       const session = await createSession()
       store.sessionId = session.session_id
@@ -235,6 +236,10 @@ async function handleSend(promptText: string) {
     paper_ids: libraryStore.selectedPaperIds,
     enable_rag: libraryStore.selectedPaperIds.length > 0,
   })
+  // 首条消息发送后，用消息内容设置会话标题
+  if (isFirstMessage && !demoActive.value) {
+    sessionManager.autoRenameOnFirstMessage(store.sessionId, promptText)
+  }
 }
 
 function handleSelectPrompt(promptText: string) {
