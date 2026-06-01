@@ -201,7 +201,7 @@
     </div>
 
     <!-- Bottom action bar: recycle bin + batch delete -->
-    <div v-if="viewMode === 'library'" class="library-action-footer">
+    <div v-if="viewMode === 'library'" class="library-action-footer" :class="{ 'library-action-footer--dual': selectedIds.length > 0 }">
       <button
         type="button"
         class="library-recycle-btn"
@@ -496,8 +496,12 @@ async function handlePermanentDelete(paperId: string) {
   background: var(--color-surface-card);
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   padding: var(--space-2) var(--space-3);
+}
+
+.library-action-footer--dual {
+  justify-content: space-between;
 }
 
 .library-recycle-btn {
