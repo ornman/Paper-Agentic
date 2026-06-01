@@ -157,6 +157,7 @@ class AppContainer:
             tool_registry=tool_registry,
             cache_mode="memory",
             reflection_model=self.reflection_chat_model,
+            conversation_repo=self.conversation_repo,
         )
         return self._turn_runner
 

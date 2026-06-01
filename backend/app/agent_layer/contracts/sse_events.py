@@ -86,6 +86,17 @@ class ReflectionEvent(BaseModel):
         return f"event: reflection\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n"
 
 
+class StatusEvent(BaseModel):
+    """阶段状态指示事件，用于前端展示"正在查询文献库..."等提示"""
+    event: Literal["status"] = "status"
+    phase: str
+    message: str
+
+    def to_sse_frame(self) -> str:
+        payload = {"phase": self.phase, "message": self.message}
+        return f"event: status\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n"
+
+
 class MetadataEvent(BaseModel):
     event: Literal["metadata"] = "metadata"
     request_id: str

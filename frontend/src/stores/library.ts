@@ -3,17 +3,22 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import {
   fetchPapers,
+  fetchTrashedPapers,
   deletePaper,
+  restorePaper,
+  permanentDeletePaper,
   startImport,
   fetchImportStatus,
-  type PaperItem,
-  type ImportProgressEvent,
-  type ImportStatus,
+  createImportStream,
 } from '../services/library-api'
+import type { PaperItem, ImportQueueItem, ImportProgressEvent } from '../types/paper'
+import type { ImportSseStatus, ImportStep } from '../types/paper'
 import { ApiClientError } from '../services/api-client'
 import { useLogger } from '../composables/logger'
 
 const log = useLogger('api')
+
+// ─── 步骤中文标签 ────────────────────────────────────────
 
 const STEP_LABELS: Record<string, string> = {
   starting: '正在准备导入...',
@@ -28,27 +33,17 @@ const STEP_LABELS: Record<string, string> = {
   done: '完成',
 }
 
-function wait(ms: number) {
-  return new Promise((resolve) => window.setTimeout(resolve, ms))
-}
+// ─── SSE 状态校验 ────────────────────────────────────────
 
-function isImportTerminalStatus(status: string) {
-  return status === 'completed' || status === 'failed' || status === 'error'
-}
+const VALID_SSE_STATUSES = new Set<string>([
+  'running', 'stage_done', 'stage_failed', 'completed', 'failed', 'done',
+])
 
-export interface ImportQueueItem {
-  fileName: string
-  file?: File
-  taskId?: string
-  status: 'pending' | 'importing' | 'completed' | 'failed'
-  percent: number
-  step: string
-  error?: string
-}
+// ─── 队列持久化 ──────────────────────────────────────────
 
 const STORAGE_KEY = 'paper-agentic-import-queue'
 
-function persistQueue(items: ImportQueueItem[]) {
+function persistQueue(items: ImportQueueItem[]): void {
   const serializable = items.map(({ fileName, taskId, status, percent, step, error }) => ({
     fileName, taskId, status, percent, step, error,
   }))
@@ -65,33 +60,64 @@ function restoreQueue(): ImportQueueItem[] {
   }
 }
 
+// ─── SSE 进度事件解析 ────────────────────────────────────
+
+interface RawSseProgress {
+  status: ImportSseStatus
+  step: ImportStep | null
+  percent: number
+  stage_name: string | null
+  paper_id: string | null
+  error_msg: string | null
+}
+
+function parseSseProgress(data: string): RawSseProgress {
+  try {
+    const parsed = JSON.parse(data)
+    return {
+      status: typeof parsed.status === 'string' && VALID_SSE_STATUSES.has(parsed.status)
+        ? (parsed.status as ImportSseStatus)
+        : 'running',
+      step: parsed.step ?? null,
+      percent: typeof parsed.percent === 'number' ? parsed.percent : 0,
+      stage_name: parsed.stage_name ?? null,
+      paper_id: parsed.paper_id ?? null,
+      error_msg: parsed.error_msg ?? null,
+    }
+  } catch {
+    return { status: 'running', step: null, percent: 0, stage_name: null, paper_id: null, error_msg: null }
+  }
+}
+
+// ─── Store ───────────────────────────────────────────────
+
 export const useLibraryStore = defineStore('library', () => {
   const papers = ref<PaperItem[]>([])
+  const trashedPapers = ref<PaperItem[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
   const selectedPaperIds = ref<string[]>([])
 
-  // 单文件导入状态（InputBar 快捷上传）
-  const importing = ref(false)
-  const importFileName = ref('')
-  const importStep = ref('')
-  const importPercent = ref(0)
+  const importQueue = ref<ImportQueueItem[]>(restoreQueue())
   const importError = ref<string | null>(null)
 
-  // 批量导入队列（从 localStorage 恢复进行中的条目）
-  const importQueue = ref<ImportQueueItem[]>(restoreQueue())
-  let lastProgressSignature = ''
+  // ─── Computed ──────────────────────────────────────────
 
   const selectedPaperCount = computed(() => selectedPaperIds.value.length)
   const paperCount = computed(() => papers.value.length)
+  const isImporting = computed(() =>
+    importQueue.value.some((item) => item.status === 'importing' || item.status === 'pending'),
+  )
 
-  async function loadPapers() {
+  // ─── 论文列表加载 ─────────────────────────────────────
+
+  async function loadPapers(): Promise<void> {
     loading.value = true
     error.value = null
     try {
       const result = await fetchPapers()
-      papers.value = result.papers
-      log.info('加载论文列表成功', { count: result.papers.length })
+      papers.value = result
+      log.info('加载论文列表成功', { count: result.length })
     } catch (err: unknown) {
       error.value = err instanceof Error ? err.message : '加载论文列表失败'
       log.error('加载论文列表失败', err)
@@ -100,9 +126,176 @@ export const useLibraryStore = defineStore('library', () => {
     }
   }
 
-  // 恢复刷新前进行中的导入任务
-  async function resumeImports() {
-    // 移除无法恢复的项（无 taskId 且无 file）
+  // ─── 队列查找（基于 taskId，防止索引漂移） ────────────
+
+  function findQueueIndexByTaskId(taskId: string): number {
+    return importQueue.value.findIndex((item) => item.taskId === taskId)
+  }
+
+  // ─── 导入进度应用（基于 taskId 查找） ──────────────────
+
+  function applyProgress(taskId: string, progress: ImportProgressEvent): void {
+    const idx = findQueueIndexByTaskId(taskId)
+    if (idx === -1) return
+
+    const item = importQueue.value[idx]
+    const stepText = progress.error_msg
+      || STEP_LABELS[progress.step ?? '']
+      || progress.step
+      || '处理中...'
+
+    if (typeof progress.percent === 'number' && progress.percent > 0) {
+      item.percent = progress.percent
+    }
+
+    item.step = stepText
+
+    if (progress.status === 'completed') {
+      item.status = 'completed'
+      item.step = '已完成'
+      item.percent = 100
+      log.info('导入完成', { paperId: progress.paper_id })
+      // 延迟 2 秒自动移除已完成项（用 taskId 定位，不依赖索引）
+      const fileName = item.fileName
+      window.setTimeout(() => {
+        const removeIdx = importQueue.value.findIndex(
+          (q) => q.fileName === fileName && q.taskId === taskId && q.status === 'completed',
+        )
+        if (removeIdx !== -1) {
+          importQueue.value = importQueue.value.filter((_, i) => i !== removeIdx)
+          persistQueue(importQueue.value)
+        }
+      }, 2000)
+      void loadPapers()
+      return
+    }
+
+    if (progress.status === 'failed' || progress.status === 'stage_failed') {
+      const errMsg = progress.error_msg || '遇到了意外问题，请稍后重试'
+      item.status = 'failed'
+      item.step = '导入失败'
+      item.percent = 100
+      item.error = errMsg
+      log.warn('导入失败', { paperId: progress.paper_id, step: progress.step, error: progress.error_msg })
+    }
+  }
+
+  // ─── SSE 实时监控 ─────────────────────────────────────
+
+  function monitorViaSSE(taskId: string): Promise<void> {
+    return new Promise((resolve) => {
+      let resolved = false
+
+      function safeResolve(): void {
+        if (!resolved) {
+          resolved = true
+          resolve()
+        }
+      }
+
+      const es = createImportStream(taskId)
+
+      // 安全超时：10 分钟无终态则关闭
+      const safetyTimer = window.setTimeout(() => {
+        if (es.readyState !== EventSource.CLOSED) {
+          es.close()
+        }
+        safeResolve()
+      }, 600_000)
+
+      es.addEventListener('progress', (event: MessageEvent) => {
+        const raw = parseSseProgress(event.data)
+        applyProgress(taskId, {
+          status: raw.status,
+          step: raw.step,
+          percent: raw.percent,
+          paper_id: raw.paper_id,
+          error_msg: raw.error_msg,
+        })
+
+        if (raw.status === 'completed' || raw.status === 'failed' || raw.status === 'done') {
+          es.close()
+          clearTimeout(safetyTimer)
+          safeResolve()
+        }
+      })
+
+      es.onerror = () => {
+        es.close()
+        clearTimeout(safetyTimer)
+        // SSE 失败，降级到轮询
+        log.warn('SSE 连接失败，降级到轮询', { taskId })
+        void monitorViaPolling(taskId).then(safeResolve)
+      }
+    })
+  }
+
+  // ─── 轮询降级 ─────────────────────────────────────────
+
+  function wait(ms: number): Promise<void> {
+    return new Promise((r) => window.setTimeout(r, ms))
+  }
+
+  async function monitorViaPolling(taskId: string, maxFailures = 30): Promise<void> {
+    let consecutiveFailures = 0
+
+    while (true) {
+      try {
+        const status = await fetchImportStatus(taskId)
+        consecutiveFailures = 0
+
+        // 轮询没有 percent，基于 status 估算
+        const idx = findQueueIndexByTaskId(taskId)
+        let estimatedPercent = 0
+        if (idx !== -1) {
+          estimatedPercent = Math.min(importQueue.value[idx].percent + 8, 95)
+        }
+
+        applyProgress(taskId, {
+          status: status.status,
+          step: status.current_step,
+          percent: estimatedPercent,
+          paper_id: status.paper_id,
+          error_msg: status.error_msg,
+        })
+
+        if (status.status === 'completed' || status.status === 'failed') return
+      } catch (err: unknown) {
+        if (err instanceof ApiClientError && err.statusCode === 400) {
+          const idx = findQueueIndexByTaskId(taskId)
+          if (idx !== -1) {
+            importQueue.value[idx].status = 'failed'
+            importQueue.value[idx].step = '导入失败'
+            importQueue.value[idx].error = err.message
+          }
+          log.warn('导入任务返回业务错误', { taskId, message: err.message })
+          return
+        }
+
+        consecutiveFailures += 1
+        log.warn('轮询导入状态失败', {
+          taskId, consecutiveFailures,
+          message: err instanceof Error ? err.message : String(err),
+        })
+
+        if (consecutiveFailures >= maxFailures) {
+          const idx = findQueueIndexByTaskId(taskId)
+          if (idx !== -1) {
+            importQueue.value[idx].status = 'failed'
+            importQueue.value[idx].step = '导入中断'
+            importQueue.value[idx].error = '导入似乎中断了，请尝试重新上传'
+          }
+          return
+        }
+      }
+
+      await wait(2000)
+    }
+  }
+
+  // ─── 断点续传 ─────────────────────────────────────────
+
+  async function resumeImports(): Promise<void> {
     importQueue.value = importQueue.value.filter(
       (item) => item.taskId || item.file,
     )
@@ -116,13 +309,13 @@ export const useLibraryStore = defineStore('library', () => {
       return
     }
 
-    importing.value = true
-    for (const item of active) {
-      const idx = importQueue.value.indexOf(item)
-      if (idx === -1) continue
+    for (let i = 0; i < importQueue.value.length; i++) {
+      const item = importQueue.value[i]
+      if (item.status !== 'importing' && item.status !== 'pending') continue
+
       if (item.taskId) {
         try {
-          await monitorImportStatus(item.taskId, idx)
+          await monitorViaSSE(item.taskId)
         } catch {
           item.status = 'failed'
           item.step = '导入失败（刷新后恢复）'
@@ -134,19 +327,21 @@ export const useLibraryStore = defineStore('library', () => {
           item.status = 'importing'
           item.percent = 8
           item.step = '任务已创建，等待处理'
-          await monitorImportStatus(result.task_id, idx)
+          await monitorViaSSE(result.task_id)
         } catch {
           item.status = 'failed'
           item.step = '导入失败'
         }
       }
     }
-    importing.value = false
+
     persistQueue(importQueue.value)
     void loadPapers()
   }
 
-  async function removePaper(paperId: string) {
+  // ─── 删除 / 回收站 ────────────────────────────────────
+
+  async function removePaper(paperId: string): Promise<void> {
     error.value = null
     log.info('开始删除论文', { paperId })
 
@@ -162,178 +357,63 @@ export const useLibraryStore = defineStore('library', () => {
     }
   }
 
-  function setSelectedPaperIds(nextPaperIds: string[]) {
-    selectedPaperIds.value = [...new Set(nextPaperIds)]
-  }
-
-  function togglePaperSelection(paperId: string) {
-    if (selectedPaperIds.value.includes(paperId)) {
-      selectedPaperIds.value = selectedPaperIds.value.filter((id) => id !== paperId)
-      return
-    }
-
-    selectedPaperIds.value = [...selectedPaperIds.value, paperId]
-  }
-
-  function clearSelectedPapers() {
-    selectedPaperIds.value = []
-  }
-
-  function setImportError(message: string | null) {
-    importError.value = message
-  }
-
-  function applyImportProgress(progress: ImportProgressEvent, queueIdx?: number) {
-    const nextSignature = [
-      progress.status,
-      progress.step ?? '',
-      progress.paper_id ?? '',
-      progress.error_msg ?? '',
-      progress.file_name ?? '',
-      typeof progress.percent === 'number' ? String(progress.percent) : '',
-    ].join('|')
-
-    if (nextSignature === lastProgressSignature) return
-    lastProgressSignature = nextSignature
-
-    const stepText = progress.error_msg || STEP_LABELS[progress.step ?? ''] || progress.step || '处理中...'
-    const percent = typeof progress.percent === 'number'
-      ? progress.percent
-      : Math.min(importPercent.value + 12, 95)
-
-    // 更新单文件全局状态
-    if (progress.file_name) importFileName.value = progress.file_name
-    importStep.value = stepText
-    importPercent.value = percent
-
-    // 更新队列中对应条目
-    if (queueIdx !== undefined && queueIdx < importQueue.value.length) {
-      const item = importQueue.value[queueIdx]
-      item.step = stepText
-      item.percent = percent
-    }
-
-    if (progress.status === 'completed') {
-      importStep.value = '导入完成'
-      importPercent.value = 100
-      if (queueIdx === undefined) {
-        importing.value = false
-      } else if (queueIdx < importQueue.value.length) {
-        importQueue.value[queueIdx].status = 'completed'
-        importQueue.value[queueIdx].step = '已完成'
-        importQueue.value[queueIdx].percent = 100
-      }
-      log.info('导入完成', { paperId: progress.paper_id })
-      void loadPapers()
-      return
-    }
-
-    if (progress.status === 'failed' || progress.status === 'error') {
-      const errMsg = progress.error_msg || progress.step || '遇到了意外问题，请稍后重试'
-      importStep.value = '导入失败'
-      importError.value = errMsg
-      importPercent.value = 100
-
-      if (queueIdx === undefined) {
-        importing.value = false
-      } else if (queueIdx < importQueue.value.length) {
-        importQueue.value[queueIdx].status = 'failed'
-        importQueue.value[queueIdx].step = '导入失败'
-        importQueue.value[queueIdx].percent = 100
-        importQueue.value[queueIdx].error = errMsg
-      }
-      log.warn('导入失败', { paperId: progress.paper_id, step: progress.step, error: progress.error_msg })
-    }
-  }
-
-  function applyImportStatus(status: ImportStatus, queueIdx?: number) {
-    applyImportProgress({
-      status: status.status,
-      step: status.current_step,
-      paper_id: status.paper_id,
-      error_msg: status.error_msg,
-      file_name: status.file_name,
-      percent: status.percent,
-    }, queueIdx)
-  }
-
-  async function monitorImportStatus(taskId: string, queueIdx?: number, maxConsecutiveFailures = 30) {
-    let consecutiveFailures = 0
-
-    while (true) {
-      try {
-        const status = await fetchImportStatus(taskId)
-        consecutiveFailures = 0
-        log.info('轮询导入状态', { taskId, status: status.status, step: status.current_step, percent: status.percent })
-        applyImportStatus(status, queueIdx)
-
-        if (isImportTerminalStatus(status.status)) return
-      } catch (err: unknown) {
-        if (err instanceof ApiClientError && err.statusCode === 400) {
-          importStep.value = '导入失败'
-          importError.value = err.message || '导入失败'
-          if (queueIdx === undefined) importing.value = false
-          else if (queueIdx < importQueue.value.length) {
-            importQueue.value[queueIdx].status = 'failed'
-            importQueue.value[queueIdx].step = '导入失败'
-            importQueue.value[queueIdx].error = err.message || '导入失败'
-          }
-          log.warn('导入任务返回业务错误', { taskId, message: err.message })
-          return
-        }
-
-        consecutiveFailures += 1
-        log.warn('轮询导入状态失败', {
-          taskId,
-          consecutiveFailures,
-          message: err instanceof Error ? err.message : String(err),
-        })
-        if (consecutiveFailures >= maxConsecutiveFailures) {
-          const msg = `导入似乎中断了，请尝试重新上传`
-          importStep.value = '导入中断'
-          if (!importError.value) importError.value = msg
-          if (queueIdx === undefined) importing.value = false
-          else if (queueIdx < importQueue.value.length) {
-            importQueue.value[queueIdx].status = 'failed'
-            importQueue.value[queueIdx].step = '导入中断'
-            importQueue.value[queueIdx].error = msg
-          }
-          return
-        }
-      }
-
-      await wait(1000)
-    }
-  }
-
-  async function importFile(file: File) {
-    importing.value = true
-    lastProgressSignature = ''
-    importFileName.value = file.name
-    importStep.value = '提交中...'
-    importPercent.value = 2
-    importError.value = null
-    error.value = null
-    log.info('开始导入论文', { name: file.name, size: file.size })
-
+  async function loadTrashedPapers(): Promise<void> {
     try {
-      const result = await startImport(file)
-      importStep.value = '任务已创建，等待处理'
-      importPercent.value = 8
-      log.info('导入任务已创建', { taskId: result.task_id, fileName: file.name })
-      await monitorImportStatus(result.task_id)
+      trashedPapers.value = await fetchTrashedPapers()
+      log.info('加载回收站列表成功', { count: trashedPapers.value.length })
     } catch (err: unknown) {
-      importing.value = false
-      importError.value = err instanceof Error ? err.message : '导入失败'
-      log.error('启动导入失败', err, { name: file.name })
+      log.error('加载回收站列表失败', err)
+    }
+  }
+
+  async function restorePaperFromTrash(paperId: string): Promise<void> {
+    try {
+      await restorePaper(paperId)
+      trashedPapers.value = trashedPapers.value.filter((p) => p.paper_id !== paperId)
+      await loadPapers()
+      log.info('恢复论文成功', { paperId })
+    } catch (err: unknown) {
+      error.value = err instanceof Error ? err.message : '恢复失败'
+      log.error('恢复论文失败', err, { paperId })
       throw err
     }
   }
 
-  async function importFiles(files: File[]) {
+  async function permanentDeleteFromTrash(paperId: string): Promise<void> {
+    try {
+      await permanentDeletePaper(paperId)
+      trashedPapers.value = trashedPapers.value.filter((p) => p.paper_id !== paperId)
+      log.info('永久删除论文成功', { paperId })
+    } catch (err: unknown) {
+      error.value = err instanceof Error ? err.message : '永久删除失败'
+      log.error('永久删除论文失败', err, { paperId })
+      throw err
+    }
+  }
+
+  // ─── 选择管理 ──────────────────────────────────────────
+
+  function setSelectedPaperIds(ids: string[]): void {
+    selectedPaperIds.value = [...new Set(ids)]
+  }
+
+  function togglePaperSelection(paperId: string): void {
+    if (selectedPaperIds.value.includes(paperId)) {
+      selectedPaperIds.value = selectedPaperIds.value.filter((id) => id !== paperId)
+    } else {
+      selectedPaperIds.value = [...selectedPaperIds.value, paperId]
+    }
+  }
+
+  function clearSelectedPapers(): void {
+    selectedPaperIds.value = []
+  }
+
+  // ─── 导入流程 ──────────────────────────────────────────
+
+  async function importFiles(files: File[]): Promise<void> {
     if (files.length === 0) return
 
-    importing.value = true
     importError.value = null
     error.value = null
 
@@ -345,16 +425,15 @@ export const useLibraryStore = defineStore('library', () => {
       step: '等待中',
     }))
 
-    let skippedCount = 0
     const dupNames: string[] = []
 
     for (let i = 0; i < files.length; i++) {
       const item = importQueue.value[i]
       if (item.status === 'completed') continue
+
       item.status = 'importing'
       item.percent = 2
       item.step = '提交中...'
-      lastProgressSignature = ''
 
       try {
         const result = await startImport(files[i])
@@ -363,15 +442,13 @@ export const useLibraryStore = defineStore('library', () => {
         item.step = '任务已创建，等待处理'
         persistQueue(importQueue.value)
         log.info('导入任务已创建', { taskId: result.task_id, fileName: files[i].name })
-        await monitorImportStatus(result.task_id, i)
+        await monitorViaSSE(result.task_id)
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : '导入失败'
-        // 重复导入：直接从队列移除，记入跳过
         if (msg.includes('已导入过')) {
           dupNames.push(item.fileName)
-          importQueue.value.splice(i, 1)
-          i-- // splice 后索引偏移
-          skippedCount++
+          importQueue.value = importQueue.value.filter((_, idx) => idx !== i)
+          i--
           continue
         }
         item.status = 'failed'
@@ -380,58 +457,59 @@ export const useLibraryStore = defineStore('library', () => {
         log.error('批量导入中单文件失败', err, { name: files[i].name })
       }
 
-      // 完成后展示 3 秒再自动移除
-      if (importQueue.value[i]?.status === 'completed') {
-        await wait(600)
-        if (importQueue.value[i]?.status === 'completed') {
-          importQueue.value.splice(i, 1)
-          i--
-        }
-      }
       persistQueue(importQueue.value)
     }
 
-    // 清理已完成的，只保留失败的
+    // 先加载论文列表，避免队列清空后出现空白闪烁
+    await loadPapers()
+
+    // 清理已完成的队列项，只保留失败的
     importQueue.value = importQueue.value.filter((item) => item.status === 'failed')
 
     if (dupNames.length > 0) {
       importError.value = `${dupNames.length} 篇论文已导入过，已跳过：${dupNames.join('、')}`
     }
 
-    importing.value = false
     persistQueue(importQueue.value)
-    void loadPapers()
   }
 
-  function clearImportError() {
+  // ─── 队列操作 ──────────────────────────────────────────
+
+  function clearImportError(): void {
     importError.value = null
   }
 
-  function clearImportQueue() {
-    importQueue.value = []
+  function setImportError(message: string | null): void {
+    importError.value = message
   }
 
-  function removeQueueItem(index: number) {
-    importQueue.value.splice(index, 1)
+  function clearImportQueue(): void {
+    importQueue.value = []
     persistQueue(importQueue.value)
   }
 
-  async function retryQueueItem(index: number) {
+  function removeQueueItem(index: number): void {
+    importQueue.value = importQueue.value.filter((_, i) => i !== index)
+    persistQueue(importQueue.value)
+  }
+
+  /** 重试失败的导入项（重新上传文件） */
+  async function retryQueueItem(index: number): Promise<void> {
     const item = importQueue.value[index]
-    if (!item || !item.file) return
+    if (!item?.file) return
 
     item.status = 'importing'
     item.percent = 2
     item.step = '提交中...'
     item.error = undefined
-    lastProgressSignature = ''
 
     try {
       const result = await startImport(item.file)
+      item.taskId = result.task_id
       item.percent = 8
       item.step = '任务已创建，等待处理'
       log.info('重试导入', { taskId: result.task_id, fileName: item.fileName })
-      await monitorImportStatus(result.task_id, index)
+      await monitorViaSSE(result.task_id)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : '导入失败'
       item.status = 'failed'
@@ -443,26 +521,25 @@ export const useLibraryStore = defineStore('library', () => {
 
   return {
     papers,
+    trashedPapers,
     loading,
     error,
     selectedPaperIds,
     selectedPaperCount,
     paperCount,
-    importing,
-    importFileName,
-    importStep,
-    importPercent,
+    isImporting,
     importError,
     importQueue,
     loadPapers,
     resumeImports,
     removePaper,
+    loadTrashedPapers,
+    restorePaperFromTrash,
+    permanentDeleteFromTrash,
     setSelectedPaperIds,
     togglePaperSelection,
     clearSelectedPapers,
-    importFile,
     importFiles,
-    monitorImportStatus,
     clearImportError,
     setImportError,
     clearImportQueue,

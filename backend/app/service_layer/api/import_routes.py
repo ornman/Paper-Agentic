@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import json
 import logging
 import uuid
@@ -14,6 +13,12 @@ from fastapi.responses import StreamingResponse
 
 from app.data_layer.storage.sqlite_runtime._types import ImportTask, LibraryItem, utc_now_iso
 from app.service_layer.schemas.library import ImportStartResponse, ImportStatusResponse
+from app.service_layer.utils.pdf_helpers import (
+    compute_file_hash,
+    extract_pdf_metadata,
+    read_file_size,
+    read_pdf_page_count,
+)
 
 logger = logging.getLogger("paper-assistant")
 
@@ -42,7 +47,7 @@ async def start_import(file: UploadFile = FastAPIFile(...), request: Request = N
         raise HTTPException(status_code=400, detail="仅支持 PDF 格式")
 
     # 去重检查
-    file_hash = _compute_file_hash(dest)
+    file_hash = compute_file_hash(dest)
     existing = container.library_repo.get_by_hash(file_hash)
     if existing:
         return ImportStartResponse(task_id="", status="duplicate")
@@ -51,7 +56,7 @@ async def start_import(file: UploadFile = FastAPIFile(...), request: Request = N
     task = ImportTask(task_id=task_id, file_path=str(dest))
     container.import_task_repo.create(task)
 
-    asyncio.create_task(_run_import_with_progress(container, task_id, dest))
+    asyncio.create_task(_run_import_with_progress(container, task_id, dest, original_name=original_name))
 
     return ImportStartResponse(task_id=task_id, status="queued")
 
@@ -118,10 +123,9 @@ async def get_import_artifacts(task_id: str, request: Request):
     }
 
 
-async def _run_import_with_progress(container, task_id: str, file_path: Path):
+async def _run_import_with_progress(container, task_id: str, file_path: Path, original_name: str = ""):
     """后台导入 worker（带进度推送）"""
     bus = container.import_progress_bus
-    monitor = container.import_monitor
 
     async def publish(event: dict):
         await bus.publish(task_id, event)
@@ -136,15 +140,32 @@ async def _run_import_with_progress(container, task_id: str, file_path: Path):
             container.import_task_repo.update_status(
                 task_id, "completed", message=f"导入成功，{result.chunk_count} 个 chunk", paper_id=result.paper_id,
             )
+
+            # 从 PDF 文件读取实际页数、文件大小和元数据
+            page_count = read_pdf_page_count(file_path)
+            file_size = read_file_size(file_path)
+            pdf_meta = extract_pdf_metadata(file_path)
+
+            # 标题优先级：PDF 元数据 > 原始文件名 > stem（去掉 UUID 前缀）
+            title = pdf_meta.get("title") or ""
+            if not title and original_name:
+                title = Path(original_name).stem
+            if not title:
+                stem = file_path.stem
+                title = stem.split("_", 1)[1] if "_" in stem else stem
+
             container.library_repo.upsert(LibraryItem(
                 item_id=result.paper_id,
-                title=file_path.stem,
+                title=title,
+                authors=pdf_meta.get("authors", ""),
+                year=pdf_meta.get("year"),
                 file_path=str(file_path),
-                file_hash=_compute_file_hash(file_path),
+                file_hash=compute_file_hash(file_path),
                 file_type=file_path.suffix.lower(),
                 import_time=utc_now_iso(),
-                page_count=result.chunk_count,
+                page_count=page_count,
                 status="ready",
+                file_size=file_size,
             ))
             await publish({"status": "completed", "step": "done", "paper_id": result.paper_id})
         else:
@@ -156,11 +177,3 @@ async def _run_import_with_progress(container, task_id: str, file_path: Path):
         await publish({"status": "failed", "step": "error", "error_msg": str(e)})
     finally:
         await publish({"status": "done", "step": None, "paper_id": None})
-
-
-def _compute_file_hash(file_path: Path) -> str:
-    h = hashlib.sha256()
-    with open(file_path, "rb") as f:
-        for chunk in iter(lambda: f.read(8192), b""):
-            h.update(chunk)
-    return h.hexdigest()[:16]

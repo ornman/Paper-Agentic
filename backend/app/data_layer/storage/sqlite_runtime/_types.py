@@ -29,6 +29,8 @@ class LibraryItem:
     status: str = "ready"
     authors: str = ""
     year: int | None = None
+    file_size: int = 0
+    deleted_at: str | None = None
 
 
 @dataclass
@@ -60,3 +62,4 @@ class ConversationMessage:
     content: str
     created_at: str = ""
     sources_json: str | None = None
+    blocks_json: str | None = None

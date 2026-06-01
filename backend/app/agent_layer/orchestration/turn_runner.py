@@ -19,6 +19,7 @@ from app.agent_layer.contracts.sse_events import (
     MetadataEvent,
     ReflectionEvent,
     SourcesEvent,
+    StatusEvent,
     ThinkingEvent,
 )
 from app.agent_layer.runtime.token_budget import estimate_tokens
@@ -141,6 +142,7 @@ class TurnRunner:
         tool_registry: ToolRegistry | None = None,
         cache_mode: str = "memory",
         reflection_model: ChatModel | None = None,
+        conversation_repo: Any | None = None,
     ) -> None:
         self._chat_model = chat_model
         self._reflection_model = reflection_model
@@ -156,6 +158,7 @@ class TurnRunner:
         self._embedding_client = embedding_client
         self._tool_registry = tool_registry
         self._cache_mode = cache_mode
+        self._conversation_repo = conversation_repo
 
     async def run(self, request: AskRequest) -> AsyncIterator[str]:
         request_id = uuid.uuid4().hex
@@ -233,6 +236,9 @@ class TurnRunner:
             context = ""
 
             if need_rag:
+                yield StatusEvent(
+                    phase="retrieving", message="正在查询文献库..."
+                ).to_sse_frame()
                 from app.service_layer.config.settings import get_settings
                 _settings = get_settings()
                 max_reflection_rounds = _settings.reflection_max_rounds
@@ -276,10 +282,16 @@ class TurnRunner:
             if snapshot.thinking_enabled:
                 yield ThinkingEvent(text="", time_ms=0).to_sse_frame()
 
+            yield StatusEvent(
+                phase="generating", message="正在生成回答..."
+            ).to_sse_frame()
+
             full_text = ""
             model_override = snapshot.model_name or None
             async for chunk in self._chat_model.chat_stream(messages, model=model_override):
                 full_text += chunk
+                if chunk:
+                    yield f"event: delta\ndata: {json.dumps({'text': chunk}, ensure_ascii=False)}\n\n"
 
             # ── Tool Loop：LLM 可决定调用内部工具 ──
             if self._tool_registry and self._tool_registry.tool_names:
@@ -508,3 +520,51 @@ class TurnRunner:
             )
         except Exception:
             logger.warning("persistence persist failed for session %s", snapshot.session_id, exc_info=True)
+
+        # ── SQLite conversation_repo：持久化 blocks_json + sources_json ──
+        # 三个持久化通道各司其职：
+        #   1. window_store  — 内存上下文窗口（LLM 输入截断）
+        #   2. persistence   — 内存 SessionPersistence（会话摘要）
+        #   3. conversation_repo — SQLite 长期存储（历史对话 API 消费）
+        # 三者独立降级，任一失败不影响 SSE 输出。
+        if self._conversation_repo is not None:
+            try:
+                from app.data_layer.storage.sqlite_runtime._types import ConversationMessage, utc_now_iso
+                now = utc_now_iso()
+                self._conversation_repo.save_message(ConversationMessage(
+                    session_id=snapshot.session_id,
+                    role="user",
+                    content=snapshot.prompt,
+                    created_at=now,
+                    sources_json=None,
+                    blocks_json=None,
+                ))
+                self._conversation_repo.save_message(ConversationMessage(
+                    session_id=snapshot.session_id,
+                    role="assistant",
+                    content=full_text,
+                    created_at=now,
+                    sources_json=sources_json,
+                    blocks_json=blocks_json,
+                ))
+                # Update session timestamp (create session if first message)
+                from dataclasses import replace as _replace
+                from app.data_layer.storage.sqlite_runtime._types import ConversationSession
+                session = self._conversation_repo.get_session(snapshot.session_id)
+                if session:
+                    self._conversation_repo.upsert_session(
+                        _replace(session, updated_at=now)
+                    )
+                else:
+                    self._conversation_repo.upsert_session(ConversationSession(
+                        session_id=snapshot.session_id,
+                        title=snapshot.prompt[:40] or "新对话",
+                        created_at=now,
+                        updated_at=now,
+                    ))
+            except Exception:
+                logger.error(
+                    "conversation_repo persist failed for session %s — "
+                    "messages will NOT be recoverable after page reload",
+                    snapshot.session_id, exc_info=True,
+                )

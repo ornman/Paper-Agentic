@@ -69,9 +69,5 @@ async def open_paper(paper_id: str, request: Request):
 
 @router.delete("/papers/{paper_id}")
 async def delete_paper(paper_id: str, request: Request):
-    container = request.app.state.container
-    item = container.library_repo.get(paper_id)
-    if not item:
-        raise HTTPException(status_code=404, detail="论文不存在")
-    container.document_ingest.delete_document(paper_id)
-    return {"status": "ok", "message": f"已删除: {item.title}"}
+    """已废弃：删除操作统一走 DELETE /library/items/{item_id}"""
+    raise HTTPException(status_code=410, detail="此端点已废弃，请使用 DELETE /api/v1/library/items/{id}")

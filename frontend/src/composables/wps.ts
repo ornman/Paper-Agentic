@@ -271,7 +271,7 @@ export function useWPSPolling(autoFill = true, sessionIdGetter?: () => string) {
       const key = selectionKey(info)
       if (key !== lastSelectionKey.value) {
         if (autoFill && info.text.trim().length > 0) {
-          const inputElement = document.querySelector('textarea.composer-input') as HTMLTextAreaElement | null
+          const inputElement = document.querySelector('textarea.composer-textarea') as HTMLTextAreaElement | null
           if (inputElement && !inputElement.disabled) {
             inputElement.value = info.text
             inputElement.dispatchEvent(new Event('input', { bubbles: true }))

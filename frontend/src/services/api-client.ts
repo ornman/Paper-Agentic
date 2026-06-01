@@ -120,6 +120,14 @@ function extractErrorMessage(payload: unknown, fallbackMessage: string): string 
     if (typeof record.detail === 'string' && record.detail.trim()) {
       return record.detail
     }
+
+    // FastAPI 风格：detail 为 { message: "..." } 对象
+    if (record.detail && typeof record.detail === 'object') {
+      const detailRecord = record.detail as Record<string, unknown>
+      if (typeof detailRecord.message === 'string' && detailRecord.message.trim()) {
+        return detailRecord.message
+      }
+    }
   }
 
   return fallbackMessage
@@ -144,6 +152,21 @@ export async function requestJsonData<TData>(pathname: string, init?: RequestIni
 export async function fetchHealthCheck(): Promise<{ status: string }> {
   const response = await requestJson<{ status: string }>('/api/v1/health', undefined)
   return { status: response.data?.status ?? 'ok' }
+}
+
+/**
+ * 通用 JSON API 请求（非信封格式）。
+ * 统一替代各 service 文件中的本地 request<T> 函数。
+ */
+export async function apiRequest<T>(pathname: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(buildApiUrl(pathname), init)
+  const payload = await readJsonSafely(response)
+
+  if (!response.ok) {
+    throw new ApiClientError(extractErrorMessage(payload, `HTTP ${response.status}`), response.status)
+  }
+
+  return payload as T
 }
 
 export async function postJson<TData>(pathname: string, body: unknown): Promise<TData> {

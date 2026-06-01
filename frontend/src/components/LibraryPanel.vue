@@ -29,7 +29,7 @@
           v-model="search.query.value"
           type="text"
           class="library-search-input"
-          placeholder="搜索标题、作者、关键词..."
+          :placeholder="viewMode === 'trash' ? '搜索回收站...' : '搜索标题、作者、关键词...'"
           aria-label="搜索文献库"
         />
         <div class="search-actions">
@@ -52,7 +52,7 @@
         </div>
       </div>
 
-      <div v-if="papers.length > 0" class="library-filters">
+      <div v-if="viewMode === 'library' && papers.length > 0" class="library-filters">
         <select v-model="search.yearFilter.value" class="filter-select" :class="{ 'filter-active': search.yearFilter.value }">
           <option value="">年份</option>
           <option v-for="y in search.yearOptions.value" :key="y" :value="y">{{ y }}</option>
@@ -64,7 +64,7 @@
       </div>
 
       <button
-        v-if="filteredPapers.length > 0 || papers.length > 0"
+        v-if="viewMode === 'library' && (filteredPapers.length > 0 || papers.length > 0)"
         class="library-upload-btn"
         type="button"
         @click="emit('upload')"
@@ -80,149 +80,99 @@
 
     <!-- Scrollable body -->
     <div class="library-body">
-      <!-- Loading -->
-      <div v-if="loading" class="library-empty">正在加载...</div>
+      <!-- Trash view -->
+      <TrashPanel
+        v-if="viewMode === 'trash'"
+        :papers="filteredPapers"
+        :loading="trashedLoading"
+        @restore="handleRestore"
+        @permanent-delete="handlePermanentDelete"
+        @back="switchToLibrary"
+      />
 
-      <!-- Error -->
-      <div v-else-if="error" class="library-error">{{ error }}</div>
+      <!-- Library view -->
+      <template v-else>
+        <!-- Loading -->
+        <div v-if="loading" class="library-empty">正在加载...</div>
 
-      <!-- Importing placeholder -->
-      <div v-else-if="papers.length === 0 && importing && importQueue.length === 0" class="library-importing-state">
-        <div class="importing-spinner"></div>
-        <p class="importing-text">正在导入文献，请稍候...</p>
-      </div>
+        <!-- Error -->
+        <div v-else-if="error" class="library-error">{{ error }}</div>
 
-      <!-- Batch import queue (empty library) -->
-      <div v-else-if="papers.length === 0 && importQueue.length > 0" class="import-queue import-queue--empty-library">
-        <div
-          v-for="(item, idx) in importQueue"
-          :key="item.fileName"
-          class="import-queue-item"
-          :class="'import-queue-item--' + item.status"
-        >
-          <span class="import-queue-icon">
-            <svg v-if="item.status === 'completed'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-            <span v-else-if="item.status === 'importing'" class="import-queue-spinner"></span>
-            <span v-else class="import-queue-dot"></span>
-          </span>
-          <div class="import-queue-body">
-            <div class="import-queue-filename">{{ item.fileName }}</div>
-            <div v-if="item.status === 'importing'" class="import-queue-bar-track">
-              <div class="import-queue-bar-fill" :style="{ width: item.percent + '%' }"></div>
-            </div>
-            <div class="import-queue-step">{{ item.step }}</div>
-          </div>
-          <div class="import-queue-actions">
-            <span v-if="item.status === 'importing'" class="import-queue-percent">{{ item.percent }}%</span>
-            <button v-if="item.status === 'failed' && item.file" type="button" class="import-queue-retry" title="重试" @click="libraryStore.retryQueueItem(idx)">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
-            </button>
-            <button v-if="item.status === 'failed'" type="button" class="import-queue-remove" title="移除" @click="libraryStore.removeQueueItem(idx)">×</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Empty state -->
-      <div v-else-if="papers.length === 0" class="library-empty-state">
-        <p class="library-empty-text">开始导入你的第一篇论文</p>
-        <p class="library-empty-hint">支持 PDF 格式，拖拽或点击上传</p>
-        <button class="library-upload-btn library-upload-btn--prominent" type="button" @click="emit('upload')">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-            <polyline points="17 8 12 3 7 8" />
-            <line x1="12" y1="3" x2="12" y2="15" />
-          </svg>
-          导入论文
-        </button>
-      </div>
-
-      <!-- No search results -->
-      <div v-else-if="filteredPapers.length === 0 && (search.hasQuery.value || search.yearFilter.value || search.authorFilter.value)" class="library-empty">
-        未找到匹配的论文，试试调整搜索关键词
-      </div>
-
-      <!-- Paper list -->
-      <div v-else class="library-list">
-        <label v-if="filteredPapers.length > 0" class="library-select-all">
-          <input
-            type="checkbox"
-            class="library-item-checkbox"
-            :checked="allFilteredSelected"
-            :indeterminate.prop="someFilteredSelected && !allFilteredSelected"
-            @change="handleSelectAll"
-          />
-          <span class="library-select-all-label">
-            {{ allFilteredSelected ? '取消全选' : '全选' }}
-          </span>
-          <span v-if="search.hasQuery.value || search.yearFilter.value || search.authorFilter.value" class="library-result-count">
-            {{ search.totalResults.value }} / {{ papers.length }}
-          </span>
-        </label>
-
-        <LibraryPaperCard
-          v-for="paper in filteredPapers"
-          :key="paper.paper_id"
-          :paper="paper"
-          :selected="selectedIds.includes(paper.paper_id)"
-          :highlight-fn="search.highlightText"
-          @toggle="emit('toggle', $event)"
-          @remove="handleRemove"
-          @retry="handleRetry($event)"
-          @preview="handlePreview"
+        <!-- Import queue (empty library) -->
+        <ImportQueueList
+          v-else-if="papers.length === 0 && importQueue.length > 0"
+          :items="importQueue"
+          :is-empty-library="true"
+          @retry="libraryStore.retryQueueItem($event)"
+          @remove="libraryStore.removeQueueItem($event)"
         />
 
-        <div class="library-summary">
-          共 {{ papers.length }} 篇论文，已选 {{ selectedIds.length }} 篇
+        <!-- Empty state -->
+        <div v-else-if="papers.length === 0" class="library-empty-state">
+          <p class="library-empty-text">开始导入你的第一篇论文</p>
+          <p class="library-empty-hint">支持 PDF 格式，拖拽或点击上传</p>
+          <button class="library-upload-btn library-upload-btn--prominent" type="button" @click="emit('upload')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            导入论文
+          </button>
         </div>
-      </div>
 
+        <!-- No search results -->
+        <div v-else-if="filteredPapers.length === 0 && (search.hasQuery.value || search.yearFilter.value || search.authorFilter.value)" class="library-empty">
+          未找到匹配的论文，试试调整搜索关键词
+        </div>
+
+        <!-- Paper list -->
+        <div v-else class="library-list">
+          <label v-if="filteredPapers.length > 0" class="library-select-all">
+            <input
+              type="checkbox"
+              class="library-item-checkbox"
+              :checked="allFilteredSelected"
+              :indeterminate.prop="someFilteredSelected && !allFilteredSelected"
+              @change="handleSelectAll"
+            />
+            <span class="library-select-all-label">
+              {{ allFilteredSelected ? '取消全选' : '全选' }}
+            </span>
+            <span v-if="search.hasQuery.value || search.yearFilter.value || search.authorFilter.value" class="library-result-count">
+              {{ search.totalResults.value }} / {{ papers.length }}
+            </span>
+          </label>
+
+          <LibraryPaperCard
+            v-for="paper in filteredPapers"
+            :key="paper.paper_id"
+            :paper="paper"
+            :selected="selectedIds.includes(paper.paper_id)"
+            :highlight-fn="search.highlightText"
+            @toggle="emit('toggle', $event)"
+            @remove="handleRemove"
+            @retry="handleRetry($event)"
+            @preview="handlePreview"
+          />
+
+          <div class="library-summary">
+            共 {{ papers.length }} 篇论文，已选 {{ selectedIds.length }} 篇
+          </div>
+        </div>
+      </template>
     </div>
 
-    <!-- Fixed footer: import status (always visible) -->
+    <!-- Import status footer (appears when importing or error) -->
     <div v-if="hasImportStatus" class="library-footer">
-      <!-- Import queue (non-empty library) -->
-      <div v-if="importQueue.length > 0 && papers.length > 0" class="import-queue">
-        <div
-          v-for="(item, idx) in importQueue"
-          :key="item.fileName"
-          class="import-queue-item"
-          :class="'import-queue-item--' + item.status"
-        >
-          <span class="import-queue-icon">
-            <svg v-if="item.status === 'completed'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-            <span v-else-if="item.status === 'importing'" class="import-queue-spinner"></span>
-            <span v-else class="import-queue-dot"></span>
-          </span>
-          <div class="import-queue-body">
-            <div class="import-queue-filename">{{ item.fileName }}</div>
-            <div v-if="item.status === 'importing'" class="import-queue-bar-track">
-              <div class="import-queue-bar-fill" :style="{ width: item.percent + '%' }"></div>
-            </div>
-            <div class="import-queue-step">{{ item.step }}</div>
-          </div>
-          <div class="import-queue-actions">
-            <span v-if="item.status === 'importing'" class="import-queue-percent">{{ item.percent }}%</span>
-            <button v-if="item.status === 'failed' && item.file" type="button" class="import-queue-retry" title="重试" @click="libraryStore.retryQueueItem(idx)">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
-            </button>
-            <button v-if="item.status === 'failed'" type="button" class="import-queue-remove" title="移除" @click="libraryStore.removeQueueItem(idx)">×</button>
-          </div>
-        </div>
-      </div>
+      <ImportQueueList
+        v-if="importQueue.length > 0"
+        :items="importQueue"
+        :is-empty-library="papers.length === 0"
+        @retry="libraryStore.retryQueueItem($event)"
+        @remove="libraryStore.removeQueueItem($event)"
+      />
 
-      <!-- Single file import progress -->
-      <div v-else-if="importing && papers.length > 0" class="import-progress">
-        <div class="import-info">
-          <span class="import-filename">{{ importFileName || '正在导入...' }}</span>
-          <span class="import-percent">{{ importPercent }}%</span>
-        </div>
-        <div class="import-bar-track">
-          <div class="import-bar-fill" :style="{ width: importPercent + '%' }"></div>
-        </div>
-        <div v-if="importStep" class="import-step">{{ importStep }}</div>
-      </div>
-
-      <!-- Import error -->
       <div v-if="importError" class="import-error">
         <span class="import-error-icon">!</span>
         <span class="import-error-text">{{ importError }}</span>
@@ -230,40 +180,71 @@
       </div>
     </div>
 
+    <!-- Bottom action bar: recycle bin + batch delete -->
+    <div v-if="viewMode === 'library'" class="library-action-footer">
+      <button
+        type="button"
+        class="library-recycle-btn"
+        title="回收站"
+        @click="switchToTrash()"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="3" width="20" height="5" rx="1" />
+          <path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8" />
+          <path d="M10 12h4" />
+        </svg>
+        <span>回收站</span>
+      </button>
+      <button
+        v-if="selectedIds.length > 0"
+        type="button"
+        class="library-batch-delete-btn"
+        title="删除选中论文"
+        @click="handleBatchDelete"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="3 6 5 6 21 6" />
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+          <line x1="10" y1="11" x2="10" y2="17" />
+          <line x1="14" y1="11" x2="14" y2="17" />
+        </svg>
+        <span>删除 ({{ selectedIds.length }})</span>
+      </button>
+    </div>
+
     <!-- Delete confirmation dialog -->
-    <Teleport to="body">
-      <Transition name="confirm-fade">
-        <div v-if="confirmDelete.visible" class="confirm-overlay" @click.self="cancelDelete">
-          <div class="confirm-dialog">
-            <p class="confirm-message">{{ confirmDelete.batchIds.length > 0 ? `确定要删除选中的 ${confirmDelete.batchIds.length} 篇论文吗？` : '确定要删除这篇论文吗？' }}</p>
-            <p class="confirm-title">{{ confirmDelete.title }}</p>
-            <label class="confirm-skip">
-              <input type="checkbox" v-model="skipDeleteConfirm" />
-              <span>本次对话不再提示</span>
-            </label>
-            <div class="confirm-actions">
-              <button class="confirm-btn confirm-btn--cancel" type="button" @click="cancelDelete">取消</button>
-              <button class="confirm-btn confirm-btn--danger" type="button" @click="confirmDeleteAction">删除</button>
-            </div>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
+    <DeleteConfirmDialog
+      :visible="confirmDelete.visible"
+      :title="confirmDelete.title"
+      :count="confirmDelete.batchIds.length || 1"
+      :skip-confirm="skipDeleteConfirm"
+      @confirm="confirmDeleteAction"
+      @cancel="confirmDelete.visible = false"
+      @update:skip-confirm="skipDeleteConfirm = $event"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
-import type { PaperItem } from '../services/library-api'
+import type { PaperItem } from '../types/paper'
 import { useLibraryStore } from '../stores/library'
 import { useUiStore } from '../stores/ui'
 import { useLibrarySearch } from '../composables/use-library-search'
+import { useDropZone } from '../composables/use-drop-zone'
 import LibraryPaperCard from './LibraryPaperCard.vue'
+import TrashPanel from './TrashPanel.vue'
+import ImportQueueList from './ImportQueueList.vue'
+import DeleteConfirmDialog from './DeleteConfirmDialog.vue'
 import { storeToRefs } from 'pinia'
 
 const libraryStore = useLibraryStore()
 const uiStore = useUiStore()
-const { importing, importFileName, importPercent, importStep, importError, importQueue } = storeToRefs(libraryStore)
+const { importError, importQueue } = storeToRefs(libraryStore)
+const { trashedPapers } = storeToRefs(libraryStore)
+
+const viewMode = ref<'library' | 'trash'>('library')
+const trashedLoading = ref(false)
 
 const props = defineProps<{
   papers: PaperItem[]
@@ -280,50 +261,29 @@ const emit = defineEmits<{
   (e: 'retry', paperId: string): void
 }>()
 
+// 拖拽上传
+const { dragActive, onDragEnter, onDragLeave, onDrop } = useDropZone((files) => {
+  libraryStore.importFiles(files)
+})
+
 const showSortMenu = ref(false)
-const dragActive = ref(false)
-let dragCounter = 0 // track nested enter/leave
-
-function onDragEnter() {
-  dragCounter++
-  dragActive.value = true
-}
-
-function onDragLeave() {
-  dragCounter--
-  if (dragCounter <= 0) {
-    dragCounter = 0
-    dragActive.value = false
-  }
-}
-
-function onDrop(e: DragEvent) {
-  dragCounter = 0
-  dragActive.value = false
-  const files = e.dataTransfer?.files
-  if (!files || files.length === 0) return
-  const pdfFiles = Array.from(files).filter((f) => f.name.toLowerCase().endsWith('.pdf'))
-  if (pdfFiles.length > 0) {
-    libraryStore.importFiles(pdfFiles)
-  }
-}
 
 // 删除确认状态
 const skipDeleteConfirm = ref(false)
 const confirmDelete = reactive({ visible: false, paperId: '', title: '', batchIds: [] as string[] })
 
-const search = useLibrarySearch(() => props.papers)
+const search = useLibrarySearch(() =>
+  viewMode.value === 'trash' ? trashedPapers.value : props.papers,
+)
 
 const hasImportStatus = computed(() =>
-  (importQueue.value.length > 0 && props.papers.length > 0) ||
-  (importing.value && props.papers.length > 0) ||
-  !!importError.value,
+  importQueue.value.length > 0 || !!importError.value,
 )
 
 const filteredPapers = computed(() => search.results.value)
 
 onMounted(() => {
-  if (libraryStore.importQueue.length > 0 && !libraryStore.importing) {
+  if (libraryStore.importQueue.length > 0 && !libraryStore.isImporting) {
     libraryStore.resumeImports()
   }
 })
@@ -357,36 +317,21 @@ function handleRetry(paperId: string) {
 }
 
 function handleRemove(paperId: string) {
-  const hasSelection = props.selectedIds.length > 0
-  const idsToDelete = hasSelection ? [...props.selectedIds] : [paperId]
-
+  // 单篇删除：只删除这一篇，不涉及选中项
   if (skipDeleteConfirm.value) {
-    for (const id of idsToDelete) {
-      emit('remove', id)
-    }
+    emit('remove', paperId)
     return
   }
 
-  if (idsToDelete.length > 1) {
-    confirmDelete.paperId = ''
-    confirmDelete.title = `${idsToDelete.length} 篇论文`
-    confirmDelete.batchIds = idsToDelete
-  } else {
-    const paper = props.papers.find((p) => p.paper_id === paperId)
-    confirmDelete.paperId = paperId
-    confirmDelete.title = paper?.title || paperId
-    confirmDelete.batchIds = []
-  }
+  const paper = props.papers.find((p) => p.paper_id === paperId)
+  confirmDelete.paperId = paperId
+  confirmDelete.title = paper?.title || paperId
+  confirmDelete.batchIds = []
   confirmDelete.visible = true
-}
-
-function cancelDelete() {
-  confirmDelete.visible = false
 }
 
 function confirmDeleteAction() {
   if (confirmDelete.batchIds.length > 1) {
-    // 批量删除：逐个触发
     for (const id of confirmDelete.batchIds) {
       emit('remove', id)
     }
@@ -396,6 +341,52 @@ function confirmDeleteAction() {
     emit('remove', confirmDelete.paperId)
   }
   confirmDelete.visible = false
+}
+
+function handleBatchDelete() {
+  if (props.selectedIds.length === 0) return
+
+  if (skipDeleteConfirm.value) {
+    for (const id of props.selectedIds) {
+      emit('remove', id)
+    }
+    return
+  }
+
+  confirmDelete.paperId = ''
+  confirmDelete.title = `${props.selectedIds.length} 篇论文`
+  confirmDelete.batchIds = [...props.selectedIds]
+  confirmDelete.visible = true
+}
+
+function switchToLibrary() {
+  viewMode.value = 'library'
+}
+
+async function switchToTrash() {
+  viewMode.value = 'trash'
+  trashedLoading.value = true
+  try {
+    await libraryStore.loadTrashedPapers()
+  } finally {
+    trashedLoading.value = false
+  }
+}
+
+async function handleRestore(paperId: string) {
+  try {
+    await libraryStore.restorePaperFromTrash(paperId)
+  } catch {
+    // store 已设置 error
+  }
+}
+
+async function handlePermanentDelete(paperId: string) {
+  try {
+    await libraryStore.permanentDeleteFromTrash(paperId)
+  } catch {
+    // store 已设置 error
+  }
 }
 </script>
 
@@ -470,6 +461,55 @@ function confirmDeleteAction() {
   border-top: 1px solid var(--color-border-subtle);
   background: var(--color-surface-card);
   z-index: 5;
+}
+
+/* ─── Bottom action bar ─── */
+.library-action-footer {
+  flex-shrink: 0;
+  border-top: 1px solid var(--color-border-subtle);
+  background: var(--color-surface-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+}
+
+.library-recycle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.library-recycle-btn:hover {
+  color: var(--color-text-secondary);
+  background: var(--color-surface-muted);
+}
+
+.library-batch-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-error);
+  font-size: 12px;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.library-batch-delete-btn:hover {
+  background: color-mix(in srgb, var(--color-error) 8%, transparent);
 }
 
 /* ─── Search ─── */
@@ -734,247 +774,7 @@ function confirmDeleteAction() {
   font-weight: 600;
 }
 
-/* ─── Importing state (single-file spinner) ─── */
-.library-importing-state {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-3);
-  padding: var(--space-4);
-}
-
-.importing-spinner {
-  width: 24px;
-  height: 24px;
-  border: 2.5px solid var(--color-border-subtle);
-  border-top-color: var(--color-accent);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.importing-text {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-sm);
-}
-
-/* ─── Import queue (list) ─── */
-.import-queue {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  max-height: 220px;
-  overflow-y: auto;
-}
-
-.import-queue--empty-library {
-  flex: 1;
-  max-height: none;
-  justify-content: center;
-  overflow-y: visible;
-}
-
-.import-queue-item {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  transition: background 0.15s ease;
-}
-
-.import-queue-item--completed {
-  opacity: 0.65;
-}
-
-.import-queue-item--failed {
-  background: color-mix(in srgb, var(--color-error, #c53030) 5%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-error, #c53030) 20%, transparent);
-  border-radius: var(--radius-sm);
-}
-
-.import-queue-item--failed .import-queue-filename {
-  color: var(--color-error, #c53030);
-}
-
-.import-queue-item--failed .import-queue-step {
-  color: var(--color-error, #c53030);
-  opacity: 0.8;
-}
-
-.import-queue-icon {
-  flex-shrink: 0;
-  width: 16px;
-  height: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: 1px;
-}
-
-.import-queue-spinner {
-  width: 12px;
-  height: 12px;
-  border: 2px solid var(--color-border-subtle);
-  border-top-color: var(--color-accent);
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-}
-
-.import-queue-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--color-border-subtle);
-}
-
-.import-queue-body {
-  flex: 1;
-  min-width: 0;
-}
-
-.import-queue-filename {
-  font-size: 12px;
-  color: var(--color-text-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.import-queue-item--completed .import-queue-filename {
-  text-decoration: line-through;
-  text-decoration-color: var(--color-text-muted);
-}
-
-.import-queue-bar-track {
-  height: 3px;
-  margin-top: 4px;
-  background: var(--color-surface-muted);
-  border-radius: var(--radius-full);
-  overflow: hidden;
-}
-
-.import-queue-bar-fill {
-  height: 100%;
-  background: var(--color-accent);
-  border-radius: var(--radius-full);
-  transition: width 0.3s ease;
-}
-
-.import-queue-step {
-  font-size: 11px;
-  color: var(--color-text-muted);
-  margin-top: 2px;
-}
-
-.import-queue-percent {
-  flex-shrink: 0;
-  font-size: 11px;
-  color: var(--color-accent);
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  margin-top: 1px;
-}
-
-.import-queue-actions {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.import-queue-retry {
-  width: 22px;
-  height: 22px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  transition: color 0.15s ease, background 0.15s ease;
-}
-
-.import-queue-retry:hover {
-  color: var(--color-accent);
-  background: var(--color-surface-muted);
-}
-
-.import-queue-remove {
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--color-text-muted);
-  font-size: 15px;
-  line-height: 1;
-  cursor: pointer;
-  transition: color 0.15s ease, background 0.15s ease;
-}
-
-.import-queue-remove:hover {
-  color: var(--color-text-primary);
-  background: var(--color-surface-muted);
-}
-
-/* ─── Import progress ─── */
-.import-progress {
-  padding: var(--space-3);
-}
-
-.import-info {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--space-2);
-}
-
-.import-filename {
-  font-size: 12px;
-  color: var(--color-text-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 70%;
-}
-
-.import-percent {
-  font-size: 12px;
-  color: var(--color-accent);
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-}
-
-.import-bar-track {
-  height: 4px;
-  background: var(--color-surface-muted);
-  border-radius: var(--radius-full);
-  overflow: hidden;
-}
-
-.import-bar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--color-accent), color-mix(in srgb, var(--color-accent) 70%, #fff));
-  border-radius: var(--radius-full);
-  transition: width 0.3s ease;
-}
-
-.import-step {
-  font-size: 11px;
-  color: var(--color-text-muted);
-  margin-top: var(--space-1);
-}
-
+/* ─── Import error ─── */
 .import-error {
   display: flex;
   align-items: center;
@@ -1021,106 +821,5 @@ function confirmDeleteAction() {
 
 .import-error-close:hover {
   opacity: 1;
-}
-
-/* ─── Delete confirmation ─── */
-.confirm-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 300;
-  background: rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.confirm-dialog {
-  width: 280px;
-  background: var(--color-surface-card);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-lg);
-  padding: var(--space-5);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-.confirm-message {
-  font-size: var(--font-size-sm);
-  font-weight: 500;
-  color: var(--color-text-primary);
-  margin: 0;
-}
-
-.confirm-title {
-  font-size: 12px;
-  color: var(--color-text-muted);
-  margin: 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.confirm-skip {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: 12px;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  user-select: none;
-}
-
-.confirm-skip input {
-  accent-color: var(--color-accent);
-  cursor: pointer;
-}
-
-.confirm-actions {
-  display: flex;
-  gap: var(--space-2);
-  justify-content: flex-end;
-  margin-top: var(--space-1);
-}
-
-.confirm-btn {
-  padding: var(--space-2) var(--space-4);
-  border-radius: var(--radius-sm);
-  font-size: var(--font-size-sm);
-  font-weight: 500;
-  cursor: pointer;
-  border: 1px solid var(--color-border-subtle);
-  transition: background 0.15s ease, border-color 0.15s ease;
-}
-
-.confirm-btn--cancel {
-  background: transparent;
-  color: var(--color-text-secondary);
-}
-
-.confirm-btn--cancel:hover {
-  background: var(--color-surface-muted);
-}
-
-.confirm-btn--danger {
-  background: var(--color-error, #c53030);
-  color: #fff;
-  border-color: var(--color-error, #c53030);
-}
-
-.confirm-btn--danger:hover {
-  opacity: 0.9;
-}
-
-.confirm-fade-enter-active,
-.confirm-fade-leave-active {
-  transition: opacity 0.2s ease;
-}
-
-.confirm-fade-enter-from,
-.confirm-fade-leave-to {
-  opacity: 0;
 }
 </style>

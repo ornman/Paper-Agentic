@@ -87,6 +87,7 @@ def _install_mocks():
     sse_mod.ErrorEvent = _make_event("error")
     sse_mod.ReflectionEvent = _make_event("reflection")
     sse_mod.MetadataEvent = _make_event("metadata")
+    sse_mod.StatusEvent = _make_event("status")
     mods["app.agent_layer.contracts.sse_events"] = sse_mod
 
     # Mock hooks.reflection

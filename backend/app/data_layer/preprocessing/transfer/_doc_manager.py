@@ -165,6 +165,13 @@ class DocumentManager:
         self._soft_delete_manager.mark_deleted(paper_id)
         logger.info("文档已标记软删除: %s", paper_id)
 
+    def restore(self, paper_id: str) -> None:
+        """恢复软删除的文档"""
+        if self._soft_delete_manager is None:
+            raise RuntimeError("soft_delete_manager 未配置")
+        self._soft_delete_manager.unmark_deleted(paper_id)
+        logger.info("文档已取消软删除: %s", paper_id)
+
     def hard_delete(self, paper_id: str) -> None:
         """硬删除文档（索引 + 文件）"""
         if self._vector_index:
