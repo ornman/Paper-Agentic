@@ -37,6 +37,7 @@ def test_ordered_list():
     assert isinstance(blocks[0], BlockList)
     assert blocks[0].ordered is True
     assert len(blocks[0].items) == 3
+    assert blocks[0].items == ["第一步", "第二步", "第三步"]
 
 
 def test_table():
