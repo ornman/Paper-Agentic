@@ -27,17 +27,14 @@
       <span class="phase-timer">{{ phaseElapsed }}s</span>
     </div>
 
-    <!-- Content blocks -->
+    <!-- Content blocks (unified: streaming blocks + server blocks share the same template) -->
     <div
       class="content-blocks"
       @click="onContentClick"
       @mouseenter.capture="onContentMouseEnter"
       @mouseleave.capture="onContentMouseLeave"
     >
-      <!-- Streaming text preview (shown before structured blocks arrive) -->
-      <div v-if="message.streamingText" class="streaming-content" v-html="renderStreaming(message.streamingText)"></div>
-
-      <template v-for="(block, index) in message.blocks" :key="index">
+      <template v-for="(block, index) in displayBlocks" :key="index">
         <!-- Paragraph -->
         <p v-if="block.type === 'paragraph'" class="block-paragraph" v-html="renderCitations(block.text)"></p>
 
@@ -147,7 +144,8 @@
 <script setup lang="ts">
 import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import type { AssistantMessage } from '../types/message'
-import { renderInline, renderStreaming, renderParagraphWithCitations } from '../utils/citation-renderer'
+import { renderInline, renderParagraphWithCitations } from '../utils/citation-renderer'
+import { parseStreamingBlocks } from '../utils/markdown-inline'
 
 const props = defineProps<{
   message: AssistantMessage
@@ -198,6 +196,15 @@ const numberedSources = computed(() => {
     }
   }
   return [...seen.values()]
+})
+
+/** Unified block list: streaming-parsed blocks OR server-parsed blocks, never both.
+ *  When server blocks arrive, streamingText is cleared by the store, so this
+ *  seamlessly switches from client-parsed to server-parsed without visual jump. */
+const displayBlocks = computed(() => {
+  if (props.message.blocks.length > 0) return props.message.blocks
+  if (props.message.streamingText) return parseStreamingBlocks(props.message.streamingText)
+  return []
 })
 
 function formatThinkingTime(ms: number): string {
@@ -385,73 +392,6 @@ function onContentMouseLeave(event: MouseEvent): void {
   font-size: var(--font-size-base);
   line-height: 1.7;
   color: var(--color-text-primary);
-}
-
-/* Streaming content uses the same block styles */
-.streaming-content {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  font-size: var(--font-size-base);
-  line-height: 1.7;
-  color: var(--color-text-primary);
-}
-
-/* :deep() required — children are rendered via v-html, no scoped attribute */
-.streaming-content :deep(.block-paragraph) {
-  word-break: break-word;
-}
-
-.streaming-content :deep(.block-heading) {
-  font-weight: 600;
-  color: var(--color-text-primary);
-  margin-top: var(--space-2);
-}
-
-.streaming-content :deep(.block-list) {
-  padding-left: var(--space-5);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.streaming-content :deep(.block-list--ordered) {
-  list-style: decimal;
-}
-
-.streaming-content :deep(.block-list li) {
-  word-break: break-word;
-}
-
-.streaming-content :deep(.block-list li::marker) {
-  color: var(--color-text-muted);
-}
-
-.streaming-content :deep(.block-blockquote) {
-  padding: var(--space-2) var(--space-4);
-  border-left: 3px solid var(--color-accent);
-  background: var(--color-accent-soft);
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-  color: var(--color-text-secondary);
-  font-style: italic;
-  word-break: break-word;
-}
-
-.streaming-content :deep(.block-code) {
-  margin: 0;
-  padding: var(--space-3) var(--space-4);
-  overflow-x: auto;
-  font-family: var(--font-family-mono);
-  font-size: var(--font-size-sm);
-  line-height: 1.6;
-  color: var(--color-text-primary);
-  background: var(--color-surface-muted);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
-}
-
-.streaming-content :deep(.block-code code) {
-  font-family: inherit;
 }
 
 .block-paragraph {

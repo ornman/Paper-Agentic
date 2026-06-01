@@ -1,5 +1,5 @@
 import type { SourceCard } from '../types/source'
-import { renderInlineMarkdown, renderStreamingMarkdown } from './markdown-inline'
+import { renderInlineMarkdown } from './markdown-inline'
 
 /** 最小 HTML 转义，防止 v-html XSS */
 export function escapeHtml(str: string): string {
@@ -15,15 +15,6 @@ export function escapeHtml(str: string): string {
 export function renderInline(text: string | undefined): string {
   if (!text) return ''
   return renderInlineMarkdown(escapeHtml(text))
-}
-
-/**
- * 渲染流式文本的 Markdown（块级 + 内联），用于 streamingText 阶段。
- * 处理标题、列表、代码块、引用、段落分隔等，使流式阶段也有基本排版。
- */
-export function renderStreaming(text: string | undefined): string {
-  if (!text) return ''
-  return renderStreamingMarkdown(escapeHtml(text))
 }
 
 export interface NumberedSource {

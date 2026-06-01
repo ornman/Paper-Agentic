@@ -1,12 +1,15 @@
 /**
- * Lightweight markdown → HTML converters.
+ * Lightweight inline markdown → HTML + streaming block parser.
  *
  * - renderInlineMarkdown: handles **bold**, *italic*, `code` (for block content)
- * - renderStreamingMarkdown: lightweight block+inline for streaming preview
+ * - parseStreamingBlocks: parses raw markdown text into ContentBlock[] for
+ *   unified rendering with the same Vue template used for server-parsed blocks.
  *
- * All functions expect already-HTML-escaped input (via escapeHtml)
+ * renderInlineMarkdown operates on already-HTML-escaped text (via escapeHtml)
  * so that only known safe patterns are turned back into HTML tags.
  */
+
+import type { ContentBlock } from '../types/content'
 
 // ── Inline patterns (operate on escaped text) ──
 
@@ -23,43 +26,36 @@ export function renderInlineMarkdown(escaped: string): string {
   return result
 }
 
-// ── Streaming renderer ──
-// Handles block-level structures commonly seen in LLM output during streaming:
-// headings, ordered/unordered lists, code fences, blockquotes, paragraphs.
+// ── Streaming block parser ──
+// Produces ContentBlock[] from raw markdown text, matching the same structure
+// that the backend's stream_to_blocks() generates. This allows the frontend
+// to use a single Vue template for both streaming and final rendering.
 
 const HEADING_RE = /^(#{1,4})\s+(.+)$/
 const ORDERED_LIST_RE = /^(\d+)\.\s+(.*)$/
 const UNORDERED_LIST_RE = /^[-*]\s+(.*)$/
-const BLOCKQUOTE_RE = /^&gt;\s?(.*)$/
+const BLOCKQUOTE_RE = /^>\s?(.*)$/
 const CODE_FENCE_OPEN_RE = /^```(\w*)$/
 const CODE_FENCE_CLOSE_RE = /^```\s*$/
 
 /**
- * Render streaming text with lightweight block-level markdown support.
- * Produces safe HTML for v-html consumption.
- * Intentionally simple — full block parsing happens server-side via ContentBlock events.
+ * Parse raw markdown text into ContentBlock[] for streaming preview.
+ * Output is structurally identical to backend's stream_to_blocks(),
+ * so the same Vue template renders both without visual jump.
  */
-export function renderStreamingMarkdown(escaped: string): string {
-  const lines = escaped.split('\n')
-  const htmlParts: string[] = []
+export function parseStreamingBlocks(rawText: string): ContentBlock[] {
+  const lines = rawText.split('\n')
+  const blocks: ContentBlock[] = []
   let inCodeFence = false
+  let codeLang = ''
   let codeLines: string[] = []
-  let inList = false
   let listOrdered = false
   let listItems: string[] = []
 
   const flushList = () => {
     if (listItems.length === 0) return
-    const tag = listOrdered ? 'ol' : 'ul'
-    const cls = listOrdered
-      ? 'block-list block-list--ordered'
-      : 'block-list'
-    const items = listItems
-      .map((item) => `<li>${renderInlineMarkdown(item)}</li>`)
-      .join('')
-    htmlParts.push(`<${tag} class="${cls}">${items}</${tag}>`)
+    blocks.push({ type: 'list', ordered: listOrdered, items: [...listItems] })
     listItems = []
-    inList = false
   }
 
   for (let i = 0; i < lines.length; i++) {
@@ -68,8 +64,11 @@ export function renderStreamingMarkdown(escaped: string): string {
     // ── Code fence handling ──
     if (inCodeFence) {
       if (CODE_FENCE_CLOSE_RE.test(line)) {
-        const code = codeLines.join('\n')
-        htmlParts.push(`<pre class="block-code"><code>${code}</code></pre>`)
+        blocks.push({
+          type: 'code',
+          language: codeLang || undefined,
+          code: codeLines.join('\n'),
+        })
         codeLines = []
         inCodeFence = false
       } else {
@@ -82,6 +81,7 @@ export function renderStreamingMarkdown(escaped: string): string {
     if (fenceOpen) {
       flushList()
       inCodeFence = true
+      codeLang = fenceOpen[1] || ''
       codeLines = []
       continue
     }
@@ -90,19 +90,18 @@ export function renderStreamingMarkdown(escaped: string): string {
     const headingMatch = HEADING_RE.exec(line)
     if (headingMatch) {
       flushList()
-      const level = Math.min(headingMatch[1].length, 4)
-      const text = renderInlineMarkdown(headingMatch[2].trim())
-      const tag = `h${level}`
-      const cls = level === 2 ? 'block-heading' : `block-heading block-heading--h${level}`
-      htmlParts.push(`<${tag} class="${cls}">${text}</${tag}>`)
+      blocks.push({
+        type: 'heading',
+        level: Math.min(headingMatch[1].length, 4),
+        text: headingMatch[2].trim(),
+      })
       continue
     }
 
     // ── Ordered list ──
     const orderedMatch = ORDERED_LIST_RE.exec(line)
     if (orderedMatch) {
-      if (inList && !listOrdered) flushList()
-      inList = true
+      if (listOrdered === false && listItems.length > 0) flushList()
       listOrdered = true
       listItems.push(orderedMatch[2].trim())
       continue
@@ -111,8 +110,7 @@ export function renderStreamingMarkdown(escaped: string): string {
     // ── Unordered list ──
     const unorderedMatch = UNORDERED_LIST_RE.exec(line)
     if (unorderedMatch) {
-      if (inList && listOrdered) flushList()
-      inList = true
+      if (listOrdered === true && listItems.length > 0) flushList()
       listOrdered = false
       listItems.push(unorderedMatch[1].trim())
       continue
@@ -122,31 +120,32 @@ export function renderStreamingMarkdown(escaped: string): string {
     const quoteMatch = BLOCKQUOTE_RE.exec(line)
     if (quoteMatch) {
       flushList()
-      const text = renderInlineMarkdown(quoteMatch[1].trim())
-      htmlParts.push(`<blockquote class="block-blockquote">${text}</blockquote>`)
+      blocks.push({ type: 'blockquote', text: quoteMatch[1].trim() })
       continue
     }
 
-    // ── Empty line → paragraph break ──
+    // ── Empty line → break ──
     if (line.trim() === '') {
       flushList()
-      // Don't emit empty paragraphs
       continue
     }
 
     // ── Plain text → paragraph ──
     flushList()
-    htmlParts.push(`<p class="block-paragraph">${renderInlineMarkdown(line)}</p>`)
+    blocks.push({ type: 'paragraph', text: line.trim() })
   }
 
   // Flush remaining list
   flushList()
 
-  // Unclosed code fence → show what we have
+  // Unclosed code fence → emit what we have (streaming may still be writing)
   if (inCodeFence && codeLines.length > 0) {
-    const code = codeLines.join('\n')
-    htmlParts.push(`<pre class="block-code"><code>${code}</code></pre>`)
+    blocks.push({
+      type: 'code',
+      language: codeLang || undefined,
+      code: codeLines.join('\n'),
+    })
   }
 
-  return htmlParts.join('')
+  return blocks
 }
