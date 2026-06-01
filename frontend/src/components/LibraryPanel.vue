@@ -357,26 +357,16 @@ function handleRetry(paperId: string) {
 }
 
 function handleRemove(paperId: string) {
-  const hasSelection = props.selectedIds.length > 0
-  const idsToDelete = hasSelection ? [...props.selectedIds] : [paperId]
-
+  // 单篇删除：只删除这一篇，不涉及选中项
   if (skipDeleteConfirm.value) {
-    for (const id of idsToDelete) {
-      emit('remove', id)
-    }
+    emit('remove', paperId)
     return
   }
 
-  if (idsToDelete.length > 1) {
-    confirmDelete.paperId = ''
-    confirmDelete.title = `${idsToDelete.length} 篇论文`
-    confirmDelete.batchIds = idsToDelete
-  } else {
-    const paper = props.papers.find((p) => p.paper_id === paperId)
-    confirmDelete.paperId = paperId
-    confirmDelete.title = paper?.title || paperId
-    confirmDelete.batchIds = []
-  }
+  const paper = props.papers.find((p) => p.paper_id === paperId)
+  confirmDelete.paperId = paperId
+  confirmDelete.title = paper?.title || paperId
+  confirmDelete.batchIds = []
   confirmDelete.visible = true
 }
 
