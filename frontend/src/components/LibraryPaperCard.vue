@@ -14,10 +14,10 @@
     <div class="paper-card-body">
       <span class="paper-card-title" v-html="highlightTitle" />
       <span class="paper-card-meta">
-        {{ authorDisplay }}
-        <template v-if="paper.year"> · {{ paper.year }}</template>
-        · {{ paper.total_pages }} 页
-        · {{ paper.chunk_count }} 个引用片段
+        <template v-if="authorDisplay">{{ authorDisplay }} · </template>
+        <template v-if="paper.year">{{ paper.year }} · </template>
+        {{ paper.total_pages }} 页
+        · {{ paper.chunk_count }} 个分段
       </span>
       <div v-if="displayKeywords.length" class="paper-card-keywords">
         <span v-for="kw in displayKeywords" :key="kw" class="paper-card-pill">{{ kw }}</span>
@@ -58,8 +58,8 @@
       <span class="paper-card-title" v-html="highlightTitle" />
       <span class="paper-card-failed-badge">导入失败</span>
       <span class="paper-card-meta">
-        {{ authorDisplay }}
-        <template v-if="paper.year"> · {{ paper.year }}</template>
+        <template v-if="authorDisplay">{{ authorDisplay }} · </template>
+        <template v-if="paper.year">{{ paper.year }}</template>
       </span>
     </div>
     <div class="paper-card-actions">
@@ -115,8 +115,8 @@ const displayKeywords = computed(() =>
 )
 
 const authorDisplay = computed(() => {
-  const authors = props.paper.authors
-  if (!authors) return '未知作者'
+  const authors = props.paper.authors?.trim()
+  if (!authors) return ''
   if (authors.length <= 28) return authors
   const first = authors.split(',')[0]?.trim() ?? authors
   return `${first} et al.`
