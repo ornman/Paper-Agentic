@@ -4,6 +4,7 @@
       <div v-if="visible" class="confirm-overlay" @click.self="emit('cancel')">
         <div class="confirm-dialog">
           <p class="confirm-message">{{ count > 1 ? `确定要删除选中的 ${count} 篇论文吗？` : '确定要删除这篇论文吗？' }}</p>
+          <p v-if="warning" class="confirm-warning">{{ warning }}</p>
           <p class="confirm-title">{{ title }}</p>
           <label class="confirm-skip">
             <input type="checkbox" :checked="skipConfirm" @change="emit('update:skipConfirm', ($event.target as HTMLInputElement).checked)" />
@@ -25,6 +26,7 @@ defineProps<{
   title: string
   count: number
   skipConfirm: boolean
+  warning?: string
 }>()
 
 const emit = defineEmits<{
@@ -62,6 +64,13 @@ const emit = defineEmits<{
   font-weight: 500;
   color: var(--color-text-primary);
   margin: 0;
+}
+
+.confirm-warning {
+  font-size: 12px;
+  color: var(--color-error, #c53030);
+  margin: 0;
+  opacity: 0.8;
 }
 
 .confirm-title {
