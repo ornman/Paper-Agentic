@@ -4,12 +4,6 @@ import type { PaperItem } from '../services/library-api'
 
 export type SortMode = 'relevance' | 'time' | 'year' | 'title'
 
-export interface SearchState {
-  query: string
-  yearFilter: string
-  authorFilter: string
-  sortBy: SortMode
-}
 
 const fuseOptions: IFuseOptions<PaperItem> = {
   keys: [

@@ -1,6 +1,6 @@
 <template>
   <div class="chat-layout">
-    <TopBar @new-chat="handleNewChat" @open-history="handleOpenHistory" />
+    <TopNavBar title="论文助手" @new-chat="handleNewChat" @open-history="handleOpenHistory" />
 
     <main class="chat-main">
       <!-- 消息区域 -->
@@ -124,7 +124,7 @@ import { listSessions, createSession, deleteSession, getMessages } from '../serv
 import type { ConversationSession } from '../services/conversation-api'
 import { useWPSPolling } from '../composables/wps'
 import { isDemoMode, DEMO_PAPERS, DEMO_SESSIONS } from '../demo'
-import TopBar from '../components/TopBar.vue'
+import TopNavBar from '../components/TopNavBar.vue'
 import MessageList from '../components/MessageList.vue'
 import EmptyState from '../components/EmptyState.vue'
 
