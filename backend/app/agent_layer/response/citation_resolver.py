@@ -37,13 +37,20 @@ def inject_citations(
     block_citations: list[BlockCitation] = []
     clean_parts: list[str] = []
     prev_end = 0
+    clean_offset = 0  # 追踪 clean text 中的累积字符位置
 
     for start, end, index in citations:
-        clean_parts.append(text[prev_end:start])
-        prev_end = end
+        segment = text[prev_end:start]
+        clean_parts.append(segment)
+        clean_offset += len(segment)
+
         source_id = citation_map.get(index)
         if source_id:
-            block_citations.append(BlockCitation(sourceId=source_id))
+            block_citations.append(
+                BlockCitation(sourceId=source_id, offset=clean_offset)
+            )
+
+        prev_end = end
 
     clean_parts.append(text[prev_end:])
     clean_text = "".join(clean_parts)

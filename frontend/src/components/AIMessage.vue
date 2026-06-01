@@ -36,7 +36,7 @@
     >
       <template v-for="(block, index) in displayBlocks" :key="index">
         <!-- Paragraph -->
-        <p v-if="block.type === 'paragraph'" class="block-paragraph" v-html="renderCitations(block.text)"></p>
+        <p v-if="block.type === 'paragraph'" class="block-paragraph" v-html="renderCitations(block)"></p>
 
         <!-- Heading -->
         <h2 v-else-if="block.type === 'heading' && block.level === 2" class="block-heading" v-html="renderInline(block.text)"></h2>
@@ -86,7 +86,7 @@
         </blockquote>
 
         <!-- Fallback: render as paragraph -->
-        <p v-else-if="block.text" class="block-paragraph" v-html="renderCitations(block.text)"></p>
+        <p v-else-if="block.text" class="block-paragraph" v-html="renderCitations(block)"></p>
       </template>
 
       <!-- Streaming cursor -->
@@ -143,8 +143,9 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onBeforeUnmount } from 'vue'
+import type { ContentBlock } from '../types/content'
 import type { AssistantMessage } from '../types/message'
-import { renderInline, renderParagraphWithCitations } from '../utils/citation-renderer'
+import { renderInline, renderParagraphWithCitations, renderParagraphWithExactCitations } from '../utils/citation-renderer'
 import { parseStreamingBlocks } from '../utils/markdown-inline'
 
 const props = defineProps<{
@@ -184,18 +185,9 @@ onBeforeUnmount(() => {
   if (phaseTimer) { clearInterval(phaseTimer); phaseTimer = null }
 })
 
-/** Deduplicated sources keyed by paper_id (or id as fallback), numbered [1], [2], … */
+/** Sources numbered by their position in the sources array (1-based). No dedup. */
 const numberedSources = computed(() => {
-  const seen = new Map<string, { source: AssistantMessage['sources'][number]; num: number }>()
-  let num = 0
-  for (const s of props.message.sources) {
-    const key = s.paper_id ?? s.id
-    if (!seen.has(key)) {
-      num += 1
-      seen.set(key, { source: s, num })
-    }
-  }
-  return [...seen.values()]
+  return props.message.sources.map((source, i) => ({ source, num: i + 1 }))
 })
 
 /** Unified block list: streaming-parsed blocks OR server-parsed blocks, never both.
@@ -216,9 +208,13 @@ function formatThinkingTime(ms: number): string {
   return `${minutes}m${remaining}s`
 }
 
-/** Render paragraph with citation markers (delegates to utility) */
-function renderCitations(text: string | undefined): string {
-  return renderParagraphWithCitations(text, numberedSources.value)
+/** Render paragraph with citation markers — exact offsets when available, heuristic fallback */
+function renderCitations(block: ContentBlock): string {
+  if (block.citations?.length) {
+    return renderParagraphWithExactCitations(block.text, block.citations, props.message.sources)
+  }
+  // 降级：旧消息无 block.citations，走启发式
+  return renderParagraphWithCitations(block.text, numberedSources.value)
 }
 
 /** Copy code block content to clipboard */

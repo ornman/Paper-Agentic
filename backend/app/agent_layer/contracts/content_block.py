@@ -7,6 +7,7 @@ from pydantic import BaseModel, Discriminator, Tag
 
 class BlockCitation(BaseModel):
     sourceId: str
+    offset: int  # 字符偏移量：在 clean text（已剥离 [N]）中的位置
 
 
 class BlockParagraph(BaseModel):

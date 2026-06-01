@@ -1,4 +1,5 @@
 import type { SourceCard } from '../types/source'
+import type { CitationAnnotation } from '../types/content'
 import { renderInlineMarkdown } from './markdown-inline'
 
 /** 最小 HTML 转义，防止 v-html XSS */
@@ -23,7 +24,54 @@ export interface NumberedSource {
 }
 
 /**
- * 在段落文本中插入行内引用标记。
+ * 基于后端精确偏移量的引用渲染。
+ * 将 clean text 按 offset 切分为 N+1 段，每段独立做 escapeHtml + inline markdown，
+ * 段间插入 <sup> 标记。
+ */
+export function renderParagraphWithExactCitations(
+  text: string | undefined,
+  citations: CitationAnnotation[],
+  sources: SourceCard[],
+): string {
+  if (!text) return ''
+  if (!citations.length) return renderInlineMarkdown(escapeHtml(text))
+
+  // 按 offset 升序排列
+  const sorted = [...citations].sort((a, b) => a.offset - b.offset)
+
+  // 构建 sourceId → 编号 的映射（1-based）
+  const sourceNumMap = new Map<string, number>()
+  for (let i = 0; i < sources.length; i++) {
+    sourceNumMap.set(sources[i].id, i + 1)
+  }
+
+  const parts: string[] = []
+  let prevOffset = 0
+
+  for (const cite of sorted) {
+    const offset = Math.min(cite.offset, text.length)
+    // 偏移前的文本段
+    const segment = text.slice(prevOffset, offset)
+    parts.push(renderInlineMarkdown(escapeHtml(segment)))
+
+    // 引用标记
+    const num = sourceNumMap.get(cite.sourceId) ?? '?'
+    parts.push(
+      `<sup class="cite-marker" data-source-id="${escapeHtml(cite.sourceId)}">[${num}]</sup>`,
+    )
+
+    prevOffset = offset
+  }
+
+  // 尾部剩余文本
+  const tail = text.slice(prevOffset)
+  parts.push(renderInlineMarkdown(escapeHtml(tail)))
+
+  return parts.join('')
+}
+
+/**
+ * 启发式引用渲染（降级用）。
  * 策略：在句末标点（。！？；.!?) 后插入可点击的 <sup>[N]</sup>，
  * 引用来源轮询分配，每段最多 2 个标记。
  */
