@@ -40,7 +40,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { ConversationRecord, AssistantMessage } from '../stores/conversation'
+import type { ConversationRecord, AssistantMessage } from '../types/message'
 import UserMessage from './UserMessage.vue'
 import AIMessage from './AIMessage.vue'
 

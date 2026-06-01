@@ -1,6 +1,6 @@
 import { ref, computed } from 'vue'
 import Fuse, { type IFuseOptions } from 'fuse.js'
-import type { PaperItem } from '../services/library-api'
+import type { PaperItem } from '../types/paper'
 
 export type SortMode = 'relevance' | 'time' | 'year' | 'title'
 

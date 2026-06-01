@@ -1,47 +1,10 @@
 // 论文管理 API 客户端
 
 import { buildApiUrl, ApiClientError } from './api-client'
+import type { PaperItem, ImportStartResult, ImportStatus } from '../types/paper'
 
-export interface PaperItem {
-  paper_id: string
-  title: string
-  authors: string
-  year: string
-  keywords: string[]
-  file_path: string
-  file_hash: string
-  chunk_count: number
-  total_pages: number
-  import_time: string
-  status: string
-  library_item_id: string
-  kind: string
-  file_size: number | null
-}
-
-export interface ImportStartResult {
-  task_id: string
-  status: string
-}
-
-export interface ImportStatus {
-  task_id: string
-  paper_id: string | null
-  status: string
-  current_step: string | null
-  error_msg: string | null
-  file_name?: string | null
-  percent?: number
-}
-
-export interface ImportProgressEvent {
-  status: string
-  step: string | null
-  paper_id: string | null
-  error_msg?: string | null
-  file_name?: string | null
-  percent?: number
-}
+export type { PaperItem, ImportStartResult, ImportStatus }
+export type { ImportProgressEvent } from '../types/paper'
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(buildApiUrl(path), init)

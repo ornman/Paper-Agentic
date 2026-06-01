@@ -1,20 +1,7 @@
 import { buildApiUrl, ApiClientError } from './api-client'
+import type { ConversationSession, ConversationMessage } from '../types/conversation'
 
-export interface ConversationSession {
-  session_id: string
-  title: string
-  created_at: string
-  updated_at: string
-}
-
-export interface ConversationMessage {
-  session_id: string
-  role: string
-  content: string
-  created_at: string
-  sources_json: string | null
-  blocks_json: string | null
-}
+export type { ConversationSession, ConversationMessage }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(buildApiUrl(path), init)

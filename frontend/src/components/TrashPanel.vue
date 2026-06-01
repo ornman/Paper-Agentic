@@ -75,7 +75,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import type { PaperItem } from '../services/library-api'
+import type { PaperItem } from '../types/paper'
 
 defineProps<{
   papers: PaperItem[]

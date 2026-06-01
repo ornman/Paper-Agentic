@@ -146,7 +146,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onBeforeUnmount } from 'vue'
-import type { AssistantMessage } from '../stores/conversation'
+import type { AssistantMessage } from '../types/message'
 import { renderInlineMarkdown } from '../utils/markdown-inline'
 
 const props = defineProps<{

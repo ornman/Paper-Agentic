@@ -1,8 +1,8 @@
 // Demo 模式 — 无需后端的完整产品预览
-import type { PaperItem } from '../services/library-api'
+import type { PaperItem } from '../types/paper'
 import type { SourceCard } from '../types/source'
 import type { ContentBlock } from '../types/content'
-import type { AssistantMessage, ConversationRecord } from '../stores/conversation'
+import type { AssistantMessage, ConversationRecord } from '../types/message'
 
 // ─── 检测 demo 模式 ───
 export function isDemoMode(): boolean {

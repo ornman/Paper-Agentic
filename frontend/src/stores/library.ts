@@ -9,10 +9,8 @@ import {
   permanentDeletePaper,
   startImport,
   fetchImportStatus,
-  type PaperItem,
-  type ImportProgressEvent,
-  type ImportStatus,
 } from '../services/library-api'
+import type { PaperItem, ImportProgressEvent, ImportStatus } from '../types/paper'
 import { ApiClientError } from '../services/api-client'
 import { useLogger } from '../composables/logger'
 
