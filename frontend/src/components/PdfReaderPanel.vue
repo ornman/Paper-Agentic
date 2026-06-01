@@ -100,7 +100,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick, onBeforeUnmount, computed, type Ref } from 'vue'
+import { ref, shallowRef, watch, nextTick, onBeforeUnmount, computed, type Ref } from 'vue'
 import type { PDFDocumentProxy } from 'pdfjs-dist'
 import { usePdfjs } from '../composables/use-pdfjs'
 import { usePdfRenderer, type ViewMode } from '../composables/use-pdf-renderer'
@@ -140,9 +140,10 @@ const hasOutline = ref(false)
 const outlineItems = ref<OutlineItem[]>([])
 const viewMode = ref<ViewMode>('continuous')
 
-// pdfjs-dist types have #private fields that don't survive through ref() generic inference.
-// Use explicit cast to avoid TS errors while keeping runtime correctness.
-const pdfDocProxy = ref<PDFDocumentProxy | null>(null) as Ref<PDFDocumentProxy | null>
+// pdfjs-dist PDFDocumentProxy has JS private fields (#).
+// ref() creates a deep reactive Proxy that breaks private field access ("Cannot read from private field").
+// shallowRef() stores the raw object without proxying — Vue's recommended pattern for class instances.
+const pdfDocProxy = shallowRef<PDFDocumentProxy | null>(null) as Ref<PDFDocumentProxy | null>
 
 const renderer = usePdfRenderer(pdfDocProxy, scale, viewMode)
 
