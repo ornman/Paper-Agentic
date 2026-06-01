@@ -35,7 +35,7 @@
 
 <script setup lang="ts">
 import { ref, nextTick } from 'vue'
-import type { UserMessage as UserMessageType } from '../stores/conversation'
+import type { UserMessage as UserMessageType } from '../types/message'
 
 const props = defineProps<{
   message: UserMessageType

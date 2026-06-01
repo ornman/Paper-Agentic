@@ -1,5 +1,9 @@
 /**
  * WPS API 集成层
+ *
+ * 架构：事件驱动（加速路径）+ 轮询（兜底路径）双保险
+ * - SelectionChange 事件 → 立即推送选区（300ms debounce）
+ * - 轮询定时器（3s 间隔）→ 兜底检测选区 + 文档全文变化
  */
 
 import { ref, onMounted, onUnmounted } from 'vue'
@@ -37,8 +41,16 @@ interface WPSApplication {
         Text: string
       }
     }
-    SelectionChange: ((selection: any) => void) | null
+    SelectionChange: ((selection: unknown) => void) | null
   }
+}
+
+/** 完整的选区信息，包含文档中的真实偏移量 */
+export interface SelectionInfo {
+  text: string
+  start: number
+  end: number
+  source: 'selection' | 'range'
 }
 
 function logSelectionAccessFailure(error: unknown) {
@@ -92,32 +104,53 @@ export function useWPSSelection() {
   const { wpsAPI, isWPSAvailable } = useWPSDetection()
   const selectedText = ref('')
 
-  function getSelectedText(): string {
+  /** 获取完整选区信息（含真实文档偏移量） */
+  function getSelectionInfo(): SelectionInfo | null {
     if (!isWPSAvailable.value || !wpsAPI.value) {
-      return ''
+      return null
     }
 
     try {
       const activeWindow = wpsAPI.value.ActiveWindow
       const selection = activeWindow?.Selection
       if (!selection) {
-        return ''
+        return null
       }
 
+      // 优先用 Range（有真实偏移量）
       const range = selection.Range
-      if (range && range.Text) {
+      if (range?.Text) {
         const text = range.Text.trim()
+        if (!text) return null
         selectedText.value = text
-        return text
+        return {
+          text,
+          start: selection.Start,
+          end: selection.End,
+          source: 'range',
+        }
       }
 
+      // fallback：用 Selection.Text
       const text = (selection.Text || '').trim()
+      if (!text) return null
       selectedText.value = text
-      return text
+      return {
+        text,
+        start: selection.Start,
+        end: selection.End,
+        source: 'selection',
+      }
     } catch (error) {
       logSelectionAccessFailure(error)
-      return ''
+      return null
     }
+  }
+
+  /** @deprecated 使用 getSelectionInfo() 获取完整选区信息 */
+  function getSelectedText(): string {
+    const info = getSelectionInfo()
+    return info?.text ?? ''
   }
 
   function getDocumentContent(): string {
@@ -139,50 +172,134 @@ export function useWPSSelection() {
 
   return {
     selectedText,
+    getSelectionInfo,
     getSelectedText,
     getDocumentContent,
     isWPSAvailable,
   }
 }
 
-const POLLING_INTERVAL = 5000
+// ── 事件驱动的选区监听（加速路径） ──
+
+const SELECTION_DEBOUNCE_MS = 300
+const REBIND_INTERVAL = 2000
+
+export function useWPSSelectionChange(
+  onChanged: (info: SelectionInfo) => void,
+) {
+  const { wpsAPI, isWPSAvailable } = useWPSDetection()
+  let debounceTimer: ReturnType<typeof setTimeout> | null = null
+  let rebindTimer: ReturnType<typeof setInterval> | null = null
+
+  function bindHandler() {
+    if (!isWPSAvailable.value || !wpsAPI.value) return
+    const win = wpsAPI.value.ActiveWindow
+    if (!win) return
+
+    win.SelectionChange = () => {
+      if (debounceTimer) clearTimeout(debounceTimer)
+      debounceTimer = setTimeout(() => {
+        const info = getSelectionInfoInternal()
+        if (info) onChanged(info)
+      }, SELECTION_DEBOUNCE_MS)
+    }
+  }
+
+  function getSelectionInfoInternal(): SelectionInfo | null {
+    if (!isWPSAvailable.value || !wpsAPI.value) return null
+    try {
+      const selection = wpsAPI.value.ActiveWindow?.Selection
+      if (!selection) return null
+      const range = selection.Range
+      if (range?.Text) {
+        const text = range.Text.trim()
+        if (!text) return null
+        return { text, start: selection.Start, end: selection.End, source: 'range' }
+      }
+      const text = (selection.Text || '').trim()
+      if (!text) return null
+      return { text, start: selection.Start, end: selection.End, source: 'selection' }
+    } catch {
+      return null
+    }
+  }
+
+  function startRebindWatch() {
+    rebindTimer = setInterval(() => {
+      if (isWPSAvailable.value) {
+        bindHandler()
+      }
+    }, REBIND_INTERVAL)
+  }
+
+  function stopRebindWatch() {
+    if (rebindTimer) {
+      clearInterval(rebindTimer)
+      rebindTimer = null
+    }
+  }
+
+  onUnmounted(() => {
+    if (debounceTimer) clearTimeout(debounceTimer)
+    stopRebindWatch()
+  })
+
+  return { bindHandler, startRebindWatch, stopRebindWatch }
+}
+
+// ── 轮询（兜底路径） ──
+
+const POLLING_INTERVAL = 3000
+const DOC_SYNC_THROTTLE_MS = 10000
 
 export function useWPSPolling(autoFill = true, sessionIdGetter?: () => string) {
-  const { getSelectedText, getDocumentContent, isWPSAvailable } = useWPSSelection()
+  const { getSelectionInfo, getDocumentContent, isWPSAvailable } = useWPSSelection()
   const pollingTimer = ref<number | null>(null)
   const isPolling = ref(false)
-  const lastSelection = ref('')
+  const lastSelectionKey = ref('')
   const lastDocContent = ref('')
+  const lastDocSyncAt = ref(0)
+
+  function selectionKey(info: SelectionInfo): string {
+    return `${info.text}|${info.start}|${info.end}`
+  }
 
   function doPoll() {
     // ── 选区同步 ──
-    const text = getSelectedText()
-    if (text && text !== lastSelection.value) {
-      if (autoFill && text.trim().length > 0) {
-        const inputElement = document.querySelector('textarea.composer-input') as HTMLTextAreaElement | null
-        if (inputElement && !inputElement.disabled) {
-          inputElement.value = text
-          inputElement.dispatchEvent(new Event('input', { bubbles: true }))
+    const info = getSelectionInfo()
+    if (info) {
+      const key = selectionKey(info)
+      if (key !== lastSelectionKey.value) {
+        if (autoFill && info.text.trim().length > 0) {
+          const inputElement = document.querySelector('textarea.composer-textarea') as HTMLTextAreaElement | null
+          if (inputElement && !inputElement.disabled) {
+            inputElement.value = info.text
+            inputElement.dispatchEvent(new Event('input', { bubbles: true }))
+          }
         }
-      }
-      lastSelection.value = text
+        lastSelectionKey.value = key
 
-      if (sessionIdGetter) {
-        const sid = sessionIdGetter()
-        if (sid && text.trim()) {
-          updateSelection(sid, text).catch(() => {})
+        if (sessionIdGetter) {
+          const sid = sessionIdGetter()
+          if (sid && info.text.trim()) {
+            updateSelection(sid, info.text, info.start, info.end).catch(() => {})
+          }
         }
       }
     }
 
-    // ── 文档全文同步 ──
+    // ── 文档全文同步（throttle 10s） ──
     if (sessionIdGetter) {
-      const content = getDocumentContent()
-      if (content && content !== lastDocContent.value) {
-        lastDocContent.value = content
-        const sid = sessionIdGetter()
-        if (sid) {
-          updateWrittenContext(sid, content).catch(() => {})
+      const now = Date.now()
+      if (now - lastDocSyncAt.value >= DOC_SYNC_THROTTLE_MS) {
+        const content = getDocumentContent()
+        if (content && content !== lastDocContent.value) {
+          lastDocContent.value = content
+          lastDocSyncAt.value = now
+          const sid = sessionIdGetter()
+          if (sid) {
+            updateWrittenContext(sid, content).catch(() => {})
+          }
         }
       }
     }
@@ -216,7 +333,7 @@ export function useWPSPolling(autoFill = true, sessionIdGetter?: () => string) {
     isPolling,
     startPolling,
     stopPolling,
-    getSelectedText,
+    getSelectionInfo,
     isWPSAvailable,
   }
 }

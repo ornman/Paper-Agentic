@@ -2,10 +2,7 @@ from __future__ import annotations
 
 import sqlite3
 
-from app.data_layer.contracts.conversation import (
-    ConversationMessage,
-    ConversationSession,
-)
+from ._types import ConversationMessage, ConversationSession
 
 
 class SQLiteConversationRepo:
@@ -40,11 +37,32 @@ class SQLiteConversationRepo:
                     content TEXT NOT NULL,
                     created_at TEXT NOT NULL DEFAULT '',
                     sources_json TEXT,
+                    blocks_json TEXT,
                     FOREIGN KEY (session_id) REFERENCES conversation_sessions(session_id)
                 )
                 """
             )
+            # Migration: add blocks_json column if missing (existing DBs)
+            self.__migrate_add_column(conn, "blocks_json", "TEXT")
             conn.commit()
+
+    @staticmethod
+    def __migrate_add_column(conn: sqlite3.Connection, column: str, col_type: str) -> None:
+        """Add a column to conversation_messages if it doesn't already exist.
+
+        Only called with hardcoded literals from init() — column/col_type are trusted.
+        """
+        try:
+            cols = {
+                row[1]
+                for row in conn.execute("PRAGMA table_info(conversation_messages)").fetchall()
+            }
+            if column not in cols:
+                conn.execute(
+                    f"ALTER TABLE conversation_messages ADD COLUMN {column} {col_type}"
+                )
+        except sqlite3.OperationalError:
+            pass  # Column already exists
 
     # ------------------------------------------------------------------
     # Sessions
@@ -126,6 +144,81 @@ class SQLiteConversationRepo:
             )
             conn.commit()
 
+    def rename_session(self, session_id: str, title: str) -> bool:
+        """重命名会话，返回是否成功"""
+        from ._types import utc_now_iso
+        with sqlite3.connect(self._db_path) as conn:
+            cursor = conn.execute(
+                """
+                UPDATE conversation_sessions
+                SET title = ?, updated_at = ?
+                WHERE session_id = ?
+                """,
+                (title, utc_now_iso(), session_id),
+            )
+            conn.commit()
+            return cursor.rowcount > 0
+
+    def search_sessions(self, keyword: str, limit: int = 20) -> list[ConversationSession]:
+        """按标题搜索会话"""
+        with sqlite3.connect(self._db_path) as conn:
+            rows = conn.execute(
+                """
+                SELECT session_id, title, created_at, updated_at
+                FROM conversation_sessions
+                WHERE title LIKE ?
+                ORDER BY updated_at DESC
+                LIMIT ?
+                """,
+                (f"%{keyword}%", limit),
+            ).fetchall()
+        return [
+            ConversationSession(
+                session_id=r[0],
+                title=r[1],
+                created_at=r[2],
+                updated_at=r[3],
+            )
+            for r in rows
+        ]
+
+    def search_messages(self, keyword: str, session_id: str | None = None, limit: int = 20) -> list[ConversationMessage]:
+        """按内容搜索消息，可选限定会话"""
+        with sqlite3.connect(self._db_path) as conn:
+            if session_id:
+                rows = conn.execute(
+                    """
+                    SELECT session_id, role, content, created_at, sources_json, blocks_json
+                    FROM conversation_messages
+                    WHERE content LIKE ? AND session_id = ?
+                    ORDER BY id DESC
+                    LIMIT ?
+                    """,
+                    (f"%{keyword}%", session_id, limit),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    """
+                    SELECT session_id, role, content, created_at, sources_json, blocks_json
+                    FROM conversation_messages
+                    WHERE content LIKE ?
+                    ORDER BY id DESC
+                    LIMIT ?
+                    """,
+                    (f"%{keyword}%", limit),
+                ).fetchall()
+        return [
+            ConversationMessage(
+                session_id=r[0],
+                role=r[1],
+                content=r[2],
+                created_at=r[3],
+                sources_json=r[4],
+                blocks_json=r[5] if len(r) > 5 else None,
+            )
+            for r in rows
+        ]
+
     # ------------------------------------------------------------------
     # Messages
     # ------------------------------------------------------------------
@@ -138,7 +231,7 @@ class SQLiteConversationRepo:
         with sqlite3.connect(self._db_path) as conn:
             rows = conn.execute(
                 """
-                SELECT session_id, role, content, created_at, sources_json
+                SELECT session_id, role, content, created_at, sources_json, blocks_json
                 FROM conversation_messages
                 WHERE session_id = ?
                 ORDER BY id DESC
@@ -154,6 +247,7 @@ class SQLiteConversationRepo:
                 content=r[2],
                 created_at=r[3],
                 sources_json=r[4],
+                blocks_json=r[5] if len(r) > 5 else None,
             )
             for r in reversed(rows)
         ]
@@ -163,8 +257,8 @@ class SQLiteConversationRepo:
             conn.execute(
                 """
                 INSERT INTO conversation_messages
-                    (session_id, role, content, created_at, sources_json)
-                VALUES (?, ?, ?, ?, ?)
+                    (session_id, role, content, created_at, sources_json, blocks_json)
+                VALUES (?, ?, ?, ?, ?, ?)
                 """,
                 (
                     msg.session_id,
@@ -172,6 +266,7 @@ class SQLiteConversationRepo:
                     msg.content,
                     msg.created_at,
                     msg.sources_json,
+                    msg.blocks_json,
                 ),
             )
             conn.commit()

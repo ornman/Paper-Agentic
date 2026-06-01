@@ -88,7 +88,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { PaperItem } from '../services/library-api'
+import type { PaperItem } from '../types/paper'
 
 const props = withDefaults(defineProps<{
   paper: PaperItem

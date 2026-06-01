@@ -9,19 +9,6 @@ from .content_block import ContentBlock
 from .source_card import SourceCard
 
 
-class StatusEvent(BaseModel):
-    event: Literal["status"] = "status"
-    phase: str
-    message: str
-    detail: dict | None = None
-
-    def to_sse_frame(self) -> str:
-        payload: dict = {"phase": self.phase, "message": self.message}
-        if self.detail:
-            payload["detail"] = self.detail
-        return f"event: status\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n"
-
-
 class ThinkingEvent(BaseModel):
     event: Literal["thinking"] = "thinking"
     text: str
@@ -30,14 +17,6 @@ class ThinkingEvent(BaseModel):
     def to_sse_frame(self) -> str:
         payload = {"text": self.text, "time_ms": self.time_ms}
         return f"event: thinking\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n"
-
-
-class DeltaEvent(BaseModel):
-    event: Literal["delta"] = "delta"
-    text: str
-
-    def to_sse_frame(self) -> str:
-        return f"event: delta\ndata: {json.dumps({'text': self.text}, ensure_ascii=False)}\n\n"
 
 
 class BlockEvent(BaseModel):
@@ -105,6 +84,17 @@ class ReflectionEvent(BaseModel):
     def to_sse_frame(self) -> str:
         payload = {"round": self.round, "verdict": self.verdict, "reason": self.reason}
         return f"event: reflection\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n"
+
+
+class StatusEvent(BaseModel):
+    """阶段状态指示事件，用于前端展示"正在查询文献库..."等提示"""
+    event: Literal["status"] = "status"
+    phase: str
+    message: str
+
+    def to_sse_frame(self) -> str:
+        payload = {"phase": self.phase, "message": self.message}
+        return f"event: status\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n"
 
 
 class MetadataEvent(BaseModel):

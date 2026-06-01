@@ -9,13 +9,19 @@ class ConversationWindowStore:
     @classmethod
     def from_context_window(
         cls,
-        context_window_tokens: int = 32000,
-        max_output_tokens: int = 4096,
-        avg_message_tokens: int = 500,
-        system_prompt_tokens: int = 2000,
+        context_window_tokens: int = 0,
+        max_output_tokens: int = 0,
+        avg_message_tokens: int = 0,
+        system_prompt_tokens: int = 0,
     ) -> "ConversationWindowStore":
-        available = context_window_tokens - max_output_tokens - system_prompt_tokens
-        max_messages = max(4, available // avg_message_tokens)
+        from app.service_layer.config.settings import get_settings
+        _s = get_settings()
+        cwt = context_window_tokens or _s.context_window_tokens
+        mot = max_output_tokens or _s.max_output_tokens
+        amt = avg_message_tokens or _s.avg_message_tokens
+        spt = system_prompt_tokens or _s.system_prompt_tokens
+        available = cwt - mot - spt
+        max_messages = max(4, available // amt)
         return cls(max_messages=max_messages)
 
     async def get_messages(self, session_id: str) -> list[dict]:

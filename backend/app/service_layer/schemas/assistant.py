@@ -13,6 +13,8 @@ class WrittenContextUpdate(BaseModel):
 class EditorSelectionUpdate(BaseModel):
     session_id: str
     selection: str = Field(default="", description="用户圈选的文本")
+    start: int | None = Field(default=None, description="选区在文档中的起始偏移")
+    end: int | None = Field(default=None, description="选区在文档中的结束偏移")
 
 
 class ContextState(BaseModel):

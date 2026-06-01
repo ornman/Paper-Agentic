@@ -9,9 +9,6 @@ import httpx
 
 logger = logging.getLogger("paper-assistant")
 
-# Embedding 模型 token 上限
-MAX_EMBEDDING_TOKENS = 32000
-
 
 def _estimate_tokens(text: str) -> int:
     """估算 token 数（与 semantic_chunker.estimate_tokens 同逻辑）"""
@@ -32,7 +29,10 @@ class EmbeddingClient:
         timeout: float,
         batch_size: int,
         max_concurrency: int,
+        context_window: int = 0,
     ) -> None:
+        from app.service_layer.config.settings import get_settings
+        _s = get_settings()
         self._api_key = api_key
         self._base_url = base_url.rstrip("/") + "/embeddings"
         self._model = model
@@ -40,6 +40,7 @@ class EmbeddingClient:
         self._timeout = timeout
         self._batch_size = batch_size
         self._max_concurrency = max_concurrency
+        self._context_window = context_window or _s.embedding_context_window or _s.chunk_max_context
         self._client: httpx.AsyncClient | None = None
         self._semaphore = asyncio.Semaphore(self._max_concurrency)
 
@@ -50,10 +51,10 @@ class EmbeddingClient:
         # tokenizer 长度校验
         for i, text in enumerate(texts):
             est = _estimate_tokens(text)
-            if est > MAX_EMBEDDING_TOKENS:
+            if est > self._context_window:
                 raise ValueError(
                     f"text[{i}] 超出 embedding 模型 token 上限: "
-                    f"估算 {est} tokens > {MAX_EMBEDDING_TOKENS}。"
+                    f"估算 {est} tokens > {self._context_window}。"
                     f"请在切分阶段控制 chunk 大小。"
                 )
 

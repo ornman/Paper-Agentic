@@ -55,7 +55,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import type { ConversationSession } from '../services/conversation-api'
+import type { ConversationSession } from '../types/conversation'
 
 const props = defineProps<{
   sessions: ConversationSession[]

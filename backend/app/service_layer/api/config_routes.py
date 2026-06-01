@@ -1,3 +1,5 @@
+"""配置持久化 API — 读写 .env 文件（重启生效）"""
+
 from __future__ import annotations
 
 import asyncio
@@ -31,11 +33,14 @@ class ConfigUpdateRequest(BaseModel):
     embedding_base_url: str | None = None
     mineru_api_key: str | None = None
     mineru_base_url: str | None = None
+    mineru_poll_interval: str | None = None
+    mineru_timeout: str | None = None
 
     @field_validator(
         "llm_api_key", "llm_base_url", "llm_model",
         "embedding_api_key", "embedding_base_url",
         "mineru_api_key", "mineru_base_url",
+        "mineru_poll_interval", "mineru_timeout",
         mode="before",
     )
     @classmethod
@@ -93,6 +98,8 @@ _FIELD_TO_ENV = {
     "embedding_base_url": "EMBEDDING_BASE_URL",
     "mineru_api_key": "MINERU_API_KEY",
     "mineru_base_url": "MINERU_BASE_URL",
+    "mineru_poll_interval": "MINERU_POLL_INTERVAL",
+    "mineru_timeout": "MINERU_TIMEOUT",
 }
 
 _MASK_FIELDS = {
@@ -106,6 +113,8 @@ _NON_MASK_FIELDS = {
     "llm_model": "LLM_MODEL",
     "embedding_base_url": "EMBEDDING_BASE_URL",
     "mineru_base_url": "MINERU_BASE_URL",
+    "mineru_poll_interval": "MINERU_POLL_INTERVAL",
+    "mineru_timeout": "MINERU_TIMEOUT",
 }
 
 

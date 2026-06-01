@@ -58,13 +58,13 @@ async def process_images(
 
     # 从配置加载参数
     if api_key is None:
-        from ...storage.config import load_config
-        config = load_config()
-        api_key = config.vlm_api_key
+        from app.service_layer.config.settings import get_settings
+        settings = get_settings()
+        api_key = settings.vlm_api_key
         if base_url is None:
-            base_url = config.vlm_base_url
+            base_url = settings.vlm_base_url
         if model is None:
-            model = config.vlm_model
+            model = settings.vlm_model
 
     if not api_key:
         raise ValueError("VLM API key 未配置，请设置 VLM_API_KEY 或 My_ProxyAPI_KEY 环境变量")

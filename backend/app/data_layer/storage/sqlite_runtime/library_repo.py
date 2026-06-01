@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import logging
+import re
 import sqlite3
 
-from app.data_layer.contracts.library_item import LibraryItem
+from ._types import LibraryItem, utc_now_iso
+
+logger = logging.getLogger("paper-assistant")
 
 
 class SQLiteLibraryRepo:
@@ -28,19 +32,24 @@ class SQLiteLibraryRepo:
                     file_type TEXT NOT NULL DEFAULT '',
                     import_time TEXT NOT NULL DEFAULT '',
                     page_count INTEGER DEFAULT 0,
-                    status TEXT DEFAULT 'ready',
-                    authors TEXT DEFAULT '',
-                    year TEXT DEFAULT ''
+                    status TEXT DEFAULT 'ready'
                 )
                 """
             )
-            # Migrate: add columns that may be missing in older databases
-            existing = {r[1] for r in conn.execute("PRAGMA table_info(library_items)").fetchall()}
+            conn.commit()
+            # 向后兼容迁移：添加 authors、year、file_size 列
+            existing = {row[1] for row in conn.execute("PRAGMA table_info(library_items)").fetchall()}
             if "authors" not in existing:
                 conn.execute("ALTER TABLE library_items ADD COLUMN authors TEXT DEFAULT ''")
             if "year" not in existing:
-                conn.execute("ALTER TABLE library_items ADD COLUMN year TEXT DEFAULT ''")
+                conn.execute("ALTER TABLE library_items ADD COLUMN year INTEGER")
+            if "file_size" not in existing:
+                conn.execute("ALTER TABLE library_items ADD COLUMN file_size INTEGER DEFAULT 0")
+            if "deleted_at" not in existing:
+                conn.execute("ALTER TABLE library_items ADD COLUMN deleted_at TEXT DEFAULT NULL")
             conn.commit()
+            # 一次性迁移：修复 UUID 前缀的标题（{8hex}_xxx → xxx）
+            self._repair_uuid_titles(conn)
 
     # ------------------------------------------------------------------
     # Queries
@@ -52,10 +61,54 @@ class SQLiteLibraryRepo:
                 """
                 SELECT item_id, title, file_path, file_hash,
                        file_type, import_time, page_count, status,
-                       authors, year
+                       authors, year, file_size, deleted_at
                 FROM library_items
+                WHERE deleted_at IS NULL
                 ORDER BY import_time DESC
                 """,
+            ).fetchall()
+        return [self._row_to_item(r) for r in rows]
+
+    def list_items_filtered(
+        self,
+        *,
+        title: str | None = None,
+        authors: str | None = None,
+        year_from: int | None = None,
+        year_to: int | None = None,
+    ) -> list[LibraryItem]:
+        """带筛选条件的查询"""
+        clauses: list[str] = []
+        params: list = []
+        if title:
+            clauses.append("title LIKE ?")
+            params.append(f"%{title}%")
+        if authors:
+            clauses.append("LOWER(TRIM(authors)) = LOWER(TRIM(?))")
+            params.append(authors)
+        if year_from is not None:
+            clauses.append("(year IS NOT NULL AND year >= ?)")
+            params.append(year_from)
+        if year_to is not None:
+            clauses.append("(year IS NOT NULL AND year <= ?)")
+            params.append(year_to)
+
+        base_where = "deleted_at IS NULL"
+        if clauses:
+            full_where = f"WHERE {base_where} AND {' AND '.join(clauses)}"
+        else:
+            full_where = f"WHERE {base_where}"
+        with sqlite3.connect(self._db_path) as conn:
+            rows = conn.execute(
+                f"""
+                SELECT item_id, title, file_path, file_hash,
+                       file_type, import_time, page_count, status,
+                       authors, year, file_size, deleted_at
+                FROM library_items
+                {full_where}
+                ORDER BY import_time DESC
+                """,
+                params,
             ).fetchall()
         return [self._row_to_item(r) for r in rows]
 
@@ -65,7 +118,7 @@ class SQLiteLibraryRepo:
                 """
                 SELECT item_id, title, file_path, file_hash,
                        file_type, import_time, page_count, status,
-                       authors, year
+                       authors, year, file_size, deleted_at
                 FROM library_items
                 WHERE item_id = ?
                 """,
@@ -83,9 +136,9 @@ class SQLiteLibraryRepo:
                 """
                 SELECT item_id, title, file_path, file_hash,
                        file_type, import_time, page_count, status,
-                       authors, year
+                       authors, year, file_size, deleted_at
                 FROM library_items
-                WHERE file_hash = ?
+                WHERE file_hash = ? AND deleted_at IS NULL
                 """,
                 (file_hash,),
             ).fetchone()
@@ -102,8 +155,8 @@ class SQLiteLibraryRepo:
                 INSERT INTO library_items
                     (item_id, title, file_path, file_hash,
                      file_type, import_time, page_count, status,
-                     authors, year)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     authors, year, file_size)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(item_id) DO UPDATE SET
                     title = excluded.title,
                     file_path = excluded.file_path,
@@ -113,7 +166,9 @@ class SQLiteLibraryRepo:
                     page_count = excluded.page_count,
                     status = excluded.status,
                     authors = excluded.authors,
-                    year = excluded.year
+                    year = excluded.year,
+                    file_size = excluded.file_size,
+                    deleted_at = NULL
                 """,
                 (
                     item.item_id,
@@ -126,6 +181,7 @@ class SQLiteLibraryRepo:
                     item.status,
                     item.authors,
                     item.year,
+                    item.file_size,
                 ),
             )
             conn.commit()
@@ -138,9 +194,91 @@ class SQLiteLibraryRepo:
             )
             conn.commit()
 
+    def soft_delete(self, item_id: str) -> None:
+        now = utc_now_iso()
+        with sqlite3.connect(self._db_path) as conn:
+            conn.execute(
+                "UPDATE library_items SET deleted_at = ? WHERE item_id = ?",
+                (now, item_id),
+            )
+            conn.commit()
+
+    def list_trashed(self) -> list[LibraryItem]:
+        with sqlite3.connect(self._db_path) as conn:
+            rows = conn.execute(
+                """
+                SELECT item_id, title, file_path, file_hash,
+                       file_type, import_time, page_count, status,
+                       authors, year, file_size, deleted_at
+                FROM library_items
+                WHERE deleted_at IS NOT NULL
+                ORDER BY deleted_at DESC
+                """,
+            ).fetchall()
+        return [self._row_to_item(r) for r in rows]
+
+    def restore(self, item_id: str) -> None:
+        with sqlite3.connect(self._db_path) as conn:
+            conn.execute(
+                "UPDATE library_items SET deleted_at = NULL WHERE item_id = ?",
+                (item_id,),
+            )
+            conn.commit()
+
+    def hard_delete(self, item_id: str) -> None:
+        with sqlite3.connect(self._db_path) as conn:
+            conn.execute(
+                "DELETE FROM library_items WHERE item_id = ?",
+                (item_id,),
+            )
+            conn.commit()
+
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
+
+    # UUID 前缀模式：8 位 hex + 下划线 + 原始文件名（如 "eef350c3_1-s2.0-..."）
+    _UUID_PREFIX_RE = re.compile(r"^[0-9a-f]{8}_")
+
+    def _repair_uuid_titles(self, conn: sqlite3.Connection) -> None:
+        """一次性迁移：去掉标题中的 UUID 前缀，并尝试从 PDF 补充 authors/year。"""
+        rows = conn.execute(
+            "SELECT item_id, title, file_path FROM library_items WHERE deleted_at IS NULL"
+        ).fetchall()
+        if not rows:
+            return
+
+        from pathlib import Path
+        from app.service_layer.utils.pdf_helpers import extract_pdf_metadata
+
+        fixed = 0
+        for item_id, title, file_path in rows:
+            if not self._UUID_PREFIX_RE.match(title):
+                continue
+            new_title = title.split("_", 1)[1] if "_" in title else title
+            authors = ""
+            year = None
+            try:
+                p = Path(file_path)
+                if p.exists() and p.suffix.lower() == ".pdf":
+                    meta = extract_pdf_metadata(p)
+                    if meta["title"]:
+                        new_title = meta["title"]
+                    if meta["authors"]:
+                        authors = meta["authors"]
+                    if meta["year"]:
+                        year = meta["year"]
+            except Exception:
+                pass
+            conn.execute(
+                "UPDATE library_items SET title = ?, authors = ?, year = ? WHERE item_id = ?",
+                (new_title, authors, year, item_id),
+            )
+            fixed += 1
+            logger.info("修复文献标题: %s → %s", title, new_title)
+        if fixed:
+            conn.commit()
+            logger.info("一次性迁移完成：修复了 %d 条 UUID 前缀标题", fixed)
 
     @staticmethod
     def _row_to_item(row: tuple) -> LibraryItem:
@@ -154,5 +292,7 @@ class SQLiteLibraryRepo:
             page_count=row[6],
             status=row[7],
             authors=row[8] if len(row) > 8 else "",
-            year=row[9] if len(row) > 9 else "",
+            year=row[9] if len(row) > 9 and row[9] is not None else None,
+            file_size=row[10] if len(row) > 10 else 0,
+            deleted_at=row[11] if len(row) > 11 else None,
         )

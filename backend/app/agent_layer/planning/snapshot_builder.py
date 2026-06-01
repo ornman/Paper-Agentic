@@ -46,15 +46,25 @@ def _compute_weights(
     selection: str,
     written_context: str,
 ) -> UsedInputs:
+    from app.service_layer.config.settings import get_settings
+    _s = get_settings()
+
     has_prompt = bool(prompt.strip())
     has_selection = bool(selection.strip())
     has_written = bool(written_context.strip())
 
     if has_written and has_selection and has_prompt:
-        return UsedInputs(prompt=0.5, selection=0.3, written_context=0.2)
+        return UsedInputs(
+            prompt=_s.weight_prompt_three_source,
+            selection=_s.weight_selection_three_source,
+            written_context=_s.weight_written_three_source,
+        )
 
     if has_written and has_selection:
-        return UsedInputs(selection=0.7, written_context=0.3)
+        return UsedInputs(
+            selection=_s.weight_selection_two_source,
+            written_context=_s.weight_written_two_source,
+        )
 
     if has_written:
         return UsedInputs(written_context=1.0)

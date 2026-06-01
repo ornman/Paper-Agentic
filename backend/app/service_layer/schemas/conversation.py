@@ -30,3 +30,8 @@ class ConversationMessageOut(BaseModel):
     content: str
     created_at: str = ""
     sources_json: str | None = None
+    blocks_json: str | None = None
+
+
+class RenameRequest(BaseModel):
+    title: str = Field(..., min_length=1, max_length=100, description="新标题")

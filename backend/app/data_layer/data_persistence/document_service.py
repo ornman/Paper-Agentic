@@ -182,6 +182,11 @@ class DocumentIngestService:
         self._soft_delete_manager.mark_deleted(paper_id)
         logger.info("文档已标记软删除: %s", paper_id)
 
+    def restore_document(self, paper_id: str) -> None:
+        """恢复软删除的文档"""
+        self._soft_delete_manager.unmark_deleted(paper_id)
+        logger.info("文档已取消软删除: %s", paper_id)
+
     def hard_delete_document(self, paper_id: str) -> None:
         """硬删除文档
 

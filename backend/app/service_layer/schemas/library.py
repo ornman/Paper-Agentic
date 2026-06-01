@@ -2,33 +2,50 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class LibraryItemOut(BaseModel):
-    library_item_id: str
-    kind: str
+    """文献项输出（兼容前端 PaperItem 接口）"""
+    item_id: str
+    library_item_id: str = ""   # 前端兼容别名（= item_id）
+    paper_id: str = ""          # 前端兼容别名（= item_id）
     title: str
-    file_path: str
-    file_hash: str
     authors: str = ""
-    year: str = ""
-    file_size: int | None = None
-    chunk_count: int = 0
-    total_pages: int | None = None
-    status: str = "completed"
+    year: int | None = None
+    file_path: str
+    file_hash: str = ""
+    file_type: str = ""
+    kind: str = ""              # 前端兼容别名（= file_type）
     import_time: str = ""
+    page_count: int = 0
+    total_pages: int = 0        # 前端兼容别名（= page_count）
+    chunk_count: int = 0
+    status: str = "ready"
+    keywords: list[str] = []
+    file_size: int | None = None
+
+    @model_validator(mode="after")
+    def _set_aliases(self) -> "LibraryItemOut":
+        if not self.library_item_id:
+            self.library_item_id = self.item_id
+        if not self.paper_id:
+            self.paper_id = self.item_id
+        if not self.kind:
+            self.kind = self.file_type
+        if not self.total_pages:
+            self.total_pages = self.page_count
+        return self
 
 
 class ImportTaskOut(BaseModel):
     task_id: str
     file_path: str
     status: str = "queued"
-    current_stage: str = "queued"
-    library_item_id: str | None = None
-    error_message: str | None = None
+    message: str = ""
     created_at: str = ""
-    updated_at: str = ""
+    paper_id: str = ""
+    completed_at: str = ""
 
 
 class ImportRequest(BaseModel):
@@ -49,7 +66,7 @@ class PaperItemOut(BaseModel):
     paper_id: str
     title: str
     authors: str = ""
-    year: str = ""
+    year: int | None = None
     file_path: str
     file_hash: str = ""
     chunk_count: int = 0

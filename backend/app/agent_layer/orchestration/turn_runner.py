@@ -3,17 +3,17 @@
 from __future__ import annotations
 
 import json
+import inspect
 import logging
 import uuid
 from collections.abc import AsyncIterator
-from typing import Any
+from typing import Any, Protocol
 
 from openai import APIConnectionError, APIStatusError, RateLimitError
 
 from app.agent_layer.contracts.query import AskRequest
 from app.agent_layer.contracts.sse_events import (
     BlockEvent,
-    DeltaEvent,
     DoneEvent,
     ErrorEvent,
     MetadataEvent,
@@ -38,6 +38,34 @@ from app.agent_layer.session.persistence import SessionPersistence
 from app.agent_layer.session.window_store import ConversationWindowStore
 
 logger = logging.getLogger("paper-assistant")
+
+
+class VectorStoreProtocol(Protocol):
+    def query(self, vector: list[float], topk: int, paper_ids: list[str] | None = None) -> list: ...
+
+
+class KeywordSearchProtocol(Protocol):
+    def query(self, query_text: str, topk: int, paper_ids: list[str] | None = None) -> list: ...
+
+
+class EmbeddingClientProtocol(Protocol):
+    async def embed_single(self, text: str) -> list[float]: ...
+
+
+class SnapshotBuilder(Protocol):
+    def __call__(self, request: Any, editor_context: Any, recent_window: list, history_summary: str) -> Any: ...
+
+
+class RetrievalGate(Protocol):
+    def __call__(self, snapshot: Any) -> bool: ...
+
+
+class SourceMapper(Protocol):
+    def __call__(self, retrieval_results: list[dict]) -> list: ...
+
+
+class BlockStreamer(Protocol):
+    def __call__(self, text: str, sources: list) -> list: ...
 
 
 def _user_friendly_error(exc: Exception) -> dict:
@@ -101,19 +129,20 @@ class TurnRunner:
     def __init__(
         self,
         chat_model: ChatModel,
-        snapshot_builder: Any,
-        retrieval_gate: Any,
-        source_mapper: Any,
-        block_streamer: Any,
+        snapshot_builder: SnapshotBuilder,
+        retrieval_gate: RetrievalGate,
+        source_mapper: SourceMapper,
+        block_streamer: BlockStreamer,
         window_store: ConversationWindowStore,
         editor_context_store: EditorContextStore,
         persistence: SessionPersistence,
-        vector_store: Any | None = None,
-        keyword_search: Any | None = None,
-        embedding_client: Any | None = None,
+        vector_store: VectorStoreProtocol | None = None,
+        keyword_search: KeywordSearchProtocol | None = None,
+        embedding_client: EmbeddingClientProtocol | None = None,
         tool_registry: ToolRegistry | None = None,
-        cache_mode: str = "unavailable",
-        reflection_model: Any | None = None,
+        cache_mode: str = "memory",
+        reflection_model: ChatModel | None = None,
+        conversation_repo: Any | None = None,
     ) -> None:
         self._chat_model = chat_model
         self._reflection_model = reflection_model
@@ -129,6 +158,7 @@ class TurnRunner:
         self._embedding_client = embedding_client
         self._tool_registry = tool_registry
         self._cache_mode = cache_mode
+        self._conversation_repo = conversation_repo
 
     async def run(self, request: AskRequest) -> AsyncIterator[str]:
         request_id = uuid.uuid4().hex
@@ -159,18 +189,22 @@ class TurnRunner:
                 max_context = 30000
             remaining_tokens = max(0, max_context - context_tokens)
             remaining_ratio = remaining_tokens / max_context if max_context > 0 else 0.0
+            compacted = False
 
             # ── Compact：剩余空间不足时压缩历史 ──
             # 注意：FrozenTurnSnapshot 是 Pydantic BaseModel，默认 frozen=False 允许属性赋值。
             # 若后续改为 frozen=True，此处需要用 model_copy(update=...) 替代直接赋值。
             if remaining_ratio < 0.05 and snapshot.recent_window:
-                yield StatusEvent(phase="compacting", message="正在压缩对话历史...").to_sse_frame()
-                summary = await compact_conversation(
-                    self._chat_model, snapshot.recent_window
+                compact_result = await compact_conversation(
+                    self._chat_model, snapshot.recent_window,
+                    max_context_tokens=max_context,
                 )
-                if summary:
-                    snapshot.history_summary = summary
+                if compact_result.summary:
+                    snapshot.history_summary = compact_result.summary
                     snapshot.recent_window = []
+                    compacted = True
+                    if compact_result.degraded:
+                        degraded_flags.append(f"compact_degraded:{compact_result.degrade_reason}")
                     # 重新计算 token 用量
                     context_tokens = estimate_tokens(
                         (snapshot.prompt or "")
@@ -202,12 +236,16 @@ class TurnRunner:
             context = ""
 
             if need_rag:
-                yield StatusEvent(phase="retrieving", message="正在查询文献库...").to_sse_frame()
-                max_reflection_rounds = 3
-                max_direction_switches = 2
+                yield StatusEvent(
+                    phase="retrieving", message="正在查询文献库..."
+                ).to_sse_frame()
+                from app.service_layer.config.settings import get_settings
+                _settings = get_settings()
+                max_reflection_rounds = _settings.reflection_max_rounds
+                max_direction_switches = _settings.reflection_max_direction_switches
                 direction_switches = 0
                 current_query = query_text
-                current_topk = 10  # 初始 topk
+                current_topk = 0  # 0 = 不限制，由 TokenBudget 动态裁剪
 
                 for round_num in range(1, max_reflection_rounds + 1):
                     retrieval_results = await self._retrieve(
@@ -219,7 +257,6 @@ class TurnRunner:
                     if not snapshot.reflection_enabled or not context:
                         break
 
-                    yield StatusEvent(phase="reflecting", message="正在评估证据质量...").to_sse_frame()
                     judgment = await judge_evidence(self._chat_model, current_query, context, judge_model=self._reflection_model)
                     yield ReflectionEvent(
                         round=round_num,
@@ -237,18 +274,24 @@ class TurnRunner:
                         current_query = f"{query_text} {judgment.reason}"
 
                     if judgment.verdict == "insufficient":
-                        yield StatusEvent(phase="retrieving", message="正在补充检索...").to_sse_frame()
+                        # 沿当前方向深挖：扩大检索范围
                         current_topk = min(current_topk * 2, 50)
 
             messages = self._build_messages(snapshot, context)
 
-            yield StatusEvent(phase="generating", message="正在生成回答...").to_sse_frame()
+            if snapshot.thinking_enabled:
+                yield ThinkingEvent(text="", time_ms=0).to_sse_frame()
+
+            yield StatusEvent(
+                phase="generating", message="正在生成回答..."
+            ).to_sse_frame()
 
             full_text = ""
             model_override = snapshot.model_name or None
             async for chunk in self._chat_model.chat_stream(messages, model=model_override):
                 full_text += chunk
-                yield DeltaEvent(text=chunk).to_sse_frame()
+                if chunk:
+                    yield f"event: delta\ndata: {json.dumps({'text': chunk}, ensure_ascii=False)}\n\n"
 
             # ── Tool Loop：LLM 可决定调用内部工具 ──
             if self._tool_registry and self._tool_registry.tool_names:
@@ -287,7 +330,7 @@ class TurnRunner:
 
             yield SourcesEvent(data=sources).to_sse_frame()
 
-            await self._persist(snapshot, full_text, blocks, sources)
+            await self._persist(snapshot, full_text, blocks, sources, compacted=compacted)
 
             yield DoneEvent().to_sse_frame()
 
@@ -297,7 +340,22 @@ class TurnRunner:
             yield ErrorEvent(**err).to_sse_frame()
 
     async def _freeze_snapshot(self, request: AskRequest, request_id: str) -> Any:
-        editor_context = await self._editor_context_store.get(request.session_id)
+        editor_context = None
+        freeze_fn = getattr(self._editor_context_store, "freeze", None)
+        if callable(freeze_fn):
+            try:
+                frozen_context = freeze_fn(request.session_id, request_id)
+                if inspect.isawaitable(frozen_context):
+                    frozen_context = await frozen_context
+                editor_context = frozen_context
+            except Exception:
+                logger.warning(
+                    "editor_context freeze failed for session %s",
+                    request.session_id,
+                    exc_info=True,
+                )
+        if editor_context is None:
+            editor_context = await self._editor_context_store.get(request.session_id)
         recent_window = await self._window_store.get_messages(request.session_id)
         history_summary = await self._persistence.get_summary(request.session_id) or ""
 
@@ -324,28 +382,34 @@ class TurnRunner:
         return "\n\n".join(text for _, text in parts)
 
     async def _retrieve(
-        self, query_text: str, paper_ids: list[str] | None, topk: int = 10
+        self, query_text: str, paper_ids: list[str] | None, topk: int = 0
     ) -> list[dict]:
+        """检索：取候选 → RRF 融合 → 返回
+
+        topk=0 时融合不限数量，由 _build_context 的 TokenBudget 动态裁剪。
+        """
+        from app.service_layer.config.settings import get_settings
+        _s = get_settings()
         dense_results = []
         sparse_results = []
 
         if self._embedding_client is not None and self._vector_store is not None:
             try:
                 query_vector = await self._embedding_client.embed_single(query_text)
-                dense_results = self._vector_store.query(query_vector, topk=20, paper_ids=paper_ids)
+                dense_results = self._vector_store.query(query_vector, topk=_s.retrieval_topk_dense, paper_ids=paper_ids)
             except Exception as exc:
                 logger.warning("Dense retrieval failed: %s", exc)
 
         if self._keyword_search is not None:
             try:
-                sparse_results = self._keyword_search.query(query_text, topk=20, paper_ids=paper_ids)
+                sparse_results = self._keyword_search.query(query_text, topk=_s.retrieval_topk_sparse, paper_ids=paper_ids)
             except Exception as exc:
                 logger.warning("Keyword retrieval failed: %s", exc)
 
         if not dense_results and not sparse_results:
             return []
 
-        fused = rrf_fuse(dense_results, sparse_results, topk=topk, keyword_index=self._keyword_search)
+        fused = rrf_fuse(dense_results, sparse_results, topk=topk or len(dense_results) + len(sparse_results), keyword_index=self._keyword_search, rrf_k=_s.retrieval_rrf_k)
         return [
             {
                 "content": doc.content,
@@ -380,8 +444,12 @@ class TurnRunner:
 
     def _build_messages(self, snapshot: Any, context: str) -> list[dict]:
         """使用快照中冻结的历史，不再读取 live window_store"""
-        system_msg = _RAG_SYSTEM_PROMPT.format(context=context) if context else _NO_RAG_SYSTEM_PROMPT
-        messages: list[dict] = [{"role": "system", "content": system_msg}]
+        system_parts = [
+            _RAG_SYSTEM_PROMPT.format(context=context) if context else _NO_RAG_SYSTEM_PROMPT
+        ]
+        if snapshot.history_summary:
+            system_parts.append(f"历史摘要：\n{snapshot.history_summary}")
+        messages: list[dict] = [{"role": "system", "content": "\n\n".join(system_parts)}]
 
         for msg in snapshot.recent_window[-10:]:
             messages.append({"role": msg["role"], "content": msg["content"]})
@@ -395,8 +463,24 @@ class TurnRunner:
         full_text: str,
         blocks: list,
         sources: list,
+        compacted: bool = False,
     ) -> None:
         """持久化会话，失败不影响 SSE 输出（降级记录日志）"""
+        summary = (snapshot.history_summary or "").strip()
+        summary_saved = False
+        if summary:
+            try:
+                await self._persistence.save_summary(snapshot.session_id, summary)
+                summary_saved = True
+            except Exception:
+                logger.warning("summary persist failed for session %s", snapshot.session_id, exc_info=True)
+
+        if compacted and summary_saved:
+            try:
+                await self._window_store.clear(snapshot.session_id)
+            except Exception:
+                logger.warning("window_store compact failed for session %s", snapshot.session_id, exc_info=True)
+
         if not full_text:
             return
 
@@ -436,3 +520,51 @@ class TurnRunner:
             )
         except Exception:
             logger.warning("persistence persist failed for session %s", snapshot.session_id, exc_info=True)
+
+        # ── SQLite conversation_repo：持久化 blocks_json + sources_json ──
+        # 三个持久化通道各司其职：
+        #   1. window_store  — 内存上下文窗口（LLM 输入截断）
+        #   2. persistence   — 内存 SessionPersistence（会话摘要）
+        #   3. conversation_repo — SQLite 长期存储（历史对话 API 消费）
+        # 三者独立降级，任一失败不影响 SSE 输出。
+        if self._conversation_repo is not None:
+            try:
+                from app.data_layer.storage.sqlite_runtime._types import ConversationMessage, utc_now_iso
+                now = utc_now_iso()
+                self._conversation_repo.save_message(ConversationMessage(
+                    session_id=snapshot.session_id,
+                    role="user",
+                    content=snapshot.prompt,
+                    created_at=now,
+                    sources_json=None,
+                    blocks_json=None,
+                ))
+                self._conversation_repo.save_message(ConversationMessage(
+                    session_id=snapshot.session_id,
+                    role="assistant",
+                    content=full_text,
+                    created_at=now,
+                    sources_json=sources_json,
+                    blocks_json=blocks_json,
+                ))
+                # Update session timestamp (create session if first message)
+                from dataclasses import replace as _replace
+                from app.data_layer.storage.sqlite_runtime._types import ConversationSession
+                session = self._conversation_repo.get_session(snapshot.session_id)
+                if session:
+                    self._conversation_repo.upsert_session(
+                        _replace(session, updated_at=now)
+                    )
+                else:
+                    self._conversation_repo.upsert_session(ConversationSession(
+                        session_id=snapshot.session_id,
+                        title=snapshot.prompt[:40] or "新对话",
+                        created_at=now,
+                        updated_at=now,
+                    ))
+            except Exception:
+                logger.error(
+                    "conversation_repo persist failed for session %s — "
+                    "messages will NOT be recoverable after page reload",
+                    snapshot.session_id, exc_info=True,
+                )

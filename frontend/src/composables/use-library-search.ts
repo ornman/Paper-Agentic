@@ -1,15 +1,9 @@
 import { ref, computed } from 'vue'
 import Fuse, { type IFuseOptions } from 'fuse.js'
-import type { PaperItem } from '../services/library-api'
+import type { PaperItem } from '../types/paper'
 
 export type SortMode = 'relevance' | 'time' | 'year' | 'title'
 
-export interface SearchState {
-  query: string
-  yearFilter: string
-  authorFilter: string
-  sortBy: SortMode
-}
 
 const fuseOptions: IFuseOptions<PaperItem> = {
   keys: [
@@ -139,9 +133,20 @@ export function useLibrarySearch(papers: () => PaperItem[]) {
 
   function highlightText(text: string): string {
     const q = query.value.trim()
-    if (!q) return text
+    if (!q) return escapeHtml(text)
+    // Escape HTML first to prevent XSS via v-html
+    const safeText = escapeHtml(text)
     const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    return text.replace(new RegExp(`(${escaped})`, 'gi'), '<mark>$1</mark>')
+    return safeText.replace(new RegExp(`(${escaped})`, 'gi'), '<mark>$1</mark>')
+  }
+
+  function escapeHtml(str: string): string {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;')
   }
 
   // --- Reset filters ---
