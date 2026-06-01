@@ -109,8 +109,9 @@ async function render() {
     const canvas = canvasRef.value
     const container = containerRef.value
 
-    const actualWidth = Math.floor(currentViewport.width)
-    const actualHeight = Math.floor(currentViewport.height)
+    // Math.round 减少截断误差（Math.floor 最大偏移 0.5px，round 最大偏移 0.25px）
+    const actualWidth = Math.round(currentViewport.width)
+    const actualHeight = Math.round(currentViewport.height)
 
     canvas.width = actualWidth * dpr
     canvas.height = actualHeight * dpr
@@ -431,6 +432,27 @@ onBeforeUnmount(() => {
 }
 
 /* pdf_viewer.css handles all .textLayer / .textLayer span positioning & sizing */
+
+/* ── TextLayer 透明化：文字不可见但可选中/搜索 ── */
+.textLayer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  opacity: 0.25; /* 微透明用于调试，改为 0 可完全隐藏 */
+  line-height: 1;
+}
+
+.textLayer :deep(span) {
+  color: transparent !important;
+  /* 保留选择能力 */
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.textLayer :deep(span.bravo) {
+  /* pdfjs 用 .bravo 标记需要缩放的 span，保持其透明 */
+  color: transparent !important;
+}
 
 .pdf-highlight-rect {
   position: absolute;
