@@ -109,33 +109,37 @@ async function render() {
     const canvas = canvasRef.value
     const container = containerRef.value
 
-    // Math.round 减少截断误差（Math.floor 最大偏移 0.5px，round 最大偏移 0.25px）
-    const actualWidth = Math.round(currentViewport.width)
-    const actualHeight = Math.round(currentViewport.height)
+    // ── 99% 对齐关键：CSS 尺寸用浮点数（亚像素渲染），canvas 缓冲区用整数 ──
+    // viewport.width/height 是精确的浮点值，浏览器支持亚像素 CSS（如 595.32px）
+    // TextLayer 的定位算法基于 viewport 坐标，与浮点 CSS 完全一致
+    const cssWidth = currentViewport.width   // 精确浮点，不做 round/floor
+    const cssHeight = currentViewport.height
+    const bufferWidth = Math.ceil(cssWidth * dpr)   // canvas 像素缓冲区必须整数
+    const bufferHeight = Math.ceil(cssHeight * dpr)
 
-    canvas.width = actualWidth * dpr
-    canvas.height = actualHeight * dpr
-    canvas.style.width = `${actualWidth}px`
-    canvas.style.height = `${actualHeight}px`
+    canvas.width = bufferWidth
+    canvas.height = bufferHeight
+    canvas.style.width = `${cssWidth}px`     // 浮点 CSS → 亚像素对齐
+    canvas.style.height = `${cssHeight}px`
 
-    emit('page-height', actualHeight)
+    emit('page-height', cssHeight)
 
     container.style.setProperty('--scale-factor', String(currentViewport.scale))
     container.style.setProperty('--user-unit', '1')
     container.style.setProperty('--total-scale-factor', String(currentViewport.scale))
 
-    container.style.width = `${actualWidth}px`
-    container.style.height = `${actualHeight}px`
+    container.style.width = `${cssWidth}px`
+    container.style.height = `${cssHeight}px`
 
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
     // ── 优化 2: 检查 Canvas 缓存 ──
     const cached = getCachedCanvas?.(props.pageNumber)
-    if (cached && cached.width === actualWidth && cached.height === actualHeight) {
+    if (cached && cached.width === bufferWidth && cached.height === bufferHeight) {
       // 缓存命中：直接 drawImage，<1ms
       ctx.save()
-      ctx.drawImage(cached.canvas, 0, 0, actualWidth, actualHeight)
+      ctx.drawImage(cached.canvas, 0, 0, cssWidth, cssHeight)
       ctx.restore()
     } else {
       // 缓存未命中：完整渲染
@@ -151,14 +155,14 @@ async function render() {
 
       // 渲染后存入缓存（利用 OffscreenCanvas）
       try {
-        const offscreen = new OffscreenCanvas(actualWidth * dpr, actualHeight * dpr)
+        const offscreen = new OffscreenCanvas(bufferWidth, bufferHeight)
         const offCtx = offscreen.getContext('2d')
         if (offCtx) {
           offCtx.drawImage(canvas, 0, 0)
           setCachedCanvas?.(props.pageNumber, {
             canvas: offscreen,
-            width: actualWidth,
-            height: actualHeight,
+            width: bufferWidth,
+            height: bufferHeight,
             scale: props.scale,
           })
         }
