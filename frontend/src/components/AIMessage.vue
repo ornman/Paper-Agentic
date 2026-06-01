@@ -397,36 +397,37 @@ function onContentMouseLeave(event: MouseEvent): void {
   color: var(--color-text-primary);
 }
 
-.streaming-content .block-paragraph {
+/* :deep() required — children are rendered via v-html, no scoped attribute */
+.streaming-content :deep(.block-paragraph) {
   word-break: break-word;
 }
 
-.streaming-content .block-heading {
+.streaming-content :deep(.block-heading) {
   font-weight: 600;
   color: var(--color-text-primary);
   margin-top: var(--space-2);
 }
 
-.streaming-content .block-list {
+.streaming-content :deep(.block-list) {
   padding-left: var(--space-5);
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
 }
 
-.streaming-content .block-list--ordered {
+.streaming-content :deep(.block-list--ordered) {
   list-style: decimal;
 }
 
-.streaming-content .block-list li {
+.streaming-content :deep(.block-list li) {
   word-break: break-word;
 }
 
-.streaming-content .block-list li::marker {
+.streaming-content :deep(.block-list li::marker) {
   color: var(--color-text-muted);
 }
 
-.streaming-content .block-blockquote {
+.streaming-content :deep(.block-blockquote) {
   padding: var(--space-2) var(--space-4);
   border-left: 3px solid var(--color-accent);
   background: var(--color-accent-soft);
@@ -436,7 +437,7 @@ function onContentMouseLeave(event: MouseEvent): void {
   word-break: break-word;
 }
 
-.streaming-content .block-code {
+.streaming-content :deep(.block-code) {
   margin: 0;
   padding: var(--space-3) var(--space-4);
   overflow-x: auto;
@@ -449,7 +450,7 @@ function onContentMouseLeave(event: MouseEvent): void {
   border-radius: var(--radius-sm);
 }
 
-.streaming-content .block-code code {
+.streaming-content :deep(.block-code code) {
   font-family: inherit;
 }
 

@@ -30,7 +30,7 @@ export function renderInlineMarkdown(escaped: string): string {
 const HEADING_RE = /^(#{1,4})\s+(.+)$/
 const ORDERED_LIST_RE = /^(\d+)\.\s+(.*)$/
 const UNORDERED_LIST_RE = /^[-*]\s+(.*)$/
-const BLOCKQUOTE_RE = /^>\s?(.*)$/
+const BLOCKQUOTE_RE = /^&gt;\s?(.*)$/
 const CODE_FENCE_OPEN_RE = /^```(\w*)$/
 const CODE_FENCE_CLOSE_RE = /^```\s*$/
 
