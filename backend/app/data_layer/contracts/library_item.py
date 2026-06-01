@@ -17,6 +17,7 @@ class LibraryItem:
     file_type: str = ""
     import_time: str = ""
     page_count: int = 0
+    chunk_count: int = 0
     status: str = "ready"
     authors: str = ""
     year: str = ""

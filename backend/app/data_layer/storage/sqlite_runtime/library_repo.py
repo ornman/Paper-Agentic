@@ -47,6 +47,8 @@ class SQLiteLibraryRepo:
                 conn.execute("ALTER TABLE library_items ADD COLUMN file_size INTEGER DEFAULT 0")
             if "deleted_at" not in existing:
                 conn.execute("ALTER TABLE library_items ADD COLUMN deleted_at TEXT DEFAULT NULL")
+            if "chunk_count" not in existing:
+                conn.execute("ALTER TABLE library_items ADD COLUMN chunk_count INTEGER DEFAULT 0")
             conn.commit()
             # 一次性迁移：修复 UUID 前缀的标题（{8hex}_xxx → xxx）
             self._repair_uuid_titles(conn)
@@ -60,7 +62,7 @@ class SQLiteLibraryRepo:
             rows = conn.execute(
                 """
                 SELECT item_id, title, file_path, file_hash,
-                       file_type, import_time, page_count, status,
+                       file_type, import_time, page_count, chunk_count, status,
                        authors, year, file_size, deleted_at
                 FROM library_items
                 WHERE deleted_at IS NULL
@@ -102,7 +104,7 @@ class SQLiteLibraryRepo:
             rows = conn.execute(
                 f"""
                 SELECT item_id, title, file_path, file_hash,
-                       file_type, import_time, page_count, status,
+                       file_type, import_time, page_count, chunk_count, status,
                        authors, year, file_size, deleted_at
                 FROM library_items
                 {full_where}
@@ -117,7 +119,7 @@ class SQLiteLibraryRepo:
             row = conn.execute(
                 """
                 SELECT item_id, title, file_path, file_hash,
-                       file_type, import_time, page_count, status,
+                       file_type, import_time, page_count, chunk_count, status,
                        authors, year, file_size, deleted_at
                 FROM library_items
                 WHERE item_id = ?
@@ -135,7 +137,7 @@ class SQLiteLibraryRepo:
             row = conn.execute(
                 """
                 SELECT item_id, title, file_path, file_hash,
-                       file_type, import_time, page_count, status,
+                       file_type, import_time, page_count, chunk_count, status,
                        authors, year, file_size, deleted_at
                 FROM library_items
                 WHERE file_hash = ? AND deleted_at IS NULL
@@ -154,9 +156,9 @@ class SQLiteLibraryRepo:
                 """
                 INSERT INTO library_items
                     (item_id, title, file_path, file_hash,
-                     file_type, import_time, page_count, status,
+                     file_type, import_time, page_count, chunk_count, status,
                      authors, year, file_size)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(item_id) DO UPDATE SET
                     title = excluded.title,
                     file_path = excluded.file_path,
@@ -164,6 +166,7 @@ class SQLiteLibraryRepo:
                     file_type = excluded.file_type,
                     import_time = excluded.import_time,
                     page_count = excluded.page_count,
+                    chunk_count = excluded.chunk_count,
                     status = excluded.status,
                     authors = excluded.authors,
                     year = excluded.year,
@@ -178,6 +181,7 @@ class SQLiteLibraryRepo:
                     item.file_type,
                     item.import_time,
                     item.page_count,
+                    item.chunk_count,
                     item.status,
                     item.authors,
                     item.year,
@@ -208,7 +212,7 @@ class SQLiteLibraryRepo:
             rows = conn.execute(
                 """
                 SELECT item_id, title, file_path, file_hash,
-                       file_type, import_time, page_count, status,
+                       file_type, import_time, page_count, chunk_count, status,
                        authors, year, file_size, deleted_at
                 FROM library_items
                 WHERE deleted_at IS NOT NULL
@@ -290,9 +294,10 @@ class SQLiteLibraryRepo:
             file_type=row[4],
             import_time=row[5],
             page_count=row[6],
-            status=row[7],
-            authors=row[8] if len(row) > 8 else "",
-            year=row[9] if len(row) > 9 and row[9] is not None else None,
-            file_size=row[10] if len(row) > 10 else 0,
-            deleted_at=row[11] if len(row) > 11 else None,
+            chunk_count=row[7] if len(row) > 7 else 0,
+            status=row[8] if len(row) > 8 else "ready",
+            authors=row[9] if len(row) > 9 else "",
+            year=row[10] if len(row) > 10 and row[10] is not None else None,
+            file_size=row[11] if len(row) > 11 else 0,
+            deleted_at=row[12] if len(row) > 12 else None,
         )

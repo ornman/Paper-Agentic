@@ -164,6 +164,7 @@ async def _run_import_with_progress(container, task_id: str, file_path: Path, or
                 file_type=file_path.suffix.lower(),
                 import_time=utc_now_iso(),
                 page_count=page_count,
+                chunk_count=result.chunk_count,
                 status="ready",
                 file_size=file_size,
             ))
