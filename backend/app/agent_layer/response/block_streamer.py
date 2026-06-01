@@ -88,7 +88,7 @@ def stream_to_blocks(raw_text: str, sources: list[SourceCard]) -> list[ContentBl
             if not list_ordered and list_items:
                 flush_list()
             list_ordered = True
-            list_items.append(ordered_match.group(1).strip() + ". " + ordered_match.group(2).strip())
+            list_items.append(ordered_match.group(2).strip())
             continue
 
         flush_list()
