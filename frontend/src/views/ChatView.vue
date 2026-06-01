@@ -1,6 +1,6 @@
 <template>
   <div class="chat-layout">
-    <TopNavBar title="论文助手" @new-chat="handleNewChat" @open-history="handleOpenHistory" />
+    <TopNavBar title="论文助手" @new-chat="handleNewChat" @open-history="sessionManager.handleOpenHistory" />
 
     <main class="chat-main">
       <!-- 消息区域 -->
@@ -14,9 +14,9 @@
               :status="store.status"
               :error-message="store.errorMessage ?? undefined"
               :phase-message="store.phaseMessage"
-              @citation-hover="handleCitationHover"
-              @citation-leave="handleCitationLeave"
-              @citation-click="handleCitationClick"
+              @citation-hover="citationPreview.handleCitationHover"
+              @citation-leave="citationPreview.handleCitationLeave"
+              @citation-click="citationPreview.handleCitationClick"
               @retry="handleRetry"
               @regenerate="handleRegenerate"
               @stop="store.abortStreaming()"
@@ -38,13 +38,13 @@
         :is-busy="isBusy"
         :selected-paper-count="libraryStore.selectedPaperCount"
         :selected-paper-names="selectedPaperNames"
-        :thinking-enabled="thinkingEnabled"
+        :thinking-enabled="settingsStore.thinkingEnabled"
         @send="handleSend"
         @stop="store.abortStreaming()"
         @upload-pdf="handleUploadPdf"
         @toggle-papers="togglePaperPanel"
         @clear-papers="libraryStore.clearSelectedPapers()"
-        @toggle-thinking="thinkingEnabled = !thinkingEnabled"
+        @toggle-thinking="settingsStore.toggleThinking()"
       />
     </main>
 
@@ -57,11 +57,11 @@
     >
       <template #history>
         <HistoryPanel
-          :sessions="sessions"
-          :loading="sessionsLoading"
+          :sessions="sessionManager.sessions.value"
+          :loading="sessionManager.sessionsLoading.value"
           :active-session-id="store.sessionId"
-          @select="switchToSession"
-          @delete="handleDeleteSession"
+          @select="sessionManager.switchToSession"
+          @delete="sessionManager.handleDeleteSession"
         />
       </template>
 
@@ -72,7 +72,7 @@
           :error="libraryStore.error"
           :selected-ids="libraryStore.selectedPaperIds"
           @toggle="libraryStore.togglePaperSelection($event)"
-          @upload="triggerFileUpload"
+          @upload="fileUpload.triggerUpload"
           @remove="handleRemovePaper"
           @retry="handleRetryImport"
           @select-all="libraryStore.setSelectedPaperIds($event)"
@@ -82,13 +82,13 @@
 
     <!-- 引用悬停预览（全局，带 300ms 延迟） -->
     <CitationPreview
-      :visible="previewVisible"
-      :source="previewSource"
-      :x="previewX"
-      :y="previewY"
-      @preview-enter="cancelHideTimer"
-      @preview-leave="startHideTimer"
-      @preview-click="handlePreviewClick"
+      :visible="citationPreview.previewVisible.value"
+      :source="citationPreview.previewSource.value"
+      :x="citationPreview.previewX.value"
+      :y="citationPreview.previewY.value"
+      @preview-enter="citationPreview.cancelHideTimer"
+      @preview-leave="citationPreview.startHideTimer"
+      @preview-click="citationPreview.handlePreviewClick"
     />
 
     <!-- PDF 阅读面板 -->
@@ -111,23 +111,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import type { SourceCard } from '../types/source'
-import type { ContentBlock } from '../types/content'
 import { useConversationStore } from '../stores/conversation'
-import type { ConversationRecord, UserMessage, AssistantMessage } from '../types/message'
 import { useLibraryStore } from '../stores/library'
 import { useSettingsStore } from '../stores/settings'
 import { useUiStore } from '../stores/ui'
-import { listSessions, createSession, deleteSession, getMessages } from '../services/conversation-api'
-
-import type { ConversationSession } from '../types/conversation'
 import { useWPSPolling } from '../composables/wps'
-import { isDemoMode, DEMO_PAPERS, DEMO_SESSIONS } from '../demo'
+import { useCitationPreview } from '../composables/use-citation-preview'
+import { useSessionManager } from '../composables/use-session-manager'
+import { useAutoScroll } from '../composables/use-auto-scroll'
+import { useFileUpload } from '../composables/use-file-upload'
+import { isDemoMode, DEMO_PAPERS } from '../demo'
+import { createSession } from '../services/conversation-api'
 import TopNavBar from '../components/TopNavBar.vue'
 import MessageList from '../components/MessageList.vue'
 import EmptyState from '../components/EmptyState.vue'
-
 import InputBar from '../components/InputBar.vue'
 import ConfigInitDialog from '../components/ConfigInitDialog.vue'
 import CitationPreview from '../components/CitationPreview.vue'
@@ -140,16 +139,37 @@ const store = useConversationStore()
 const libraryStore = useLibraryStore()
 const settingsStore = useSettingsStore()
 const uiStore = useUiStore()
-const resetCounter = ref(0)
-const configDialogVisible = ref(false)
 
 const { startPolling, isWPSAvailable } = useWPSPolling(true, () => store.sessionId)
 
-const messagesContainer = ref<HTMLElement>()
-const thinkingEnabled = ref(false)
-const sessions = ref<ConversationSession[]>([])
-const sessionsLoading = ref(false)
+const resetCounter = ref(0)
+const configDialogVisible = ref(false)
 
+// ─── Demo 模式 ───
+const demoActive = ref(isDemoMode())
+
+async function initDemoMode() {
+  libraryStore.papers = DEMO_PAPERS
+  const { DEMO_SESSIONS: demoSessions } = await import('../demo')
+  sessionManager.sessions.value = demoSessions.map(s => ({
+    session_id: s.session_id,
+    title: s.title,
+    created_at: s.created_at,
+    updated_at: s.created_at,
+  }))
+  libraryStore.setSelectedPaperIds(['paper-1', 'paper-2'])
+}
+
+async function probeBackend(): Promise<boolean> {
+  try {
+    const resp = await fetch('/api/v1/papers', { method: 'HEAD' })
+    return resp.ok || resp.status === 405
+  } catch {
+    return false
+  }
+}
+
+// ─── Composables ───
 const isBusy = computed(() => store.status === 'requesting' || store.status === 'thinking' || store.status === 'streaming')
 
 const selectedPaperNames = computed(() =>
@@ -158,7 +178,6 @@ const selectedPaperNames = computed(() =>
     .filter(Boolean) as string[]
 )
 
-// 所有 assistant 消息的来源（用于引用查找）
 const allSources = computed<SourceCard[]>(() => {
   const sources: SourceCard[] = []
   for (const msg of store.messages) {
@@ -169,79 +188,39 @@ const allSources = computed<SourceCard[]>(() => {
   return sources
 })
 
-// ─── 引用悬停预览（300ms 延迟）───
-const previewVisible = ref(false)
-const previewSource = ref<SourceCard | null>(null)
-const previewX = ref(0)
-const previewY = ref(0)
-let hoverTimer: ReturnType<typeof setTimeout> | null = null
-let hideTimer: ReturnType<typeof setTimeout> | null = null
+const citationPreview = useCitationPreview({
+  allSources,
+  isWPSAvailable,
+  openReader: (paperId, page) => uiStore.openReader(paperId, page),
+  demoActive,
+})
 
-function handleCitationHover(sourceId: string, event: MouseEvent) {
-  cancelHoverTimer()
-  cancelHideTimer()
+const sessionManager = useSessionManager({
+  store,
+  libraryStore,
+  uiStore,
+  demoActive,
+})
 
-  // 300ms 后显示预览
-  hoverTimer = setTimeout(() => {
-    const src = allSources.value.find((s) => s.id === sourceId)
-    if (!src) return
-    previewSource.value = src
-    previewX.value = event.clientX
-    previewY.value = event.clientY
-    previewVisible.value = true
-  }, 300)
-}
+const { containerRef: messagesContainer } = useAutoScroll(
+  () => store.messages.length,
+  () => store.status,
+)
 
-function handleCitationLeave() {
-  cancelHoverTimer()
-  startHideTimer()
-}
-
-function handleCitationClick(sourceId: string) {
-  const src = allSources.value.find((s) => s.id === sourceId)
-  if (!src) return
-  // 无 paper_id：显示预览浮窗
-  if (!src.paper_id) {
-    showCitationPreview(src)
-    return
-  }
-  // WPS 环境（非 demo）：走外部打开
-  if (!demoActive.value && isWPSAvailable.value) {
-    handleOpenSource(src)
-    return
-  }
-  // 浏览器环境 / demo 模式：打开 PDF 阅读面板
-  uiStore.openReader(src.paper_id, src.page)
-}
-
-function cancelHoverTimer() {
-  if (hoverTimer) {
-    clearTimeout(hoverTimer)
-    hoverTimer = null
-  }
-}
-
-function cancelHideTimer() {
-  if (hideTimer) {
-    clearTimeout(hideTimer)
-    hideTimer = null
-  }
-}
-
-function startHideTimer() {
-  cancelHideTimer()
-  hideTimer = setTimeout(() => {
-    previewVisible.value = false
-  }, 300)
-}
+const fileUpload = useFileUpload({
+  accept: '.pdf',
+  multiple: true,
+  onFiles: async (files) => {
+    const pdfFiles = files.filter((f) => f.name.toLowerCase().endsWith('.pdf'))
+    await libraryStore.importFiles(pdfFiles)
+  },
+})
 
 // ─── 发送 ───
 async function handleSend(promptText: string) {
-  // Auto-abort if currently busy
   if (isBusy.value) {
     store.abortStreaming()
   }
-  // Create backend session on first message (non-demo mode)
   if (!demoActive.value && store.messages.length === 0) {
     try {
       const session = await createSession()
@@ -262,7 +241,7 @@ function handleSelectPrompt(promptText: string) {
   handleSend(promptText)
 }
 
-// ─── 重试：重新发送最后一条用户消息 ───
+// ─── 重试 ───
 function handleRetry() {
   const lastUserMsg = [...store.messages].reverse().find(m => m.role === 'user')
   if (!lastUserMsg) return
@@ -276,7 +255,6 @@ function handleRetry() {
 
 // ─── 消息操作 ───
 function handleRegenerate(messageId: string) {
-  // Find the user message before this AI message
   const idx = store.messages.findIndex(m => m.id === messageId)
   if (idx > 0 && store.messages[idx - 1].role === 'user') {
     store.regenerateAfterUser(store.messages[idx - 1].id)
@@ -306,36 +284,7 @@ function handleFollowUp(text: string) {
   }
 }
 
-// ─── Demo 模式初始化 ──
-const demoActive = ref(isDemoMode())
-
-function initDemoMode() {
-  // 加载 mock 论文到 library
-  libraryStore.papers = DEMO_PAPERS
-
-  // 加载 mock 会话
-  sessions.value = DEMO_SESSIONS.map(s => ({
-    session_id: s.session_id,
-    title: s.title,
-    created_at: s.created_at,
-    updated_at: s.created_at,
-  }))
-
-  // 默认选中几篇论文
-  libraryStore.setSelectedPaperIds(['paper-1', 'paper-2'])
-}
-
-// 探测后端是否可达（不依赖文献库是否有数据）
-async function probeBackend(): Promise<boolean> {
-  try {
-    const resp = await fetch('/api/v1/papers', { method: 'HEAD' })
-    return resp.ok || resp.status === 405
-  } catch {
-    return false
-  }
-}
-
-// ─── 配置保存完成 ───
+// ─── 配置保存 ───
 function handleConfigSaved() {
   configDialogVisible.value = false
   settingsStore.backendConfigured = true
@@ -344,169 +293,9 @@ function handleConfigSaved() {
 // ─── 新建对话 ───
 async function handleNewChat() {
   if (isBusy.value && !confirm('当前对话正在进行中，确认开始新对话？')) return
-  // Just reset locally — don't create a backend session until user actually sends a message
   store.reset()
   resetCounter.value++
   libraryStore.clearSelectedPapers()
-}
-
-// ─── 历史记录 ───
-async function handleOpenHistory() {
-  uiStore.openSidebar('history')
-  if (demoActive.value) {
-    return
-  }
-  sessionsLoading.value = true
-  try {
-    sessions.value = await listSessions()
-  } catch {
-    sessions.value = []
-  } finally {
-    sessionsLoading.value = false
-  }
-}
-
-// ─── 切换到某个会话 ───
-async function switchToSession(sessionId: string) {
-  // Demo 模式：从 mock 数据加载
-  if (demoActive.value) {
-    const demoSession = DEMO_SESSIONS.find(s => s.session_id === sessionId)
-    store.reset()
-    store.sessionId = sessionId
-    if (demoSession) {
-      store.messages = [...demoSession.messages]
-    }
-    uiStore.closeSidebar()
-    return
-  }
-
-  try {
-    const msgs = await getMessages(sessionId)
-    store.reset()
-    store.sessionId = sessionId
-    const mapped: ConversationRecord[] = []
-    for (const msg of msgs) {
-      if (msg.role === 'user') {
-        mapped.push({
-          id: `user-${msg.created_at}`,
-          role: 'user',
-          content: msg.content,
-          createdAt: msg.created_at,
-        } as UserMessage)
-      } else if (msg.role === 'assistant') {
-        // Use structured blocks_json if available; otherwise fall back to single paragraph
-        let blocks: AssistantMessage['blocks']
-        if (msg.blocks_json) {
-          try {
-            const parsed = JSON.parse(msg.blocks_json)
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              // Validate each block has a recognized type and text/items are strings
-              blocks = parsed.filter(
-                (b): b is ContentBlock =>
-                  typeof b === 'object' && b !== null && typeof b.type === 'string'
-              )
-              if (blocks.length === 0) {
-                blocks = [{ type: 'paragraph' as const, text: msg.content }]
-              }
-            } else {
-              blocks = [{ type: 'paragraph' as const, text: msg.content }]
-            }
-          } catch {
-            blocks = [{ type: 'paragraph' as const, text: msg.content }]
-          }
-        } else {
-          blocks = [{ type: 'paragraph' as const, text: msg.content }]
-        }
-        // Safe sources parsing with fallback
-        let sources: AssistantMessage['sources']
-        if (msg.sources_json) {
-          try {
-            const parsed = JSON.parse(msg.sources_json)
-            sources = Array.isArray(parsed) ? parsed : []
-          } catch {
-            sources = []
-          }
-        } else {
-          sources = []
-        }
-        mapped.push({
-          id: `assistant-${msg.created_at}`,
-          role: 'assistant',
-          createdAt: msg.created_at,
-          thinking: '',
-          thinkingTimeMs: 0,
-          blocks,
-          sources,
-        } as AssistantMessage)
-      }
-    }
-    store.messages = mapped
-  } catch {
-    store.reset()
-    store.sessionId = sessionId
-  }
-  uiStore.closeSidebar()
-  libraryStore.clearSelectedPapers()
-}
-
-// ─── 删除会话 ───
-async function handleDeleteSession(sessionId: string) {
-  if (demoActive.value) {
-    sessions.value = sessions.value.filter((s) => s.session_id !== sessionId)
-    if (store.sessionId === sessionId) {
-      store.reset()
-      libraryStore.clearSelectedPapers()
-    }
-    return
-  }
-  try {
-    await deleteSession(sessionId)
-    sessions.value = sessions.value.filter((s) => s.session_id !== sessionId)
-    if (store.sessionId === sessionId) {
-      store.reset()
-      libraryStore.clearSelectedPapers()
-    }
-  } catch {
-    // 静默失败，保留列表原样
-  }
-}
-
-// ─── 打开 PDF ───
-function handleOpenSource(source: SourceCard) {
-  const filePath = source.file_path || source.local_path
-  if (!filePath) {
-    showCitationPreview(source)
-    return
-  }
-
-  if (isWPSAvailable.value && window.wps?.OAAssist?.ShellExecute) {
-    window.wps.OAAssist.ShellExecute(filePath)
-  } else if (source.paper_id) {
-    uiStore.openReader(source.paper_id, source.page)
-  } else {
-    showCitationPreview(source)
-  }
-}
-
-// 点击引用预览浮窗 → 打开阅读面板
-function handlePreviewClick() {
-  const src = previewSource.value
-  if (!src) return
-  previewVisible.value = false
-  if (src.paper_id) {
-    uiStore.openReader(src.paper_id, src.page)
-  }
-}
-
-// 在 citation preview 中展示来源内容（用于 demo 模式或无本地文件时）
-function showCitationPreview(source: SourceCard) {
-  cancelHoverTimer()
-  cancelHideTimer()
-  previewSource.value = source
-  // Position near center of viewport
-  previewX.value = Math.max(window.innerWidth / 2 - 200, 20)
-  previewY.value = Math.max(window.innerHeight / 4, 20)
-  previewVisible.value = true
 }
 
 // ─── 上传 PDF ───
@@ -518,21 +307,6 @@ async function handleUploadPdf(files: File[]) {
 function togglePaperPanel() {
   uiStore.openSidebar('library')
   libraryStore.loadPapers()
-}
-
-// ─── 文献库上传 ───
-function triggerFileUpload() {
-  const input = document.createElement('input')
-  input.type = 'file'
-  input.accept = '.pdf'
-  input.multiple = true
-  input.onchange = async () => {
-    const files = input.files
-    if (!files || files.length === 0) return
-    const pdfFiles = Array.from(files).filter((f) => f.name.toLowerCase().endsWith('.pdf'))
-    await libraryStore.importFiles(pdfFiles)
-  }
-  input.click()
 }
 
 // ─── 文献库移除 ───
@@ -556,23 +330,13 @@ async function handleRetryImport(paperId: string) {
   }
 }
 
-// ─── 滚动到底部 ───
-function scrollToBottom() {
-  nextTick(() => {
-    const el = messagesContainer.value
-    if (el) el.scrollTop = el.scrollHeight
-  })
-}
-
 // ─── 键盘快捷键 ───
 function handleKeydown(e: KeyboardEvent) {
-  // Ctrl+K: open sidebar search (history)
   if (e.ctrlKey && e.key === 'k') {
     e.preventDefault()
     uiStore.openSidebar('history')
     return
   }
-  // Ctrl+N: new chat
   if (e.ctrlKey && e.key === 'n') {
     e.preventDefault()
     handleNewChat()
@@ -582,18 +346,14 @@ function handleKeydown(e: KeyboardEvent) {
 
 onMounted(async () => {
   if (demoActive.value) {
-    // Explicitly requested demo via ?demo param
     initDemoMode()
   } else {
-    // Probe backend — if unreachable, auto-activate demo mode
     const backendOk = await probeBackend()
     if (!backendOk) {
       demoActive.value = true
       initDemoMode()
     } else {
       if (isWPSAvailable.value) startPolling()
-      // Only auto-show the config dialog once per browser session.
-      // After that, the user must manually open it from Settings.
       await settingsStore.fetchBackendConfig()
       if (!settingsStore.backendConfigured && !sessionStorage.getItem('configDialogShown')) {
         configDialogVisible.value = true
@@ -606,11 +366,6 @@ onMounted(async () => {
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown)
-})
-
-watch(() => store.messages.length, scrollToBottom)
-watch(() => store.status, (s) => {
-  if (s === 'streaming' || s === 'done') scrollToBottom()
 })
 </script>
 
