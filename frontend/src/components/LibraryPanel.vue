@@ -200,8 +200,8 @@
       </div>
     </div>
 
-    <!-- Recycle bin footer -->
-    <div v-if="viewMode === 'library'" class="library-recycle-footer">
+    <!-- Bottom action bar: recycle bin + batch delete -->
+    <div v-if="viewMode === 'library'" class="library-action-footer">
       <button
         type="button"
         class="library-recycle-btn"
@@ -209,12 +209,26 @@
         @click="switchToTrash()"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="3" width="20" height="5" rx="1" />
+          <path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8" />
+          <path d="M10 12h4" />
+        </svg>
+        <span>回收站</span>
+      </button>
+      <button
+        v-if="selectedIds.length > 0"
+        type="button"
+        class="library-batch-delete-btn"
+        title="删除选中论文"
+        @click="handleBatchDelete"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="3 6 5 6 21 6" />
           <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
           <line x1="10" y1="11" x2="10" y2="17" />
           <line x1="14" y1="11" x2="14" y2="17" />
         </svg>
-        <span>回收站</span>
+        <span>删除 ({{ selectedIds.length }})</span>
       </button>
     </div>
 
@@ -359,6 +373,22 @@ function confirmDeleteAction() {
   confirmDelete.visible = false
 }
 
+function handleBatchDelete() {
+  if (props.selectedIds.length === 0) return
+
+  if (skipDeleteConfirm.value) {
+    for (const id of props.selectedIds) {
+      emit('remove', id)
+    }
+    return
+  }
+
+  confirmDelete.paperId = ''
+  confirmDelete.title = `${props.selectedIds.length} 篇论文`
+  confirmDelete.batchIds = [...props.selectedIds]
+  confirmDelete.visible = true
+}
+
 async function switchToTrash() {
   viewMode.value = 'trash'
   trashedLoading.value = true
@@ -459,14 +489,15 @@ async function handlePermanentDelete(paperId: string) {
   z-index: 5;
 }
 
-/* ─── Recycle bin footer ─── */
-.library-recycle-footer {
+/* ─── Bottom action bar ─── */
+.library-action-footer {
   flex-shrink: 0;
   border-top: 1px solid var(--color-border-subtle);
   background: var(--color-surface-card);
   display: flex;
-  justify-content: center;
-  padding: var(--space-2) 0;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-3);
 }
 
 .library-recycle-btn {
@@ -486,6 +517,24 @@ async function handlePermanentDelete(paperId: string) {
 .library-recycle-btn:hover {
   color: var(--color-text-secondary);
   background: var(--color-surface-muted);
+}
+
+.library-batch-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-error);
+  font-size: 12px;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.library-batch-delete-btn:hover {
+  background: color-mix(in srgb, var(--color-error) 8%, transparent);
 }
 
 /* ─── Search ─── */
