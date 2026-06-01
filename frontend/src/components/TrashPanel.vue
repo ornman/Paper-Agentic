@@ -96,7 +96,7 @@ function handlePermanentDelete(paper: PaperItem) {
 
 function doPermanentDelete() {
   emit('permanent-delete', confirmId.value)
-  confirmVisible = false
+  confirmVisible.value = false
 }
 </script>
 

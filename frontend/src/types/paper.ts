@@ -52,12 +52,15 @@ export interface ImportStatus {
   percent: number | null    // ⚠️ 永远为 null，实时百分比走 SSE
 }
 
-/** SSE 进度事件（GET /import/stream） */
+/** 进度事件（SSE 和轮询共用） */
+export type ImportProgressStatus = ImportSseStatus | ImportTaskStatus
+
+/** 进度事件（SSE 和轮询共用投影） */
 export interface ImportProgressEvent {
-  status: ImportSseStatus
-  step: ImportStep | null
+  status: ImportProgressStatus
+  step: string | null        // SSE 用 ImportStep，轮询用任意 string
   percent: number
-  stage_name: string | null
+  stage_name?: string | null
   paper_id: string | null
   error_msg: string | null
 }
