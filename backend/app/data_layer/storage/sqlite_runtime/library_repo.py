@@ -247,36 +247,27 @@ class SQLiteLibraryRepo:
         ).fetchall()
         if not rows:
             return
+
+        from pathlib import Path
+        from app.service_layer.utils.pdf_helpers import extract_pdf_metadata
+
         fixed = 0
         for item_id, title, file_path in rows:
             if not self._UUID_PREFIX_RE.match(title):
                 continue
-            # 去掉 UUID 前缀
             new_title = title.split("_", 1)[1] if "_" in title else title
-            # 尝试从 PDF 提取元数据覆盖
             authors = ""
             year = None
             try:
-                from pathlib import Path
                 p = Path(file_path)
                 if p.exists() and p.suffix.lower() == ".pdf":
-                    import pypdf
-                    with open(p, "rb") as f:
-                        meta = pypdf.PdfReader(f).metadata
-                        if meta:
-                            meta_title = (meta.title or "").strip()
-                            if meta_title:
-                                new_title = meta_title
-                            author = (meta.author or "").strip()
-                            if author:
-                                authors = author
-                            for df in (meta.get("/CreationDate", ""), meta.get("/ModDate", "")):
-                                if isinstance(df, str) and df.startswith("D:"):
-                                    try:
-                                        year = int(df[2:6])
-                                    except (ValueError, IndexError):
-                                        pass
-                                    break
+                    meta = extract_pdf_metadata(p)
+                    if meta["title"]:
+                        new_title = meta["title"]
+                    if meta["authors"]:
+                        authors = meta["authors"]
+                    if meta["year"]:
+                        year = meta["year"]
             except Exception:
                 pass
             conn.execute(

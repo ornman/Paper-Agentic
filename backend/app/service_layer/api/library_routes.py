@@ -2,21 +2,12 @@
 
 from __future__ import annotations
 
-import asyncio
-import hashlib
 import logging
-import uuid
-from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request
 
-from app.data_layer.storage.sqlite_runtime._types import ImportTask, LibraryItem, utc_now_iso
-from app.service_layer.schemas.library import (
-    ImportRequest,
-    ImportResponse,
-    ImportTaskOut,
-    LibraryItemOut,
-)
+from app.data_layer.storage.sqlite_runtime._types import LibraryItem, utc_now_iso
+from app.service_layer.schemas.library import LibraryItemOut
 
 logger = logging.getLogger("paper-assistant")
 
@@ -97,136 +88,3 @@ async def permanent_delete_item(item_id: str, request: Request):
     container.library_repo.hard_delete(item_id)
     logger.info("已永久删除文献: %s (%s)", item.title, item_id)
     return {"status": "ok", "message": f"已永久删除: {item.title}"}
-
-
-@router.post("/import", response_model=ImportResponse)
-async def import_document(body: ImportRequest, request: Request):
-    container = request.app.state.container
-    file_path = Path(body.file_path)
-
-    if not file_path.exists():
-        raise HTTPException(status_code=400, detail=f"文件不存在: {body.file_path}")
-    if file_path.suffix.lower() != ".pdf":
-        raise HTTPException(status_code=400, detail="仅支持 PDF 格式")
-
-    file_hash = _compute_file_hash(file_path)
-    existing = container.library_repo.get_by_hash(file_hash)
-    if existing:
-        return ImportResponse(
-            task_id="",
-            status="duplicate",
-            message=f"文件已导入: {existing.title}",
-        )
-
-    task_id = uuid.uuid4().hex[:12]
-    task = ImportTask(task_id=task_id, file_path=str(file_path))
-    container.import_task_repo.create(task)
-
-    # 后台执行导入
-    asyncio.create_task(_run_import(container, task_id, file_path))
-
-    return ImportResponse(task_id=task_id, status="queued", message="导入任务已创建")
-
-
-async def _run_import(container, task_id: str, file_path: Path):
-    """后台导入 worker"""
-    try:
-        container.import_task_repo.update_status(task_id, "running")
-        result = await container.document_ingest.ingest_document(file_path)
-        if result.success:
-            container.import_task_repo.update_status(
-                task_id, "completed", message=f"导入成功，{result.chunk_count} 个 chunk", paper_id=result.paper_id,
-            )
-            # 从 PDF 文件读取实际页数、文件大小和元数据
-            page_count = _read_pdf_page_count(file_path)
-            file_size = _read_file_size(file_path)
-            pdf_meta = _extract_pdf_metadata(file_path)
-
-            # 标题优先级：PDF 元数据 > stem（去掉可能的 UUID 前缀）
-            title = pdf_meta.get("title") or ""
-            if not title:
-                stem = file_path.stem
-                title = stem.split("_", 1)[1] if "_" in stem else stem
-
-            container.library_repo.upsert(LibraryItem(
-                item_id=result.paper_id,
-                title=title,
-                authors=pdf_meta.get("authors", ""),
-                year=pdf_meta.get("year"),
-                file_path=str(file_path),
-                file_hash=_compute_file_hash(file_path),
-                file_type=file_path.suffix.lower(),
-                import_time=utc_now_iso(),
-                page_count=page_count,
-                status="ready",
-                file_size=file_size,
-            ))
-        else:
-            container.import_task_repo.update_status(task_id, "failed", message=result.error or "导入失败")
-    except Exception as e:
-        logger.error("后台导入失败 [%s]: %s", task_id, e, exc_info=True)
-        container.import_task_repo.update_status(task_id, "failed", message=str(e))
-
-
-@router.get("/import/{task_id}", response_model=ImportTaskOut)
-async def get_import_status(task_id: str, request: Request):
-    container = request.app.state.container
-    task = container.import_task_repo.get(task_id)
-    if not task:
-        raise HTTPException(status_code=404, detail="导入任务不存在")
-    return ImportTaskOut(**task.__dict__)
-
-
-def _read_pdf_page_count(file_path: Path) -> int:
-    """尝试从 PDF 文件读取实际页数，失败返回 0"""
-    try:
-        import pypdf
-        with open(file_path, "rb") as f:
-            reader = pypdf.PdfReader(f)
-            return len(reader.pages)
-    except Exception:
-        return 0
-
-
-def _read_file_size(file_path: Path) -> int:
-    """从文件系统读取文件大小"""
-    try:
-        return file_path.stat().st_size
-    except Exception:
-        return 0
-
-
-def _compute_file_hash(file_path: Path) -> str:
-    h = hashlib.sha256()
-    with open(file_path, "rb") as f:
-        for chunk in iter(lambda: f.read(8192), b""):
-            h.update(chunk)
-    return h.hexdigest()[:16]
-
-
-def _extract_pdf_metadata(file_path: Path) -> dict:
-    """从 PDF 文件提取元数据（标题、作者、年份）"""
-    result: dict = {"title": "", "authors": "", "year": None}
-    try:
-        import pypdf
-        with open(file_path, "rb") as f:
-            reader = pypdf.PdfReader(f)
-            meta = reader.metadata
-            if not meta:
-                return result
-            title = (meta.title or "").strip()
-            if title:
-                result["title"] = title
-            author = (meta.author or "").strip()
-            if author:
-                result["authors"] = author
-            for date_field in (meta.get("/CreationDate", ""), meta.get("/ModDate", "")):
-                if isinstance(date_field, str) and date_field.startswith("D:"):
-                    try:
-                        result["year"] = int(date_field[2:6])
-                    except (ValueError, IndexError):
-                        pass
-                    break
-    except Exception:
-        pass
-    return result

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import json
 import logging
 import uuid
@@ -14,6 +13,12 @@ from fastapi.responses import StreamingResponse
 
 from app.data_layer.storage.sqlite_runtime._types import ImportTask, LibraryItem, utc_now_iso
 from app.service_layer.schemas.library import ImportStartResponse, ImportStatusResponse
+from app.service_layer.utils.pdf_helpers import (
+    compute_file_hash,
+    extract_pdf_metadata,
+    read_file_size,
+    read_pdf_page_count,
+)
 
 logger = logging.getLogger("paper-assistant")
 
@@ -42,7 +47,7 @@ async def start_import(file: UploadFile = FastAPIFile(...), request: Request = N
         raise HTTPException(status_code=400, detail="仅支持 PDF 格式")
 
     # 去重检查
-    file_hash = _compute_file_hash(dest)
+    file_hash = compute_file_hash(dest)
     existing = container.library_repo.get_by_hash(file_hash)
     if existing:
         return ImportStartResponse(task_id="", status="duplicate")
@@ -121,7 +126,6 @@ async def get_import_artifacts(task_id: str, request: Request):
 async def _run_import_with_progress(container, task_id: str, file_path: Path, original_name: str = ""):
     """后台导入 worker（带进度推送）"""
     bus = container.import_progress_bus
-    monitor = container.import_monitor
 
     async def publish(event: dict):
         await bus.publish(task_id, event)
@@ -136,17 +140,17 @@ async def _run_import_with_progress(container, task_id: str, file_path: Path, or
             container.import_task_repo.update_status(
                 task_id, "completed", message=f"导入成功，{result.chunk_count} 个 chunk", paper_id=result.paper_id,
             )
-            # 从 PDF 文件读取实际页数、文件大小和元数据
-            page_count = _read_pdf_page_count(file_path)
-            file_size = _read_file_size(file_path)
-            pdf_meta = _extract_pdf_metadata(file_path)
 
-            # 标题优先级：PDF 元数据 > 原始文件名 > stem
+            # 从 PDF 文件读取实际页数、文件大小和元数据
+            page_count = read_pdf_page_count(file_path)
+            file_size = read_file_size(file_path)
+            pdf_meta = extract_pdf_metadata(file_path)
+
+            # 标题优先级：PDF 元数据 > 原始文件名 > stem（去掉 UUID 前缀）
             title = pdf_meta.get("title") or ""
             if not title and original_name:
                 title = Path(original_name).stem
             if not title:
-                # 去掉 UUID 前缀：{8hex}_xxx → xxx
                 stem = file_path.stem
                 title = stem.split("_", 1)[1] if "_" in stem else stem
 
@@ -156,7 +160,7 @@ async def _run_import_with_progress(container, task_id: str, file_path: Path, or
                 authors=pdf_meta.get("authors", ""),
                 year=pdf_meta.get("year"),
                 file_path=str(file_path),
-                file_hash=_compute_file_hash(file_path),
+                file_hash=compute_file_hash(file_path),
                 file_type=file_path.suffix.lower(),
                 import_time=utc_now_iso(),
                 page_count=page_count,
@@ -173,61 +177,3 @@ async def _run_import_with_progress(container, task_id: str, file_path: Path, or
         await publish({"status": "failed", "step": "error", "error_msg": str(e)})
     finally:
         await publish({"status": "done", "step": None, "paper_id": None})
-
-
-def _read_pdf_page_count(file_path: Path) -> int:
-    """尝试从 PDF 文件读取实际页数，失败返回 0"""
-    try:
-        import pypdf
-        with open(file_path, "rb") as f:
-            reader = pypdf.PdfReader(f)
-            return len(reader.pages)
-    except Exception:
-        return 0
-
-
-def _read_file_size(file_path: Path) -> int:
-    """从文件系统读取文件大小"""
-    try:
-        return file_path.stat().st_size
-    except Exception:
-        return 0
-
-
-def _extract_pdf_metadata(file_path: Path) -> dict:
-    """从 PDF 文件提取元数据（标题、作者、年份）"""
-    result: dict = {"title": "", "authors": "", "year": None}
-    try:
-        import pypdf
-        with open(file_path, "rb") as f:
-            reader = pypdf.PdfReader(f)
-            meta = reader.metadata
-            if not meta:
-                return result
-            # 标题
-            title = (meta.title or "").strip()
-            if title:
-                result["title"] = title
-            # 作者
-            author = (meta.author or "").strip()
-            if author:
-                result["authors"] = author
-            # 年份：从 CreationDate 或 ModDate 提取
-            for date_field in (meta.get("/CreationDate", ""), meta.get("/ModDate", "")):
-                if isinstance(date_field, str) and date_field.startswith("D:"):
-                    try:
-                        result["year"] = int(date_field[2:6])
-                    except (ValueError, IndexError):
-                        pass
-                    break
-    except Exception:
-        pass
-    return result
-
-
-def _compute_file_hash(file_path: Path) -> str:
-    h = hashlib.sha256()
-    with open(file_path, "rb") as f:
-        for chunk in iter(lambda: f.read(8192), b""):
-            h.update(chunk)
-    return h.hexdigest()[:16]
