@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import logging
+import re
 import sqlite3
 
 from ._types import LibraryItem, utc_now_iso
+
+logger = logging.getLogger("paper-assistant")
 
 
 class SQLiteLibraryRepo:
@@ -44,6 +48,8 @@ class SQLiteLibraryRepo:
             if "deleted_at" not in existing:
                 conn.execute("ALTER TABLE library_items ADD COLUMN deleted_at TEXT DEFAULT NULL")
             conn.commit()
+            # 一次性迁移：修复 UUID 前缀的标题（{8hex}_xxx → xxx）
+            self._repair_uuid_titles(conn)
 
     # ------------------------------------------------------------------
     # Queries
@@ -230,6 +236,58 @@ class SQLiteLibraryRepo:
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
+
+    # UUID 前缀模式：8 位 hex + 下划线 + 原始文件名（如 "eef350c3_1-s2.0-..."）
+    _UUID_PREFIX_RE = re.compile(r"^[0-9a-f]{8}_")
+
+    def _repair_uuid_titles(self, conn: sqlite3.Connection) -> None:
+        """一次性迁移：去掉标题中的 UUID 前缀，并尝试从 PDF 补充 authors/year。"""
+        rows = conn.execute(
+            "SELECT item_id, title, file_path FROM library_items WHERE deleted_at IS NULL"
+        ).fetchall()
+        if not rows:
+            return
+        fixed = 0
+        for item_id, title, file_path in rows:
+            if not self._UUID_PREFIX_RE.match(title):
+                continue
+            # 去掉 UUID 前缀
+            new_title = title.split("_", 1)[1] if "_" in title else title
+            # 尝试从 PDF 提取元数据覆盖
+            authors = ""
+            year = None
+            try:
+                from pathlib import Path
+                p = Path(file_path)
+                if p.exists() and p.suffix.lower() == ".pdf":
+                    import pypdf
+                    with open(p, "rb") as f:
+                        meta = pypdf.PdfReader(f).metadata
+                        if meta:
+                            meta_title = (meta.title or "").strip()
+                            if meta_title:
+                                new_title = meta_title
+                            author = (meta.author or "").strip()
+                            if author:
+                                authors = author
+                            for df in (meta.get("/CreationDate", ""), meta.get("/ModDate", "")):
+                                if isinstance(df, str) and df.startswith("D:"):
+                                    try:
+                                        year = int(df[2:6])
+                                    except (ValueError, IndexError):
+                                        pass
+                                    break
+            except Exception:
+                pass
+            conn.execute(
+                "UPDATE library_items SET title = ?, authors = ?, year = ? WHERE item_id = ?",
+                (new_title, authors, year, item_id),
+            )
+            fixed += 1
+            logger.info("修复文献标题: %s → %s", title, new_title)
+        if fixed:
+            conn.commit()
+            logger.info("一次性迁移完成：修复了 %d 条 UUID 前缀标题", fixed)
 
     @staticmethod
     def _row_to_item(row: tuple) -> LibraryItem:
