@@ -169,8 +169,9 @@ async function render() {
     await renderTextLayer()
     await renderAnnotationLayer()
   } catch (e: unknown) {
+    // RenderingCancelledException 是正常的取消操作，静默处理
     if (e instanceof Error && e.name === 'RenderingCancelledException') return
-    console.error(`Page ${props.pageNumber} render error:`, e)
+    // 其他渲染错误也静默处理，避免虚拟列表频繁 mount/unmount 时刷屏
   } finally {
     renderTask = null
   }

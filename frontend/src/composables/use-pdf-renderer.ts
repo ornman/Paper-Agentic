@@ -1,6 +1,6 @@
 // frontend/src/composables/use-pdf-renderer.ts
-import { ref, shallowRef, watch, onBeforeUnmount, type Ref } from 'vue'
-import type { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist'
+import { ref, watch, onBeforeUnmount, type Ref } from 'vue'
+import type { PDFDocumentProxy } from 'pdfjs-dist'
 
 export type ViewMode = 'single' | 'double' | 'continuous'
 
@@ -12,16 +12,22 @@ export interface CachedCanvas {
   scale: number
 }
 
+/** 单个缓存条目的最大像素数，超过则跳过缓存（防止 GPU 内存爆炸） */
+const MAX_CACHE_PIXELS = 4_000_000 // ~16 MB RGBA
+
 export function usePdfRenderer(
-  pdfDoc: Ref<PDFDocumentProxy | null>,
+  _pdfDoc: Ref<PDFDocumentProxy | null>,
   scale: Ref<number>,
   viewMode: Ref<ViewMode>,
 ) {
   const currentPage = ref(1)
   const totalPages = ref(0)
 
-  /** shallowRef: 避免对大数组做深度代理，赋新引用触发更新 */
-  const pageHeights = shallowRef<number[]>([])
+  /**
+   * 用 ref（深度追踪）+ 原地修改，避免 shallowRef 每次赋值复制整个数组。
+   * 200 个 number 的深度追踪开销远小于每次 [...arr] 复制。
+   */
+  const pageHeights = ref<number[]>([])
 
   const visiblePages = ref<Set<number>>(new Set())
 
@@ -39,9 +45,6 @@ export function usePdfRenderer(
   // ── 优化 2: Canvas LRU 缓存 ──
   const canvasCache = new Map<number, CachedCanvas>()
   const CANVAS_CACHE_MAX = 10
-
-  // ── 优化 5: pageProxy LRU 清理 ──
-  const activePageProxies = new Map<number, PDFPageProxy>()
 
   const PDF_TO_CSS_UNITS = 96 / 72
 
@@ -61,6 +64,10 @@ export function usePdfRenderer(
   }
 
   function setCachedCanvas(pageNum: number, entry: CachedCanvas): void {
+    // 像素预算检查：防止高缩放 + 高 DPR 导致 GPU 内存爆炸
+    const pixelCount = entry.width * entry.height
+    if (pixelCount > MAX_CACHE_PIXELS) return
+
     // LRU 淘汰
     if (canvasCache.size >= CANVAS_CACHE_MAX) {
       const oldest = canvasCache.keys().next().value
@@ -73,37 +80,6 @@ export function usePdfRenderer(
 
   function clearCanvasCache(): void {
     canvasCache.clear()
-  }
-
-  // ────────────────────────────────────────
-  //  pageProxy 管理
-  // ────────────────────────────────────────
-
-  function getPageProxy(pageNum: number, doc: PDFDocumentProxy): Promise<PDFPageProxy> {
-    const existing = activePageProxies.get(pageNum)
-    if (existing) return Promise.resolve(existing)
-    return doc.getPage(pageNum).then((page) => {
-      activePageProxies.set(pageNum, page)
-      return page
-    })
-  }
-
-  function cleanupDistantPages(currentCenter: number): void {
-    const CLEANUP_DISTANCE = 15
-    for (const [num, proxy] of activePageProxies) {
-      if (Math.abs(num - currentCenter) > CLEANUP_DISTANCE) {
-        proxy.cleanup()
-        activePageProxies.delete(num)
-        canvasCache.delete(num)
-      }
-    }
-  }
-
-  function cleanupAllPageProxies(): void {
-    for (const proxy of activePageProxies.values()) {
-      proxy.cleanup()
-    }
-    activePageProxies.clear()
   }
 
   // ────────────────────────────────────────
@@ -125,13 +101,10 @@ export function usePdfRenderer(
     updatePagesToRender()
   }
 
-  /** 由 PdfPage 渲染后回调，更新精确高度 */
+  /** 由 PdfPage 渲染后回调，原地更新精确高度 */
   function updatePageHeight(index: number, height: number) {
-    const arr = pageHeights.value
-    if (arr[index] === height) return
-    const next = [...arr]
-    next[index] = height
-    pageHeights.value = next
+    if (pageHeights.value[index] === height) return
+    pageHeights.value[index] = height // ref 深度追踪，原地修改即可触发响应
   }
 
   // ────────────────────────────────────────
@@ -266,9 +239,6 @@ export function usePdfRenderer(
     }
 
     pagesToRender.value = Array.from(pages).sort((a, b) => a - b)
-
-    // 优化 5: 清理远离视口的 pageProxy
-    cleanupDistantPages(currentPage.value)
   }
 
   function scrollToPage(pageNum: number) {
@@ -301,22 +271,10 @@ export function usePdfRenderer(
     currentPage.value = pageNum
   }
 
-  // ── 优化 6: scale watcher 防抖 ──
-  let scaleDebounce: ReturnType<typeof setTimeout> | null = null
+  // ── scale watcher：只清缓存，不重置高度（避免竞态覆盖已修正高度） ──
+  // PdfPage 重新渲染后会通过 updatePageHeight 回调修正，无需预先重置
   watch(scale, () => {
-    if (scaleDebounce) clearTimeout(scaleDebounce)
-    scaleDebounce = setTimeout(() => {
-      clearCanvasCache()
-      if (pdfDoc.value) {
-        // 重新估算参考高度
-        pdfDoc.value.getPage(1).then((page) => {
-          const vp = page.getViewport({ scale: scale.value * PDF_TO_CSS_UNITS })
-          lastKnownAverageHeight = vp.height
-          page.cleanup()
-          pageHeights.value = Array(totalPages.value).fill(lastKnownAverageHeight)
-        })
-      }
-    }, 150)
+    clearCanvasCache()
   })
 
   // 视图模式切换时：重新计算渲染页，continuous 模式需重建 observer
@@ -335,9 +293,7 @@ export function usePdfRenderer(
   })
 
   onBeforeUnmount(() => {
-    if (scaleDebounce) clearTimeout(scaleDebounce)
     clearCanvasCache()
-    cleanupAllPageProxies()
     teardownObserver()
   })
 
@@ -357,7 +313,5 @@ export function usePdfRenderer(
     getCachedCanvas,
     setCachedCanvas,
     clearCanvasCache,
-    getPageProxy,
-    cleanupAllPageProxies,
   }
 }

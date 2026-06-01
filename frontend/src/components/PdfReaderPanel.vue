@@ -81,7 +81,7 @@
                 :style="{ height: renderer.pageHeights.value[pageNum - 1] ? renderer.pageHeights.value[pageNum - 1] + 'px' : 'auto' }"
               >
                 <PdfPage
-                  v-if="renderer.pagesToRender.value.includes(pageNum)"
+                  v-if="pagesToRenderSet.has(pageNum)"
                   :pdf-doc="pdfDocProxy"
                   :page-number="pageNum"
                   :scale="scale"
@@ -184,6 +184,28 @@ const renderableSlots = computed(() => {
   const slots: number[] = []
   for (let i = start; i <= end; i++) slots.push(i)
   return slots
+})
+
+// O(1) Set 查询替代 Array.includes()
+const pagesToRenderSet = computed(() => new Set(renderer.pagesToRender.value))
+
+// ── 关键修复: renderableSlots 变化时重新注册 observer ──
+watch(renderableSlots, async (newSlots, oldSlots) => {
+  if (!scrollContainerRef.value || !pdfDocProxy.value) return
+  await nextTick()
+  const oldSet = new Set(oldSlots ?? [])
+  const newSet = new Set(newSlots)
+  // 注销已移除的 slot
+  for (const p of oldSet) {
+    if (!newSet.has(p)) renderer.unregisterPage(p)
+  }
+  // 注册新增的 slot
+  for (const p of newSet) {
+    if (!oldSet.has(p)) {
+      const el = scrollContainerRef.value!.querySelector<HTMLElement>(`[data-page-number="${p}"]`)
+      if (el) renderer.registerPage(p, el)
+    }
+  }
 })
 
 usePdfKeyboard({
@@ -320,7 +342,6 @@ watch(() => props.visible, async (visible) => {
     annotationAdapter.setDocument(null)
     pdfDocProxy.value?.destroy()
     pdfDocProxy.value = null
-    renderer.cleanupAllPageProxies()
     renderer.clearCanvasCache()
   }
 })
