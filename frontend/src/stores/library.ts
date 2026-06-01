@@ -33,6 +33,12 @@ const STEP_LABELS: Record<string, string> = {
   done: '完成',
 }
 
+// ─── SSE 状态校验 ────────────────────────────────────────
+
+const VALID_SSE_STATUSES = new Set<string>([
+  'running', 'stage_done', 'stage_failed', 'completed', 'failed', 'done',
+])
+
 // ─── 队列持久化 ──────────────────────────────────────────
 
 const STORAGE_KEY = 'paper-agentic-import-queue'
@@ -69,7 +75,9 @@ function parseSseProgress(data: string): RawSseProgress {
   try {
     const parsed = JSON.parse(data)
     return {
-      status: parsed.status ?? 'running',
+      status: typeof parsed.status === 'string' && VALID_SSE_STATUSES.has(parsed.status)
+        ? (parsed.status as ImportSseStatus)
+        : 'running',
       step: parsed.step ?? null,
       percent: typeof parsed.percent === 'number' ? parsed.percent : 0,
       stage_name: parsed.stage_name ?? null,
@@ -118,12 +126,19 @@ export const useLibraryStore = defineStore('library', () => {
     }
   }
 
-  // ─── 导入进度应用 ─────────────────────────────────────
+  // ─── 队列查找（基于 taskId，防止索引漂移） ────────────
 
-  function applyProgress(queueIdx: number, progress: ImportProgressEvent): void {
-    if (queueIdx < 0 || queueIdx >= importQueue.value.length) return
+  function findQueueIndexByTaskId(taskId: string): number {
+    return importQueue.value.findIndex((item) => item.taskId === taskId)
+  }
 
-    const item = importQueue.value[queueIdx]
+  // ─── 导入进度应用（基于 taskId 查找） ──────────────────
+
+  function applyProgress(taskId: string, progress: ImportProgressEvent): void {
+    const idx = findQueueIndexByTaskId(taskId)
+    if (idx === -1) return
+
+    const item = importQueue.value[idx]
     const stepText = progress.error_msg
       || STEP_LABELS[progress.step ?? '']
       || progress.step
@@ -140,12 +155,14 @@ export const useLibraryStore = defineStore('library', () => {
       item.step = '已完成'
       item.percent = 100
       log.info('导入完成', { paperId: progress.paper_id })
-      // 延迟 2 秒自动移除已完成项
+      // 延迟 2 秒自动移除已完成项（用 taskId 定位，不依赖索引）
       const fileName = item.fileName
       window.setTimeout(() => {
-        const idx = importQueue.value.findIndex((q) => q.fileName === fileName && q.status === 'completed')
-        if (idx !== -1) {
-          importQueue.value = importQueue.value.filter((_, i) => i !== idx)
+        const removeIdx = importQueue.value.findIndex(
+          (q) => q.fileName === fileName && q.taskId === taskId && q.status === 'completed',
+        )
+        if (removeIdx !== -1) {
+          importQueue.value = importQueue.value.filter((_, i) => i !== removeIdx)
           persistQueue(importQueue.value)
         }
       }, 2000)
@@ -165,13 +182,30 @@ export const useLibraryStore = defineStore('library', () => {
 
   // ─── SSE 实时监控 ─────────────────────────────────────
 
-  function monitorViaSSE(taskId: string, queueIdx: number): Promise<void> {
+  function monitorViaSSE(taskId: string): Promise<void> {
     return new Promise((resolve) => {
+      let resolved = false
+
+      function safeResolve(): void {
+        if (!resolved) {
+          resolved = true
+          resolve()
+        }
+      }
+
       const es = createImportStream(taskId)
+
+      // 安全超时：10 分钟无终态则关闭
+      const safetyTimer = window.setTimeout(() => {
+        if (es.readyState !== EventSource.CLOSED) {
+          es.close()
+        }
+        safeResolve()
+      }, 600_000)
 
       es.addEventListener('progress', (event: MessageEvent) => {
         const raw = parseSseProgress(event.data)
-        applyProgress(queueIdx, {
+        applyProgress(taskId, {
           status: raw.status,
           step: raw.step,
           percent: raw.percent,
@@ -181,24 +215,18 @@ export const useLibraryStore = defineStore('library', () => {
 
         if (raw.status === 'completed' || raw.status === 'failed' || raw.status === 'done') {
           es.close()
-          resolve()
+          clearTimeout(safetyTimer)
+          safeResolve()
         }
       })
 
       es.onerror = () => {
         es.close()
+        clearTimeout(safetyTimer)
         // SSE 失败，降级到轮询
         log.warn('SSE 连接失败，降级到轮询', { taskId })
-        void monitorViaPolling(taskId, queueIdx).then(resolve)
+        void monitorViaPolling(taskId).then(safeResolve)
       }
-
-      // 安全超时：10 分钟无终态则关闭
-      window.setTimeout(() => {
-        if (es.readyState !== EventSource.CLOSED) {
-          es.close()
-          resolve()
-        }
-      }, 600_000)
     })
   }
 
@@ -208,7 +236,7 @@ export const useLibraryStore = defineStore('library', () => {
     return new Promise((r) => window.setTimeout(r, ms))
   }
 
-  async function monitorViaPolling(taskId: string, queueIdx: number, maxFailures = 30): Promise<void> {
+  async function monitorViaPolling(taskId: string, maxFailures = 30): Promise<void> {
     let consecutiveFailures = 0
 
     while (true) {
@@ -217,12 +245,13 @@ export const useLibraryStore = defineStore('library', () => {
         consecutiveFailures = 0
 
         // 轮询没有 percent，基于 status 估算
+        const idx = findQueueIndexByTaskId(taskId)
         let estimatedPercent = 0
-        if (queueIdx < importQueue.value.length) {
-          estimatedPercent = Math.min(importQueue.value[queueIdx].percent + 8, 95)
+        if (idx !== -1) {
+          estimatedPercent = Math.min(importQueue.value[idx].percent + 8, 95)
         }
 
-        applyProgress(queueIdx, {
+        applyProgress(taskId, {
           status: status.status,
           step: status.current_step,
           percent: estimatedPercent,
@@ -233,11 +262,11 @@ export const useLibraryStore = defineStore('library', () => {
         if (status.status === 'completed' || status.status === 'failed') return
       } catch (err: unknown) {
         if (err instanceof ApiClientError && err.statusCode === 400) {
-          if (queueIdx < importQueue.value.length) {
-            const item = importQueue.value[queueIdx]
-            item.status = 'failed'
-            item.step = '导入失败'
-            item.error = err.message
+          const idx = findQueueIndexByTaskId(taskId)
+          if (idx !== -1) {
+            importQueue.value[idx].status = 'failed'
+            importQueue.value[idx].step = '导入失败'
+            importQueue.value[idx].error = err.message
           }
           log.warn('导入任务返回业务错误', { taskId, message: err.message })
           return
@@ -250,11 +279,11 @@ export const useLibraryStore = defineStore('library', () => {
         })
 
         if (consecutiveFailures >= maxFailures) {
-          if (queueIdx < importQueue.value.length) {
-            const item = importQueue.value[queueIdx]
-            item.status = 'failed'
-            item.step = '导入中断'
-            item.error = '导入似乎中断了，请尝试重新上传'
+          const idx = findQueueIndexByTaskId(taskId)
+          if (idx !== -1) {
+            importQueue.value[idx].status = 'failed'
+            importQueue.value[idx].step = '导入中断'
+            importQueue.value[idx].error = '导入似乎中断了，请尝试重新上传'
           }
           return
         }
@@ -285,22 +314,20 @@ export const useLibraryStore = defineStore('library', () => {
       if (item.status !== 'importing' && item.status !== 'pending') continue
 
       if (item.taskId) {
-        // 有 taskId，直接监控（优先 SSE）
         try {
-          await monitorViaSSE(item.taskId, i)
+          await monitorViaSSE(item.taskId)
         } catch {
           item.status = 'failed'
           item.step = '导入失败（刷新后恢复）'
         }
       } else if (item.file) {
-        // 无 taskId 但有 file，重新提交
         try {
           const result = await startImport(item.file)
           item.taskId = result.task_id
           item.status = 'importing'
           item.percent = 8
           item.step = '任务已创建，等待处理'
-          await monitorViaSSE(result.task_id, i)
+          await monitorViaSSE(result.task_id)
         } catch {
           item.status = 'failed'
           item.step = '导入失败'
@@ -415,7 +442,7 @@ export const useLibraryStore = defineStore('library', () => {
         item.step = '任务已创建，等待处理'
         persistQueue(importQueue.value)
         log.info('导入任务已创建', { taskId: result.task_id, fileName: files[i].name })
-        await monitorViaSSE(result.task_id, i)
+        await monitorViaSSE(result.task_id)
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : '导入失败'
         if (msg.includes('已导入过')) {
@@ -478,10 +505,11 @@ export const useLibraryStore = defineStore('library', () => {
 
     try {
       const result = await startImport(item.file)
+      item.taskId = result.task_id
       item.percent = 8
       item.step = '任务已创建，等待处理'
       log.info('重试导入', { taskId: result.task_id, fileName: item.fileName })
-      await monitorViaSSE(result.task_id, index)
+      await monitorViaSSE(result.task_id)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : '导入失败'
       item.status = 'failed'

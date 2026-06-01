@@ -104,6 +104,7 @@ function parseStringArray(val: unknown): string[] {
 }
 
 const VALID_PAPER_STATUSES = new Set<string>(['ready', 'failed'])
+const VALID_TASK_STATUSES = new Set<string>(['queued', 'running', 'completed', 'failed'])
 
 function parsePaperStatus(val: unknown): PaperStatus {
   if (typeof val === 'string' && VALID_PAPER_STATUSES.has(val)) return val as PaperStatus
@@ -170,7 +171,7 @@ export function parseImportStatus(raw: unknown): ImportStatus {
   return {
     task_id: typeof r.task_id === 'string' ? r.task_id : '',
     paper_id: typeof r.paper_id === 'string' ? r.paper_id : null,
-    status: typeof r.status === 'string' ? (r.status as ImportTaskStatus) : 'queued',
+    status: typeof r.status === 'string' && VALID_TASK_STATUSES.has(r.status) ? (r.status as ImportTaskStatus) : 'queued',
     current_step: typeof r.current_step === 'string' ? r.current_step : null,
     error_msg: typeof r.error_msg === 'string' ? r.error_msg : null,
     file_name: typeof r.file_name === 'string' ? r.file_name : null,
