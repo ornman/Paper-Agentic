@@ -39,7 +39,7 @@
 
       <template v-for="(block, index) in message.blocks" :key="index">
         <!-- Paragraph -->
-        <p v-if="block.type === 'paragraph'" class="block-paragraph" v-html="renderParagraphWithCitations(block.text)"></p>
+        <p v-if="block.type === 'paragraph'" class="block-paragraph" v-html="renderCitations(block.text)"></p>
 
         <!-- Heading -->
         <h2 v-else-if="block.type === 'heading' && block.level === 2" class="block-heading" v-html="renderInline(block.text)"></h2>
@@ -89,7 +89,7 @@
         </blockquote>
 
         <!-- Fallback: render as paragraph -->
-        <p v-else-if="block.text" class="block-paragraph" v-html="renderParagraphWithCitations(block.text)"></p>
+        <p v-else-if="block.text" class="block-paragraph" v-html="renderCitations(block.text)"></p>
       </template>
 
       <!-- Streaming cursor -->
@@ -147,7 +147,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import type { AssistantMessage } from '../types/message'
-import { renderInlineMarkdown } from '../utils/markdown-inline'
+import { renderInline, renderParagraphWithCitations } from '../utils/citation-renderer'
 
 const props = defineProps<{
   message: AssistantMessage
@@ -209,52 +209,9 @@ function formatThinkingTime(ms: number): string {
   return `${minutes}m${remaining}s`
 }
 
-/**
- * Insert inline citation markers into paragraph text.
- * Strategy: After sentence-ending punctuation (。！？；.!?) or at paragraph end,
- * insert clickable <sup>[N]</sup> markers. Sources are assigned round-robin,
- * max 2 markers per paragraph.
- */
-function renderParagraphWithCitations(text: string | undefined): string {
-  if (!text) return ''
-  if (numberedSources.value.length === 0) return renderInlineMarkdown(escapeHtml(text))
-
-  const escaped = renderInlineMarkdown(escapeHtml(text))
-
-  // Find all sentence-end positions
-  const sentenceEndRe = /[。！？；.!?]/g
-  const endPositions: number[] = []
-  let m: RegExpExecArray | null
-  while ((m = sentenceEndRe.exec(escaped)) !== null) {
-    endPositions.push(m.index + m[0].length)
-  }
-
-  if (endPositions.length === 0) {
-    // No sentence endings — place one marker at the end
-    const { source, num } = numberedSources.value[0]
-    const marker = `<sup class="cite-marker" data-source-id="${escapeHtml(source.id)}">[${num}]</sup>`
-    return escaped + marker
-  }
-
-  // Assign sources round-robin, max 2 per paragraph
-  const maxMarkers = Math.min(2, numberedSources.value.length)
-  const markers: Array<{ pos: number; html: string }> = []
-
-  for (let i = 0; i < maxMarkers; i++) {
-    const endIdx = endPositions[Math.min(i, endPositions.length - 1)]
-    const { source, num } = numberedSources.value[i % numberedSources.value.length]
-    const markerHtml = `<sup class="cite-marker" data-source-id="${escapeHtml(source.id)}">[${num}]</sup>`
-    markers.push({ pos: endIdx, html: markerHtml })
-  }
-
-  // Insert markers back-to-front to preserve positions
-  let result = escaped
-  for (let i = markers.length - 1; i >= 0; i--) {
-    const { pos, html } = markers[i]
-    result = result.slice(0, pos) + html + result.slice(pos)
-  }
-
-  return result
+/** Render paragraph with citation markers (delegates to utility) */
+function renderCitations(text: string | undefined): string {
+  return renderParagraphWithCitations(text, numberedSources.value)
 }
 
 /** Copy code block content to clipboard */
@@ -281,22 +238,6 @@ function handleFollowUp() {
   const firstParagraph = props.message.blocks.find((b) => b.type === 'paragraph' && b.text)
   const summary = firstParagraph?.text?.slice(0, 100) ?? ''
   emit('follow-up', summary)
-}
-
-/** Minimal HTML escaper so template v-html is safe for plain-text content */
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-}
-
-/** Render inline markdown (bold, italic, code) for headings, list items, and streaming text */
-function renderInline(text: string | undefined): string {
-  if (!text) return ''
-  return renderInlineMarkdown(escapeHtml(text))
 }
 
 /** Handle clicks on inline citation markers via event delegation */
