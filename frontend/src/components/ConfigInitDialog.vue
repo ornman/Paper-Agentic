@@ -174,12 +174,20 @@ async function handleSave() {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.config-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
   background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(4px);
 }
 
 .config-dialog {
-  width: 420px;
+  position: relative;
+  z-index: 1;
+  width: min(420px, calc(100vw - 48px));
   max-height: 85vh;
   margin: 16px;
   display: flex;
@@ -373,9 +381,9 @@ async function handleSave() {
 
 @media (max-width: 480px) {
   .config-dialog {
-    width: 100%;
+    width: calc(100vw - 16px);
     max-height: 100vh;
-    border-radius: 0;
+    margin: 8px;
   }
 }
 </style>
