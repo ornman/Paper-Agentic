@@ -72,8 +72,9 @@
               <button class="reader-btn" @click="loadPdf">重试</button>
             </div>
             <div v-else-if="pdfDocProxy" class="reader-pages" :class="{ 'reader-pages--double': viewMode === 'double' }">
+              <!-- 优化 4: 只渲染视口附近的 slot，而非全部页码 -->
               <div
-                v-for="pageNum in renderer.totalPages.value"
+                v-for="pageNum in renderableSlots"
                 :key="pageNum"
                 :data-page-number="pageNum"
                 class="reader-page-slot"
@@ -86,9 +87,9 @@
                   :scale="scale"
                   :container-width="containerWidth"
                   :highlight-text="pageNum === highlightTargetPage ? highlightText : undefined"
-                  :search-matches="getSearchMatchesForPage(pageNum)"
+                  :search-matches="searchMatchesByPage.get(pageNum)"
                   :annotation-adapter="annotationAdapter"
-                  @page-height="(h: number) => onPageHeight(pageNum, h)"
+                  @page-height="(h: number) => renderer.updatePageHeight(pageNum - 1, h)"
                 />
               </div>
             </div>
@@ -100,12 +101,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, shallowRef, watch, nextTick, onBeforeUnmount, computed, type Ref } from 'vue'
+import { ref, shallowRef, watch, nextTick, onBeforeUnmount, computed, provide, type Ref } from 'vue'
 import type { PDFDocumentProxy } from 'pdfjs-dist'
 import { usePdfjs } from '../composables/use-pdfjs'
 import { usePdfRenderer, type ViewMode } from '../composables/use-pdf-renderer'
 import { usePdfAnnotation } from '../composables/use-pdf-annotation'
-import { usePdfSearch, type SearchMatch } from '../composables/use-pdf-search'
+import { usePdfSearch } from '../composables/use-pdf-search'
 import { buildPaperOpenUrl } from '../services/library-api'
 import PdfPage from './pdf-reader/PdfPage.vue'
 import PdfToolbar from './pdf-reader/PdfToolbar.vue'
@@ -141,30 +142,49 @@ const outlineItems = ref<OutlineItem[]>([])
 const viewMode = ref<ViewMode>('continuous')
 
 // pdfjs-dist PDFDocumentProxy has JS private fields (#).
-// ref() creates a deep reactive Proxy that breaks private field access ("Cannot read from private field").
 // shallowRef() stores the raw object without proxying — Vue's recommended pattern for class instances.
 const pdfDocProxy = shallowRef<PDFDocumentProxy | null>(null) as Ref<PDFDocumentProxy | null>
 
 const renderer = usePdfRenderer(pdfDocProxy, scale, viewMode)
+
+// ── 通过 provide/inject 将缓存 API 传给 PdfPage ──
+provide('getCachedCanvas', renderer.getCachedCanvas)
+provide('setCachedCanvas', renderer.setCachedCanvas)
 
 const { adapter: annotationAdapter } = usePdfAnnotation(renderer.scrollToPage)
 
 // Search composable — pass reactive doc ref and scroll function
 const search = usePdfSearch(pdfDocProxy, renderer.scrollToPage)
 
-/** Compute per-page search matches for PdfPage's searchMatches prop */
-function getSearchMatchesForPage(pageNum: number): Array<{ charStart: number; charEnd: number; isCurrent: boolean }> | undefined {
-  if (!search.isOpen.value || search.results.value.length === 0) return undefined
-  const pageIndex = pageNum - 1 // 0-based
+// ── 优化 4: 搜索匹配预计算为 Map，避免模板中每页调用函数 ──
+const searchMatchesByPage = computed(() => {
+  if (!search.isOpen.value || search.results.value.length === 0) return new Map<number, Array<{ charStart: number; charEnd: number; isCurrent: boolean }>>()
+  const map = new Map<number, Array<{ charStart: number; charEnd: number; isCurrent: boolean }>>()
   const currentMatch = search.results.value[search.currentMatchIndex.value]
-  return search.results.value
-    .filter((m: SearchMatch) => m.pageIndex === pageIndex)
-    .map((m: SearchMatch) => ({
+  for (const m of search.results.value) {
+    const pageNum = m.pageIndex + 1
+    if (!map.has(pageNum)) map.set(pageNum, [])
+    map.get(pageNum)!.push({
       charStart: m.charStart,
       charEnd: m.charEnd,
       isCurrent: currentMatch != null && currentMatch.pageIndex === m.pageIndex && currentMatch.charStart === m.charStart,
-    }))
-}
+    })
+  }
+  return map
+})
+
+// ── 优化 4: DOM 虚拟化 — 只渲染视口附近的 slot ──
+const SLOT_BUFFER = 15
+const renderableSlots = computed(() => {
+  const total = renderer.totalPages.value
+  if (total === 0) return []
+  const center = renderer.currentPage.value
+  const start = Math.max(1, center - SLOT_BUFFER)
+  const end = Math.min(total, center + SLOT_BUFFER)
+  const slots: number[] = []
+  for (let i = start; i <= end; i++) slots.push(i)
+  return slots
+})
 
 usePdfKeyboard({
   active: computed(() => props.visible),
@@ -195,12 +215,6 @@ function handleEscape() {
     search.closeSearch()
   } else {
     emit('close')
-  }
-}
-
-function onPageHeight(pageNum: number, height: number) {
-  if (renderer.pageHeights.value[pageNum - 1] !== height) {
-    renderer.pageHeights.value[pageNum - 1] = height
   }
 }
 
@@ -289,7 +303,7 @@ watch(() => props.visible, async (visible) => {
     await loadPdf()
     await nextTick()
     if (scrollContainerRef.value && pdfDocProxy.value) {
-      // Register all page-slot elements with the renderer before setting up observer
+      // Register visible slot elements with the renderer
       const slots = scrollContainerRef.value.querySelectorAll<HTMLElement>('[data-page-number]')
       for (const slot of slots) {
         const pageNum = Number(slot.getAttribute('data-page-number'))
@@ -306,6 +320,8 @@ watch(() => props.visible, async (visible) => {
     annotationAdapter.setDocument(null)
     pdfDocProxy.value?.destroy()
     pdfDocProxy.value = null
+    renderer.cleanupAllPageProxies()
+    renderer.clearCanvasCache()
   }
 })
 

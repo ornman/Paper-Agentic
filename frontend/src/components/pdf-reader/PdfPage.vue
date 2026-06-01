@@ -8,10 +8,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, watch, onMounted, onBeforeUnmount, inject } from 'vue'
 import { TextLayer } from 'pdfjs-dist'
 import type { PDFDocumentProxy, PDFPageProxy, PageViewport } from 'pdfjs-dist'
 import type { AnnotationAdapter } from '../../composables/use-pdf-annotation'
+import type { CachedCanvas } from '../../composables/use-pdf-renderer'
 import 'pdfjs-dist/web/pdf_viewer.css'
 
 const PDF_TO_CSS_UNITS = 96 / 72
@@ -25,6 +26,19 @@ interface PdfTextItem {
   transform: number[]
   width: number
   height: number
+}
+
+/** Extract typed PdfTextItem[] from pdfjs TextContent */
+function extractTextItems(textContent: { items: Array<Record<string, unknown>> }): PdfTextItem[] {
+  return textContent.items
+    .filter((item: Record<string, unknown>) => 'str' in item)
+    .map((item: Record<string, unknown>) => ({
+      str: item.str as string,
+      transform: item.transform as number[],
+      width: item.width as number,
+      height: item.height as number,
+    }))
+    .filter((ti: PdfTextItem) => ti.str.length > 0)
 }
 
 /** A highlight rectangle in CSS-pixel coordinates relative to the page container */
@@ -72,6 +86,13 @@ let pageProxy: PDFPageProxy | null = null
 /** Shared viewport — computed once, reused by canvas and TextLayer */
 let currentViewport: PageViewport | null = null
 
+// ── 优化 3: 缓存 textContent，避免同页重复调用 ──
+let lastTextContent: Awaited<ReturnType<PDFPageProxy['getTextContent']>> | null = null
+
+/** Renderer 的缓存 API — 通过 inject 获取 */
+const getCachedCanvas = inject<((pageNum: number) => CachedCanvas | null) | null>('getCachedCanvas', null)
+const setCachedCanvas = inject<((pageNum: number, entry: CachedCanvas) => void) | null>('setCachedCanvas', null)
+
 async function render() {
   if (!canvasRef.value || !textLayerRef.value || !containerRef.value) return
 
@@ -84,7 +105,6 @@ async function render() {
     pageProxy = await props.pdfDoc.getPage(props.pageNumber)
     const dpr = window.devicePixelRatio || 1
 
-    // ── 改动 1.1: 共享 viewport，只计算一次 ──
     currentViewport = pageProxy.getViewport({ scale: props.scale * PDF_TO_CSS_UNITS })
     const canvas = canvasRef.value
     const container = containerRef.value
@@ -99,28 +119,52 @@ async function render() {
 
     emit('page-height', actualHeight)
 
-    // ── 改动 1.2: 在容器上设置 CSS 变量 ──
-    // pdf_viewer.css 的 TextLayer span 使用 --total-scale-factor 计算 font-size
     container.style.setProperty('--scale-factor', String(currentViewport.scale))
     container.style.setProperty('--user-unit', '1')
     container.style.setProperty('--total-scale-factor', String(currentViewport.scale))
 
-    // ── 改动 1.3: 显式设置容器尺寸 ──
     container.style.width = `${actualWidth}px`
     container.style.height = `${actualHeight}px`
 
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    ctx.save()
-    ctx.scale(dpr, dpr)
-    renderTask = pageProxy.render({
-      canvas,
-      canvasContext: ctx,
-      viewport: currentViewport,
-    })
-    await renderTask.promise
-    ctx.restore()
+    // ── 优化 2: 检查 Canvas 缓存 ──
+    const cached = getCachedCanvas?.(props.pageNumber)
+    if (cached && cached.width === actualWidth && cached.height === actualHeight) {
+      // 缓存命中：直接 drawImage，<1ms
+      ctx.save()
+      ctx.drawImage(cached.canvas, 0, 0, actualWidth, actualHeight)
+      ctx.restore()
+    } else {
+      // 缓存未命中：完整渲染
+      ctx.save()
+      ctx.scale(dpr, dpr)
+      renderTask = pageProxy.render({
+        canvas,
+        canvasContext: ctx,
+        viewport: currentViewport,
+      })
+      await renderTask.promise
+      ctx.restore()
+
+      // 渲染后存入缓存（利用 OffscreenCanvas）
+      try {
+        const offscreen = new OffscreenCanvas(actualWidth * dpr, actualHeight * dpr)
+        const offCtx = offscreen.getContext('2d')
+        if (offCtx) {
+          offCtx.drawImage(canvas, 0, 0)
+          setCachedCanvas?.(props.pageNumber, {
+            canvas: offscreen,
+            width: actualWidth,
+            height: actualHeight,
+            scale: props.scale,
+          })
+        }
+      } catch {
+        // OffscreenCanvas 不可用时静默跳过缓存
+      }
+    }
 
     await renderTextLayer()
     await renderAnnotationLayer()
@@ -138,15 +182,17 @@ async function renderTextLayer() {
   // Clear previous text layer
   textLayerRef.value.innerHTML = ''
 
-  const textContent = await pageProxy.getTextContent()
+  // 优化 3: 缓存 textContent 供后续 highlightOnPage 复用
+  lastTextContent = await pageProxy.getTextContent()
 
   const textLayer = new TextLayer({
-    textContentSource: textContent,
+    textContentSource: lastTextContent,
     container: textLayerRef.value,
     viewport: currentViewport,
   })
   await textLayer.render()
 
+  // 渲染 textLayer 后直接调高亮（复用 lastTextContent）
   if (props.highlightText || (props.highlightRects && props.highlightRects.length > 0) || (props.searchMatches && props.searchMatches.length > 0)) {
     highlightOnPage()
   }
@@ -169,12 +215,6 @@ async function renderAnnotationLayer() {
 
 /**
  * Compute precise highlight rectangles for a text match within a set of PDF TextItems.
- *
- * Algorithm:
- * 1. Build char-offset → TextItem mapping
- * 2. Locate the match range [matchStart, matchEnd) in the concatenated text
- * 3. For each TextItem overlapping the match range, compute its CSS bounding rect
- *    using the PDF transform + viewport coordinate conversion
  */
 function computeHighlightRects(
   items: PdfTextItem[],
@@ -182,7 +222,6 @@ function computeHighlightRects(
   matchEnd: number,
   viewport: PageViewport,
 ): HighlightRect[] {
-  // Build char-offset ranges for each TextItem
   let charOffset = 0
   const itemRanges: { item: PdfTextItem; start: number; end: number }[] = []
   for (const item of items) {
@@ -194,27 +233,19 @@ function computeHighlightRects(
   const rects: HighlightRect[] = []
 
   for (const { item, start, end } of itemRanges) {
-    // Check if this item overlaps with the match range
     if (end <= matchStart || start >= matchEnd) continue
 
-    // How much of this item's text falls within the match
     const overlapStart = Math.max(start, matchStart) - start
     const overlapEnd = Math.min(end, matchEnd) - start
     const overlapRatio = (overlapEnd - overlapStart) / item.str.length
 
-    // Transform: [scaleX, skewY, skewX, scaleY, tx, ty]
-    // tx/ty are in PDF coordinate space (origin bottom-left)
     const [, , , d, tx, ty] = item.transform
     const [cssX, cssYFlipped] = viewport.convertToViewportPoint(tx, ty)
-    // convertToViewportPoint flips Y so origin is top-left;
-    // the returned Y is the *top* of the text line
     const fontSize = Math.abs(d) * viewport.scale
     const cssY = cssYFlipped - fontSize
 
-    // Width proportional to the overlapping portion of the text
     const fullItemWidth = item.width * viewport.scale
     const rectWidth = fullItemWidth * overlapRatio
-    // Offset X by the portion before the overlap
     const rectX = cssX + fullItemWidth * (overlapStart / item.str.length)
 
     rects.push({
@@ -261,14 +292,13 @@ function renderHighlightRects(rects: HighlightRect[], autoFade: boolean) {
   }
 }
 
-async function highlightOnPage() {
+function highlightOnPage() {
   if (!containerRef.value || !pageProxy || !currentViewport) return
 
   clearHighlightRects()
 
   // Phase 4 search mode: use pre-computed rects
   if (props.highlightRects && props.highlightRects.length > 0) {
-    // Mark the "current" match index
     const rects = props.highlightRects
     for (let i = 0; i < rects.length; i++) {
       const r = rects[i]
@@ -286,21 +316,13 @@ async function highlightOnPage() {
     return
   }
 
+  // 优化 3: 复用 lastTextContent，避免重复调用 getTextContent()
   // Ctrl+F search mode: compute rects from searchMatches (char offsets)
   if (props.searchMatches && props.searchMatches.length > 0) {
-    const textContent = await pageProxy.getTextContent()
-    const textItems: PdfTextItem[] = textContent.items
-      .filter((item) => 'str' in item)
-      .map((item) => {
-        const ti = item as unknown as PdfTextItem
-        return {
-          str: ti.str,
-          transform: ti.transform,
-          width: ti.width,
-          height: ti.height,
-        }
-      })
-      .filter((ti) => ti.str.length > 0)
+    const textContent = lastTextContent
+    if (!textContent) return
+
+    const textItems = extractTextItems(textContent)
 
     for (const match of props.searchMatches) {
       const rects = computeHighlightRects(textItems, match.charStart, match.charEnd, currentViewport)
@@ -323,26 +345,16 @@ async function highlightOnPage() {
   // Citation highlight mode: compute rects from highlightText
   if (!props.highlightText) return
 
-  const textContent = await pageProxy.getTextContent()
-  const textItems: PdfTextItem[] = textContent.items
-    .filter((item) => 'str' in item)
-    .map((item) => {
-      const ti = item as unknown as PdfTextItem
-      return {
-        str: ti.str,
-        transform: ti.transform,
-        width: ti.width,
-        height: ti.height,
-      }
-    })
-    .filter((ti) => ti.str.length > 0)
+  const textContent = lastTextContent
+  if (!textContent) return
+
+  const textItems = extractTextItems(textContent)
   const fullText = textItems.map((item) => item.str).join('')
 
   const searchStr = props.highlightText.trim()
   const idx = fullText.indexOf(searchStr)
 
   if (idx === -1) {
-    // No match: flash border to indicate the page was targeted but text not found
     containerRef.value.classList.add('pdf-page-flash')
     setTimeout(() => containerRef.value?.classList.remove('pdf-page-flash'), 2000)
     return
@@ -356,12 +368,23 @@ onMounted(() => render())
 
 watch(
   () => [props.pdfDoc, props.pageNumber] as const,
-  () => render(),
+  () => {
+    lastTextContent = null
+    render()
+  },
 )
 
+// ── 优化 6: 缩放防抖 150ms ──
+let scaleDebounce: ReturnType<typeof setTimeout> | null = null
 watch(
   () => props.scale,
-  () => render(),
+  () => {
+    if (scaleDebounce) clearTimeout(scaleDebounce)
+    scaleDebounce = setTimeout(() => {
+      lastTextContent = null
+      render()
+    }, 150)
+  },
 )
 
 // Re-render highlights when search rects or search matches change (without full re-render)
@@ -371,12 +394,15 @@ watch(
 )
 
 onBeforeUnmount(() => {
+  if (scaleDebounce) clearTimeout(scaleDebounce)
   if (renderTask) {
     renderTask.cancel()
     renderTask = null
   }
   currentViewport = null
+  lastTextContent = null
   pageProxy?.cleanup()
+  pageProxy = null
 })
 </script>
 
@@ -444,7 +470,7 @@ onBeforeUnmount(() => {
 </style>
 
 <!--
-  改动 1.4: CSS 防护
+  CSS 防护
   非 scoped — pdf_viewer.css 的选择器（如 .pdfViewer .page）需要匹配这些类名。
   这里用 .pdf-page 作为自定义容器类名，提供 pdf_viewer.css 期望的 CSS 变量回退。
 -->
